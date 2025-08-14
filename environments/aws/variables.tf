@@ -19,10 +19,10 @@ variable "cloud_provider" {
   default     = "aws"
 }
 
-variable "name" {
-  description = "The name of the VPC"
+variable "vpc_name" {
+  description = "Name of the VPC"
   type        = string
-  default     = "my-vpc"
+  default     = "multi-cloud-vpc"
 }
 
 variable "public_subnet_cidrs" {
@@ -36,3 +36,13 @@ variable "private_subnet_cidrs" {
   type        = string
   default     = "10.0.2.0/24"
 }
+
+variable "aws_kms_alias" {
+  description = "KMS key alias for encryption"
+  type        = string
+  default     = "alias/refonte-multicloud-kms-key"
+}
+
+
+
+
