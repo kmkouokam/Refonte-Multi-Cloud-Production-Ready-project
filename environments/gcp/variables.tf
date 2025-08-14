@@ -6,7 +6,7 @@ variable "gcp_region" {
 variable "availability_zone" {
   description = "The availability zone to deploy resources in"
   type        = string
-  default     = "us-central1-a"
+  default     = "us-central1"
 }
 variable "vpc_cidr" {
   description = "The CIDR block for the VPC"
@@ -28,14 +28,14 @@ variable "cloud_provider" {
   type        = string
   default     = "gcp"
 }
-variable "name" {
+variable "vpc_name" {
   description = "Name of the VPC"
   type        = string
-  default     = "my-vpc-refonte"
+  default     = "multi-cloud-vpc"
 }
 
 variable "gcp_project_id" {
-  default = "prod-251618"
+  default = "prod-251618-359501"
 }
 
 
@@ -55,4 +55,16 @@ variable "gcp_subnetwork" {
   type        = string
   default     = null
 }
- 
+
+variable "kms_key_name" {
+  description = "KMS key name for encryption"
+  type        = string
+  default     = "refonte-multicloud-kms-key"
+}
+
+variable "gcp_service_account_email" {
+  description = "GCP service account email for IAM bindings"
+  type        = string
+  default     = "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
+}
+
