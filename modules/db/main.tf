@@ -4,6 +4,14 @@ locals {
 }
 
 # ------------------------
+# Random suffix (shared by AWS & GCP resources)
+# ------------------------
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
+
+# ------------------------
 # Enable Service Networking API (GCP only)
 # ------------------------
 resource "google_project_service" "servicenetworking" {
@@ -96,4 +104,4 @@ resource "google_sql_database" "custom" {
   name     = var.db_name
   instance = google_sql_database_instance.postgres[0].name
 }
- 
+
