@@ -44,5 +44,38 @@ variable "aws_kms_alias" {
 }
 
 
+variable "db_name" {
+  description = "Database name"
+  type        = string
+  default     = "mydb"
+}
+
+
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  default     = "postgres"
+}
+
+variable "db_instance_class" {
+  description = "Instance type / machine type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "db_storage_size" {
+  description = "Database storage size in GB"
+  type        = number
+  default     = 20
+}
+
+# variable "vpc_security_group_ids" {
+#   description = "Security group IDs or network for DB access"
+#   type        = list(string)
+#   default     = []
+# }
+
+
 
 

@@ -18,41 +18,11 @@ module "k8s" {
   public_subnet_ids = module.vpc.public_subnet_ids
 }
 
-# Get current public IP
-data "http" "my_ip" {
-  url = "https://api.ipify.org"
-}
-
-##########################
-# GCP Prereqs (APIs  )
-##########################
-resource "google_project_service" "container_api" {
-  # count   = local.is_gcp ? 1 : 0
-  project = var.gcp_project_id
-  service = "container.googleapis.com"
-
-  disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies  
-  disable_on_destroy         = true
-}
-
-resource "google_project_service" "compute_api" {
-  # count                      = local.is_gcp ? 1 : 0
-  project                    = var.gcp_project_id
-  service                    = "compute.googleapis.com"
-  disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
-  disable_on_destroy         = true
-}
-
-# To enable the GCP API for secret manager
-resource "google_project_service" "secret_manager" {
-  project = var.gcp_project_id
-  service = "secretmanager.googleapis.com"
-}
 
 module "gcp_security" {
-  source        = "../../modules/security"
-  cloud         = "gcp"
-  allowed_cidrs = ["${chomp(data.http.my_ip.response_body)}/32"]
+  source = "../../modules/security"
+  # cloud         = "gcp"
+  allowed_cidrs = ["0.0.0.0/0"]
   vpc_name      = var.vpc_name
   gcp_region    = var.gcp_region
   kms_key_name  = var.kms_key_name
@@ -60,5 +30,20 @@ module "gcp_security" {
     "roles/compute.networkAdmin" = ["serviceAccount:${var.gcp_service_account_email}"]
   }
 }
+
+module "gcp_db" {
+  source            = "../../modules/db"
+  cloud_provider    = "gcp"
+  db_name           = var.db_name
+  db_username       = var.db_username
+  db_instance_class = var.db_instance_class # GCP machine type
+  db_storage_size   = var.db_storage_size
+
+  region            = var.gcp_region
+  db_password       = module.gcp_security.db_password
+  gcp_vpc_self_link = module.vpc.gcp_vpc_self_link
+  depends_on        = [module.gcp_security, module.vpc, module.k8s]
+}
+
 
 

@@ -17,10 +17,7 @@ module "k8s" {
 
 
 
-# Get your current public IP
-data "http" "my_ip" {
-  url = "https://api.ipify.org"
-}
+
 
 # How this works:
 
@@ -34,12 +31,27 @@ data "http" "my_ip" {
 
 # Security module
 module "aws_security" {
-  source        = "../../modules/security"
-  cloud         = "aws"
+  source = "../../modules/security"
+  # cloud         = "aws"
   aws_iam_roles = ["eksNodeRole", "appRole"]
-  allowed_cidrs = ["${chomp(data.http.my_ip.response_body)}/32"]
+  allowed_cidrs = ["0.0.0.0/0"]
 
   kms_key_name = var.aws_kms_alias
+}
+
+
+module "aws_db" {
+  source                 = "../../modules/db"
+  cloud_provider         = var.cloud_provider
+  db_name                = var.db_name
+  db_username            = var.db_username
+  db_instance_class      = var.db_instance_class
+  db_storage_size        = var.db_storage_size
+  vpc_security_group_ids = [module.aws_security.security_group_id] # private network
+  region                 = var.aws_region
+  db_password            = module.aws_security.db_password
+  depends_on             = [module.aws_security, module.vpc]
+
 }
 
 
