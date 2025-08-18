@@ -4,36 +4,44 @@ locals {
 }
 
 # ------------------------
-# Enable Service Networking API
+# Enable Service Networking API (GCP only)
 # ------------------------
 resource "google_project_service" "servicenetworking" {
+  count   = local.is_gcp ? 1 : 0
   project = var.gcp_project_id
   service = "servicenetworking.googleapis.com"
 }
 
 # ------------------------
-# Reserve a private IP range for Cloud SQL
+# Reserve a private IP range for Cloud SQL (GCP only)
 # ------------------------
 resource "google_compute_global_address" "private_ip_range" {
-  name          = "google-managed-services-${var.vpc_name}"
+  count         = local.is_gcp ? 1 : 0
+  name          = "google-managed-services-${var.vpc_name}-${random_id.suffix.hex}"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
   network       = var.gcp_vpc_self_link
 }
 
-# Create a private service connection for Cloud SQL:VPC Peering connection
+# ------------------------
+# Create Private Service Connection for Cloud SQL (VPC Peering)
+# ------------------------
 resource "google_service_networking_connection" "private_vpc_connection" {
   count = local.is_gcp ? 1 : 0
 
   network                 = var.gcp_vpc_self_link
   service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_range.name]
-  depends_on              = [google_project_service.servicenetworking]
+  reserved_peering_ranges = [google_compute_global_address.private_ip_range[0].name]
+
+  depends_on = [
+    google_project_service.servicenetworking,
+    google_compute_global_address.private_ip_range
+  ]
 }
 
 # ----------------------
-# AWS RDS PostgreSQL
+# AWS RDS PostgreSQL (AWS only)
 # ----------------------
 resource "aws_db_instance" "postgres" {
   count                  = local.is_aws ? 1 : 0
@@ -47,15 +55,14 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = var.vpc_security_group_ids
   skip_final_snapshot    = true
   publicly_accessible    = false
-  depends_on             = [google_service_networking_connection.private_vpc_connection]
 }
 
 # ----------------------
-# GCP Cloud SQL PostgreSQL
+# GCP Cloud SQL PostgreSQL (GCP only)
 # ----------------------
 resource "google_sql_database_instance" "postgres" {
   count            = local.is_gcp ? 1 : 0
-  name             = var.db_name
+  name             = "${var.db_name}-${random_id.suffix.hex}"
   database_version = "POSTGRES_15"
   region           = var.region
 
@@ -63,11 +70,15 @@ resource "google_sql_database_instance" "postgres" {
     tier = var.db_instance_class
     ip_configuration {
       ipv4_enabled    = true
-      private_network = var.gcp_vpc_self_link # for GCP private network
+      private_network = var.gcp_vpc_self_link
     }
   }
+
   deletion_protection = false
-  depends_on          = [google_service_networking_connection.private_vpc_connection]
+
+  depends_on = [
+    google_service_networking_connection.private_vpc_connection
+  ]
 }
 
 resource "google_sql_user" "postgres_user" {
@@ -78,10 +89,11 @@ resource "google_sql_user" "postgres_user" {
 }
 
 # ------------------------
-# Optional Custom Database
+# Optional Custom Database (GCP only)
 # ------------------------
 resource "google_sql_database" "custom" {
   count    = local.is_gcp && var.create_custom_db ? 1 : 0
   name     = var.db_name
   instance = google_sql_database_instance.postgres[0].name
 }
+ 
