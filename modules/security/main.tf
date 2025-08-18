@@ -99,7 +99,7 @@ resource "aws_kms_key" "encryption" {
 # Optional alias for easy reference
 resource "aws_kms_alias" "encryption_alias" {
   count         = local.is_aws && var.kms_key_name != "" ? 1 : 0
-  name          = "alias/${var.project}-${var.env}-${var.kms_key_name}" # prevent collisions
+  name_prefix   = "alias/${var.project}-${var.env}-${var.kms_key_name}" # prevent collisions
   target_key_id = aws_kms_key.encryption[0].key_id
 }
 
@@ -149,7 +149,7 @@ locals {
 # # -------------------------
 resource "aws_secretsmanager_secret" "db_password" {
   count       = local.is_aws ? 1 : 0
-  name        = "${var.project}-${var.env}-db-password" #local.secret_name_final
+  name_prefix = "${var.project}-${var.env}-db-password" #local.secret_name_final
   description = "Database password for environment"
   kms_key_id  = length(aws_kms_key.encryption) > 0 ? aws_kms_key.encryption[0].id : null
 

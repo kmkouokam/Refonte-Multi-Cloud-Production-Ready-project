@@ -96,12 +96,15 @@ resource "google_project_service" "container_api" {
   disable_on_destroy         = true
 }
 
+
 resource "google_project_service" "compute_api" {
   count                      = local.is_gcp ? 1 : 0
   project                    = var.project_id
   service                    = "compute.googleapis.com"
   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
-  disable_on_destroy         = true
+  disable_on_destroy         = false
+  depends_on = [google_container_cluster.gcp_cluster,
+  google_container_node_pool.primary_nodes]
 }
 
 # To enable the GCP API for secret manager

@@ -25,7 +25,7 @@ resource "google_project_service" "servicenetworking" {
 # ------------------------
 resource "google_compute_global_address" "private_ip_range" {
   count         = local.is_gcp ? 1 : 0
-  name          = "google-managed-services-${var.vpc_name}-${random_id.suffix.hex}"
+  name          = "${var.vpc_name}-private-ip-range"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
@@ -51,6 +51,13 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 # ----------------------
 # AWS RDS PostgreSQL (AWS only)
 # ----------------------
+
+resource "aws_db_subnet_group" "db_subnet_group" {
+  count       = local.is_aws ? 1 : 0
+  name        = "${var.env}-db-subnet-group"
+  description = "Subnet group for RDS"
+  subnet_ids  = var.db_subnet_ids
+}
 resource "aws_db_instance" "postgres" {
   count                  = local.is_aws ? 1 : 0
   allocated_storage      = var.db_storage_size
@@ -61,6 +68,7 @@ resource "aws_db_instance" "postgres" {
   username               = var.db_username
   password               = var.db_password
   vpc_security_group_ids = var.vpc_security_group_ids
+  db_subnet_group_name   = aws_db_subnet_group.db_subnet_group[0].name
   skip_final_snapshot    = true
   publicly_accessible    = false
 }

@@ -65,3 +65,16 @@ variable "create_custom_db" {
   type        = bool
   default     = true
 }
+
+variable "db_subnet_ids" {
+  description = "List of private subnet IDs for DB instances"
+  type        = list(string)
+  default     = []
+}
+
+variable "env" {
+  description = "Environment name (e.g., dev, prod)"
+  type        = string
+  default     = "prod"
+
+}
