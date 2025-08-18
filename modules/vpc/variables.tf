@@ -26,7 +26,7 @@ variable "availability_zones" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
-  default     = "us-west1"
+  default     = "us-east1"
 }
 
 # Shared
@@ -41,4 +41,11 @@ variable "private_subnets" {
   type        = list(string)
   default     = ["10.0.11.0/24", "10.0.12.0/24"]
 }
+
+variable "gcp_vpc_self_link" {
+  description = "GCP VPC self_link for private Cloud SQL network"
+  type        = string
+  default     = null
+}
+
 

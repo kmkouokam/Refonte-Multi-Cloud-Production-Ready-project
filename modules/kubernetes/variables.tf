@@ -31,7 +31,7 @@ variable "region" {
 variable "project_id" {
   description = "GCP project ID (only for GCP)"
   type        = string
-  default     = "prod-251618"
+  default     = "prod-251618-359501"
 }
 
 
@@ -40,4 +40,22 @@ variable "public_subnet_ids" {
   description = "AWS public subnet IDs for EKS"
   type        = list(string)
   default     = []
+}
+
+variable "gcp_project_id" {
+  description = "GCP project ID (only for GCP)"
+  type        = string
+  default     = "prod-251618-359501"
+}
+
+variable "vpc_name" {
+  description = "GCP VPC name (only for GCP)"
+  type        = string
+  default     = "multi-cloud-vpc"
+}
+
+variable "gcp_vpc_self_link" {
+  description = "GCP VPC self_link for private Cloud SQL network"
+  type        = string
+  default     = null
 }

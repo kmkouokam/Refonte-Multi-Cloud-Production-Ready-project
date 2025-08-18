@@ -81,9 +81,9 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
   }
 }
 
-################
-# GCP GKE Setup
-################
+###############
+#GCP GKE Setup
+###############
 ##########################
 # GCP Prereqs (APIs + IAM)
 ##########################
@@ -91,19 +91,33 @@ resource "google_project_service" "container_api" {
   count   = local.is_gcp ? 1 : 0
   project = var.project_id
   service = "container.googleapis.com"
+
+  disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies  
+  disable_on_destroy         = true
 }
 
 resource "google_project_service" "compute_api" {
-  count   = local.is_gcp ? 1 : 0
-  project = var.project_id
-  service = "compute.googleapis.com"
+  count                      = local.is_gcp ? 1 : 0
+  project                    = var.project_id
+  service                    = "compute.googleapis.com"
+  disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
+  disable_on_destroy         = true
 }
+
+# To enable the GCP API for secret manager
+resource "google_project_service" "secret_manager" {
+  project = var.gcp_project_id
+  service = "secretmanager.googleapis.com"
+}
+
+
+
 
 resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
   account_id   = "${var.cluster_name}-gke-sa"
   display_name = "GKE Service Account"
-  depends_on   = [google_project_service.compute_api, google_project_service.container_api]
+  # depends_on   = [google_project_service.compute_api, google_project_service.container_api]
 }
 
 # Bind GKE service account to required roles
@@ -128,6 +142,8 @@ resource "google_container_cluster" "gcp_cluster" {
   location   = var.region
   network    = var.gcp_network
   subnetwork = var.gcp_subnetwork
+
+  deletion_protection = false
 
   remove_default_node_pool = true
   initial_node_count       = 1

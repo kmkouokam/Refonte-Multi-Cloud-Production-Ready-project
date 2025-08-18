@@ -1,6 +1,8 @@
-variable "cloud" {
-  description = "Cloud provider: aws or gcp"
+variable "env" {
+  description = "Environment name (e.g., dev, staging, prod)"
   type        = string
+  default     = "prod"
+
 }
 
 variable "aws_iam_roles" {
@@ -50,7 +52,7 @@ variable "vpc_name" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
-  default     = "us-central1-a"
+  default     = "us-east1"
 }
 
 variable "aws_kms_alias" {
@@ -63,4 +65,11 @@ variable "project" {
   description = "Project or environment name"
   type        = string
   default     = "refonte-project"
+}
+
+
+variable "secret_name" {
+  type        = string
+  description = "Name of the secret"
+  default     = "/production/mysql/creds"
 }
