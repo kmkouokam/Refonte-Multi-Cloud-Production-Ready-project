@@ -18,7 +18,11 @@ resource "google_project_service" "servicenetworking" {
   count   = local.is_gcp ? 1 : 0
   project = var.gcp_project_id
   service = "servicenetworking.googleapis.com"
+
+  # Ensure API stays enabled
+  disable_on_destroy = false
 }
+
 
 # ------------------------
 # Reserve a private IP range for Cloud SQL (GCP only)
@@ -44,8 +48,14 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 
   depends_on = [
     google_project_service.servicenetworking,
-    google_compute_global_address.private_ip_range
+    # google_compute_global_address.private_ip_range
   ]
+
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes  = all
+  }
+
 }
 
 # ----------------------
@@ -62,7 +72,7 @@ resource "aws_db_instance" "postgres" {
   count                  = local.is_aws ? 1 : 0
   allocated_storage      = var.db_storage_size
   engine                 = "postgres"
-  engine_version         = "15.3"
+  engine_version         = "17"
   instance_class         = var.db_instance_class
   db_name                = var.db_name
   username               = var.db_username

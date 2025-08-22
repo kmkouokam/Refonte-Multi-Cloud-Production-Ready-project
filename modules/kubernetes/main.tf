@@ -89,22 +89,32 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
 ##########################
 resource "google_project_service" "container_api" {
   count   = local.is_gcp ? 1 : 0
-  project = var.project_id
+  project = var.gcp_project_id
   service = "container.googleapis.com"
 
   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies  
-  disable_on_destroy         = true
+  disable_on_destroy         = false
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = all
+  }
 }
 
 
 resource "google_project_service" "compute_api" {
   count                      = local.is_gcp ? 1 : 0
-  project                    = var.project_id
+  project                    = var.gcp_project_id
   service                    = "compute.googleapis.com"
   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
   disable_on_destroy         = false
   depends_on = [google_container_cluster.gcp_cluster,
   google_container_node_pool.primary_nodes]
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = all
+  }
 }
 
 # To enable the GCP API for secret manager
@@ -131,7 +141,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
     "roles/compute.viewer",
     "roles/iam.serviceAccountUser"
   ]) : []
-  project = var.project_id
+  project = var.gcp_project_id
   role    = each.key
 
   members = [

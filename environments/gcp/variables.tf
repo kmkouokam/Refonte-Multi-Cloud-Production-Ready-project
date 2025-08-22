@@ -3,26 +3,38 @@ variable "gcp_region" {
   type        = string
   default     = "us-east1"
 }
+
 variable "availability_zone" {
   description = "The availability zone to deploy resources in"
   type        = string
-  default     = "us-central1"
+  default     = "us-central1-a"
 }
+
 variable "vpc_cidr" {
   description = "The CIDR block for the VPC"
   type        = string
   default     = "10.0.0.0/16"
 }
+
+variable "gcp_subnetwork" {
+  description = "Optional: existing GCP subnetwork name. If null, a new subnet will be created using CIDR blocks."
+  type        = string
+  default     = null
+}
+
 variable "public_subnet_cidr" {
-  description = "The CIDR block for the public subnet"
-  type        = string
-  default     = "10.0.1.0/24"
+  description = "CIDR blocks for public subnets (used only if creating new subnets)"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
+
 variable "private_subnet_cidr" {
-  description = "The CIDR block for the private subnet"
-  type        = string
-  default     = "10.0.2.0/24"
+  description = "CIDR blocks for private subnets (used only if creating new subnets)"
+  type        = list(string)
+  default     = ["10.0.3.0/24", "10.0.4.0/24"]
 }
+
+
 variable "cloud_provider" {
   description = "Cloud provider to use (aws or gcp)"
   type        = string
@@ -35,26 +47,20 @@ variable "vpc_name" {
 }
 
 variable "gcp_project_id" {
-  default = "prod-251618-359501"
+  description = "GCP Project ID"
+  default     = "prod-251618-359501"
 }
 
 
 
 variable "gcp_credentials_file" {
-  default = "../../mygcp-creds.json"
+  description = "Path to the GCP credentials JSON file"
+  default     = "../../mygcp-creds.json"
 }
 
-variable "gcp_network" {
-  description = "GCP VPC network name"
-  type        = string
-  default     = null
-}
 
-variable "gcp_subnetwork" {
-  description = "GCP subnetwork name"
-  type        = string
-  default     = null
-}
+
+
 
 variable "kms_key_name" {
   description = "KMS key name for encryption"
@@ -72,7 +78,13 @@ variable "gcp_service_account_email" {
 variable "db_name" {
   description = "Database name"
   type        = string
-  default     = "mydb"
+  default     = "postgresdb"
+}
+
+variable "create_custom_db" {
+  description = "Whether to create a custom database in addition to the default"
+  type        = bool
+  default     = true
 }
 
 
@@ -95,14 +107,45 @@ variable "db_storage_size" {
   default     = 20
 }
 
-# variable "vpc_security_group_ids" {
-#   description = "Security group IDs or network for DB access"
-#   type        = list(string)
-#   default     = []
-# }
+variable "gcp_existing_private_ip_range" {
+  description = "Existing allocated IP range for VPC peering"
+  type        = string
+  default     = "google-managed-services-multi-cloud-vpc"
+}
+
 
 variable "gcp_vpc_self_link" {
   description = "GCP VPC self_link for private Cloud SQL network"
   type        = string
   default     = null
 }
+
+variable "env" {
+  description = "Environment name (e.g., dev, staging, prod)"
+  type        = string
+  default     = "prod"
+
+}
+
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "refonte-project"
+
+}
+
+
+
+variable "allowed_cidrs" {
+  description = "List of CIDRs allowed for SSH/HTTPS"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+# ASN (Autonomous System Number) to use in Border Gateway Protocol (BGP)
+variable "gcp_router_asn" {
+  description = "GCP Cloud Router ASN"
+  type        = number
+  default     = 65001
+}
+

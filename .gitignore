@@ -1,0 +1,40 @@
+# Local .terraform directories (state management, plugins, etc.)
+**/.terraform/
+.terraform.lock.hcl
+*.tfstate*
+
+# Terraform state files (often contain sensitive info)
+terraform.tfstate
+terraform.tfstate.backup
+
+# Crash logs
+crash.log
+
+# Variables that might hold secrets (optional if you use tfvars for secrets)
+*.tfvars
+
+# Sensitive override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+mygcp-creds.json
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Output logs or temp files
+*.log
+*.bak
+*.tmp
+
+# OS files
+Thumbs.db
+ehthumbs.db
+
+# Windows PowerShell history file
+ConsoleHost_history.txt

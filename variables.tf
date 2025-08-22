@@ -6,7 +6,7 @@ variable "aws_region" {
 variable "gcp_region" {
   description = "The GCP region to deploy resources in"
   type        = string
-  default     = "us-west1-a"
+  default     = "us-east1"
 }
 variable "gcp_credentials_file" {
   description = "Path to the GCP credentials file"
@@ -17,11 +17,21 @@ variable "gcp_credentials_file" {
 variable "gcp_project_id" {
   description = "GCP Project ID"
   type        = string
-  default     = "prod-251618"
+  default     = "prod-251618-359501"
 }
 
-variable "cloud_provider" {
-  description = "Cloud provider to use (aws or gcp)"
+
+variable "vpn_name" {
+  description = "Name of the resources"
   type        = string
-  default     = "aws"
+  default     = "multi-cloud-vpn"
 }
+
+variable "vpn_shared_secret" {
+  description = "Shared secret for the VPN connection"
+  type        = string
+  default     = null
+
+}
+
+

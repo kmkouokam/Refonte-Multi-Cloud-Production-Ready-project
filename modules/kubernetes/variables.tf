@@ -7,7 +7,7 @@ variable "cloud_provider" {
 variable "cluster_name" {
   description = "Kubernetes cluster name"
   type        = string
-  default     = "multi-cloud-cluster"
+
 }
 
 
@@ -23,15 +23,10 @@ variable "gcp_subnetwork" {
   default     = null
 }
 
+
 variable "region" {
   description = "Region for cluster"
   type        = string
-}
-
-variable "project_id" {
-  description = "GCP project ID (only for GCP)"
-  type        = string
-  default     = "prod-251618-359501"
 }
 
 
@@ -45,13 +40,13 @@ variable "public_subnet_ids" {
 variable "gcp_project_id" {
   description = "GCP project ID (only for GCP)"
   type        = string
-  default     = "prod-251618-359501"
+
 }
 
 variable "vpc_name" {
   description = "GCP VPC name (only for GCP)"
   type        = string
-  default     = "multi-cloud-vpc"
+
 }
 
 variable "gcp_vpc_self_link" {

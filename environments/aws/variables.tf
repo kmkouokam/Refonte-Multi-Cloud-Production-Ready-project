@@ -3,6 +3,9 @@ variable "aws_region" {
   type        = string
   default     = "us-east-1"
 }
+
+
+
 variable "availability_zone" {
   description = "The availability zone to deploy resources in"
   type        = string
@@ -19,6 +22,12 @@ variable "cloud_provider" {
   default     = "aws"
 }
 
+variable "availability_zones" {
+  description = "List of availability zones for AWS"
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
+}
+
 variable "vpc_name" {
   description = "Name of the VPC"
   type        = string
@@ -27,17 +36,17 @@ variable "vpc_name" {
 
 variable "public_subnet_cidrs" {
   description = "The CIDR block for the public subnet"
-  type        = string
-  default     = "10.0.1.0/24"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
   description = "The CIDR block for the private subnet"
-  type        = string
-  default     = "10.0.2.0/24"
+  type        = list(string)
+  default     = ["10.0.3.0/24", "10.0.4.0/24"]
 }
 
-variable "aws_kms_alias" {
+variable "kms_key_name" {
   description = "KMS key alias for encryption"
   type        = string
   default     = "alias/refonte-multicloud-kms-key"
@@ -47,7 +56,7 @@ variable "aws_kms_alias" {
 variable "db_name" {
   description = "Database name"
   type        = string
-  default     = "mydb"
+  default     = "postgresdb"
 }
 
 
@@ -61,7 +70,7 @@ variable "db_username" {
 variable "db_instance_class" {
   description = "Instance type / machine type"
   type        = string
-  default     = "t3.micro"
+  default     = "db.t3.micro"
 }
 
 variable "db_storage_size" {
@@ -69,13 +78,30 @@ variable "db_storage_size" {
   type        = number
   default     = 20
 }
+variable "env" {
+  description = "Environment name (e.g., dev, staging, prod)"
+  type        = string
+  default     = "prod"
 
-# variable "vpc_security_group_ids" {
-#   description = "Security group IDs or network for DB access"
-#   type        = list(string)
-#   default     = []
-# }
+}
 
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "refonte-project"
+}
+
+variable "cluster_name" {
+  description = "Kubernetes cluster name"
+  type        = string
+  default     = "multi-cloud-cluster"
+}
+
+# ASN (Autonomous System Number) to use in Border Gateway Protocol (BGP)
+variable "aws_amazon_side_asn" {
+  type    = number
+  default = 64512
+}
 
 
 

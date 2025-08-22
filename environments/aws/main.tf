@@ -1,33 +1,23 @@
 module "vpc" {
-  source         = "../../modules/vpc"
-  cloud_provider = var.cloud_provider
-  vpc_cidr       = var.vpc_cidr
-
+  source             = "../../modules/vpc"
+  cloud_provider     = var.cloud_provider
+  vpc_cidr           = var.vpc_cidr
+  vpc_name           = "${var.project}-${var.env}"
+  availability_zones = var.availability_zones
+  private_subnets    = length(var.private_subnet_cidrs)
+  public_subnets     = length(var.public_subnet_cidrs)
+  region             = var.region
 }
 
 module "k8s" {
-  source         = "../../modules/kubernetes"
-  cloud_provider = "aws"
-  cluster_name   = "my-aws-cluster"
-  region         = "us-east-1"
-  # node_count        = 3
+  source            = "../../modules/kubernetes"
+  cloud_provider    = var.cloud_provider
+  cluster_name      = var.cluster_name
+  region            = var.region
+  vpc_name          = var.vpc_name
   public_subnet_ids = module.vpc.public_subnet_ids
 }
 
-
-
-
-
-
-# How this works:
-
-# data "http" queries an external API to get your public IP.
-
-# chomp() removes any trailing newline from the response.
-
-# "/32" means "just this single IP".
-
-# The security group will allow only your current IP for SSH/HTTPS.
 
 # Security module
 module "aws_security" {
@@ -36,13 +26,15 @@ module "aws_security" {
   aws_iam_roles = ["eksNodeRole", "appRole"]
   allowed_cidrs = ["0.0.0.0/0"]
 
-  kms_key_name = var.aws_kms_alias
+  kms_key_name = var.kms_key_name
 }
 
 
 module "aws_db" {
   source                 = "../../modules/db"
   cloud_provider         = var.cloud_provider
+  env                    = var.env
+  vpc_name               = var.vpc_name
   db_name                = var.db_name
   db_username            = var.db_username
   db_instance_class      = var.db_instance_class
@@ -50,7 +42,9 @@ module "aws_db" {
   vpc_security_group_ids = [module.aws_security.security_group_id] # private network
   region                 = var.aws_region
   db_password            = module.aws_security.db_password
+  db_subnet_ids          = module.vpc.private_subnet_ids[0]
   depends_on             = [module.aws_security, module.vpc]
+
 
 }
 

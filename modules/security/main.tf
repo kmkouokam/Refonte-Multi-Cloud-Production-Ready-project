@@ -1,11 +1,3 @@
-module "vpc" {
-  source         = "../../modules/vpc"
-  cloud_provider = var.cloud_provider
-  vpc_cidr       = var.vpc_cidr
-
-}
-
-
 locals {
   is_aws = lower(var.cloud_provider) == "aws"
   is_gcp = lower(var.cloud_provider) == "gcp"
@@ -35,7 +27,7 @@ resource "aws_security_group" "allow_access" {
   count       = local.is_aws ? 1 : 0
   name        = "allow-access"
   description = "Allow SSH and HTTPS"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = var.vpc_id
 
   ingress {
     description = "SSH"
@@ -67,7 +59,7 @@ resource "aws_security_group" "allow_access" {
 resource "google_compute_firewall" "allow_access" {
   count   = local.is_gcp ? 1 : 0
   name    = "${var.project}-${var.env}llow-access"
-  network = module.vpc.gcp_vpc_self_link
+  network = var.gcp_vpc_self_link.gcp_vpc_self_link
 
   allow {
     protocol = "tcp"

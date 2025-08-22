@@ -6,25 +6,25 @@ variable "cloud_provider" {
 variable "db_name" {
   description = "Database name"
   type        = string
-  default     = "mydb"
+
 }
 
 variable "db_username" {
   description = "Database username"
   type        = string
-  default     = "postgres"
+
 }
 
 variable "db_instance_class" {
   description = "Instance type / machine type"
   type        = string
-  default     = "t3.micr"
+
 }
 
 variable "db_storage_size" {
   description = "Database storage size in GB"
   type        = number
-  default     = 20
+
 }
 
 variable "vpc_security_group_ids" {
@@ -52,18 +52,18 @@ variable "gcp_vpc_self_link" {
 variable "gcp_project_id" {
   description = "GCP project ID (only for GCP)"
   type        = string
-  default     = "prod-251618-359501"
+
 }
 
 variable "vpc_name" {
   description = "value for GCP VPC name (only for GCP)"
-  default     = "multi-cloud-vpc"
+  type        = string
 }
 
 variable "create_custom_db" {
   description = "Whether to create a custom database in addition to the default"
   type        = bool
-  default     = true
+
 }
 
 variable "db_subnet_ids" {
@@ -75,6 +75,12 @@ variable "db_subnet_ids" {
 variable "env" {
   description = "Environment name (e.g., dev, prod)"
   type        = string
-  default     = "prod"
+
 
 }
+
+# variable "gcp_existing_private_ip_range" {
+#   description = "Existing allocated IP range for VPC peering"
+#   type        = string
+#   default     = "google-managed-services-multi-cloud-vpc"
+# }

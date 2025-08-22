@@ -16,5 +16,14 @@ output "gcp_vpc_self_link" {
 }
 
 
+output "private_route_table_ids" {
+  value = var.cloud_provider == "aws" ? aws_route_table.private[*].id : null
+}
+
+# output "private_subnet_self_links" {
+#   description = "Private subnet self-links in GCP"
+#   value       = google_compute_subnetwork.private[*].self_link
+# }
+
 
 
