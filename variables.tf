@@ -6,7 +6,7 @@ variable "aws_region" {
 variable "gcp_region" {
   description = "The GCP region to deploy resources in"
   type        = string
-  default     = "us-east1"
+  default     = "us-central1"
 }
 variable "gcp_credentials_file" {
   description = "Path to the GCP credentials file"
@@ -34,4 +34,24 @@ variable "vpn_shared_secret" {
 
 }
 
+variable "gcp_network_name" {
+  description = "GCP VPC Network name (only for GCP)"
+  type        = string
+  default     = "multi-cloud-vpc"
+}
 
+
+
+variable "gcp_web_fw_name" {
+  description = "GCP Web Firewall Rule name"
+  type        = string
+  default     = "multi-cloud-web-fw"
+
+}
+
+variable "gcp_db_fw_name" {
+  description = "GCP DB Firewall Rule name"
+  type        = string
+  default     = "multi-cloud-db-fw"
+
+}

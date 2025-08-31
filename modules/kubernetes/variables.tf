@@ -23,11 +23,18 @@ variable "gcp_subnetwork" {
   default     = null
 }
 
-
-variable "region" {
-  description = "Region for cluster"
+variable "aws_region" {
+  description = "Region for AWS resources"
   type        = string
+  default     = "us-east-1"
 }
+
+variable "gcp_region" {
+  description = "Region for GCP resources"
+  type        = string
+  default     = "us-central1"
+}
+
 
 
 #shared variables
@@ -40,14 +47,10 @@ variable "public_subnet_ids" {
 variable "gcp_project_id" {
   description = "GCP project ID (only for GCP)"
   type        = string
-
+  default     = null
 }
 
-variable "vpc_name" {
-  description = "GCP VPC name (only for GCP)"
-  type        = string
 
-}
 
 variable "gcp_vpc_self_link" {
   description = "GCP VPC self_link for private Cloud SQL network"

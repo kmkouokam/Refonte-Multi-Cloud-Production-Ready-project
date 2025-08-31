@@ -29,7 +29,7 @@ resource "google_project_service" "servicenetworking" {
 # ------------------------
 resource "google_compute_global_address" "private_ip_range" {
   count         = local.is_gcp ? 1 : 0
-  name          = "${var.vpc_name}-private-ip-range"
+  name          = "${var.name_suffix}-private-ip-range"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
@@ -77,7 +77,7 @@ resource "aws_db_instance" "postgres" {
   db_name                = var.db_name
   username               = var.db_username
   password               = var.db_password
-  vpc_security_group_ids = var.vpc_security_group_ids
+  vpc_security_group_ids = [var.aws_web_sg_id]
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group[0].name
   skip_final_snapshot    = true
   publicly_accessible    = false
@@ -90,7 +90,7 @@ resource "google_sql_database_instance" "postgres" {
   count            = local.is_gcp ? 1 : 0
   name             = "${var.db_name}-${random_id.suffix.hex}"
   database_version = "POSTGRES_15"
-  region           = var.region
+  region           = var.gcp_region
 
   settings {
     tier = var.db_instance_class

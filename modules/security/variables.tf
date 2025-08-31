@@ -17,29 +17,11 @@ variable "gcp_iam_bindings" {
   default     = {}
 }
 
-variable "allowed_cidrs" {
-  description = "List of CIDRs allowed for SSH/HTTPS"
-  type        = list(string)
-
-}
 
 variable "kms_key_name" {
   description = "KMS key name for encryption"
   type        = string
 
-}
-
-
-variable "vpc_cidr" {
-  description = "The CIDR block for the VPC"
-  type        = string
-
-}
-
-variable "vpc_id" {
-  description = "The ID of the VPC"
-  type        = string
-  default     = ""
 }
 
 variable "cloud_provider" {
@@ -48,8 +30,8 @@ variable "cloud_provider" {
 
 }
 
-variable "vpc_name" {
-  description = "GCP VPC network name to attach resources to"
+variable "name_suffix" {
+  description = "Random suffix for resource names"
   type        = string
 
 }
@@ -58,10 +40,9 @@ variable "vpc_name" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
+  default     = "us-central1"
 
 }
-
-
 
 variable "project" {
   description = "Project or environment name"
@@ -75,3 +56,14 @@ variable "secret_name" {
   description = "Name of the secret"
 
 }
+
+
+variable "gcp_project_id" {
+  description = "GCP project ID (only for GCP)"
+  type        = string
+  default     = null
+}
+
+
+
+

@@ -79,6 +79,8 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
   vpc_config {
     subnet_ids = var.public_subnet_ids
   }
+
+  depends_on = [aws_iam_role.eks_cluster_role]
 }
 
 ###############
@@ -96,7 +98,7 @@ resource "google_project_service" "container_api" {
   disable_on_destroy         = false
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 }
@@ -112,7 +114,7 @@ resource "google_project_service" "compute_api" {
   google_container_node_pool.primary_nodes]
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = all
   }
 }
@@ -152,7 +154,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
 resource "google_container_cluster" "gcp_cluster" {
   count      = local.is_gcp ? 1 : 0
   name       = var.cluster_name
-  location   = var.region
+  location   = var.gcp_region
   network    = var.gcp_network
   subnetwork = var.gcp_subnetwork
 
@@ -170,7 +172,7 @@ resource "google_container_node_pool" "primary_nodes" {
   count    = local.is_gcp ? 1 : 0
   name     = "${var.cluster_name}-node-pool"
   cluster  = google_container_cluster.gcp_cluster[0].name
-  location = var.region
+  location = var.gcp_region
 
   node_config {
     service_account = google_service_account.gke_sa[0].email

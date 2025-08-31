@@ -1,13 +1,13 @@
 variable "gcp_region" {
   description = "The region to deploy resources in"
   type        = string
-  default     = "us-east1"
+  default     = "us-central1"
 }
 
-variable "availability_zone" {
-  description = "The availability zone to deploy resources in"
-  type        = string
-  default     = "us-central1-a"
+variable "availability_zones" {
+  description = "List of availability zones for AWS"
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
 }
 
 variable "vpc_cidr" {
@@ -22,13 +22,13 @@ variable "gcp_subnetwork" {
   default     = null
 }
 
-variable "public_subnet_cidr" {
+variable "public_subnet_cidrs" {
   description = "CIDR blocks for public subnets (used only if creating new subnets)"
   type        = list(string)
   default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
-variable "private_subnet_cidr" {
+variable "private_subnet_cidrs" {
   description = "CIDR blocks for private subnets (used only if creating new subnets)"
   type        = list(string)
   default     = ["10.0.3.0/24", "10.0.4.0/24"]
@@ -40,8 +40,8 @@ variable "cloud_provider" {
   type        = string
   default     = "gcp"
 }
-variable "vpc_name" {
-  description = "Name of the VPC"
+variable "name_suffix" {
+  description = "Name suffix for resources"
   type        = string
   default     = "multi-cloud-vpc"
 }
@@ -148,4 +148,26 @@ variable "gcp_router_asn" {
   type        = number
   default     = 65001
 }
+
+variable "gcp_network_name" {
+  description = "GCP VPC Network name (only for GCP)"
+  type        = string
+}
+
+variable "private_subnet_ids" {
+  description = "GCP Private Subnet IDs (only for GCP)"
+  type        = list(string)
+  default     = []
+}
+
+variable "gcp_web_fw_name" {
+  description = "GCP Web Firewall Rule name"
+  type        = string
+}
+
+variable "gcp_db_fw_name" {
+  description = "GCP DB Firewall Rule name"
+  type        = string
+}
+
 

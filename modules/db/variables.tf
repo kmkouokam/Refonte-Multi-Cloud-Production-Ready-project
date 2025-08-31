@@ -3,6 +3,23 @@ variable "cloud_provider" {
   type        = string
 }
 
+variable "aws_vpc_id" {
+  description = "AWS VPC ID (only for AWS)"
+  type        = string
+}
+
+variable "aws_web_sg_id" {
+  description = "AWS Web SG ID (only for AWS)"
+  type        = string
+}
+
+variable "aws_db_sg_id" {
+  description = "AWS DB SG ID (only for AWS)"
+  type        = string
+}
+
+
+
 variable "db_name" {
   description = "Database name"
   type        = string
@@ -27,16 +44,24 @@ variable "db_storage_size" {
 
 }
 
-variable "vpc_security_group_ids" {
-  description = "Security group IDs or network for DB access"
-  type        = list(string)
-  default     = []
-}
-
-variable "region" {
-  description = "Cloud region"
+variable "name_suffix" {
+  description = "Random suffix for resource names"
   type        = string
 }
+
+
+variable "aws_region" {
+  description = "Region for AWS resources"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "gcp_region" {
+  description = "Region for GCP resources"
+  type        = string
+  default     = "us-central1"
+}
+
 
 variable "db_password" {
   description = "Database password (from security module)"
@@ -55,9 +80,27 @@ variable "gcp_project_id" {
 
 }
 
-variable "vpc_name" {
-  description = "value for GCP VPC name (only for GCP)"
+variable "gcp_network_name" {
+  description = "GCP VPC Network name (only for GCP)"
   type        = string
+}
+
+variable "gcp_subnet_name" {
+  description = "GCP Subnet name (only for GCP)"
+  type        = string
+
+}
+
+variable "gcp_web_fw_name" {
+  description = "GCP Web Firewall Rule name"
+  type        = string
+
+}
+
+variable "gcp_db_fw_name" {
+  description = "GCP DB Firewall Rule name"
+  type        = string
+
 }
 
 variable "create_custom_db" {
@@ -79,8 +122,4 @@ variable "env" {
 
 }
 
-# variable "gcp_existing_private_ip_range" {
-#   description = "Existing allocated IP range for VPC peering"
-#   type        = string
-#   default     = "google-managed-services-multi-cloud-vpc"
-# }
+

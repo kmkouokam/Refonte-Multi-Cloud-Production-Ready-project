@@ -1,14 +1,15 @@
 
 module "aws_env" {
-  source = "./environments/aws"
-  # count  = var.cloud_provider == "aws" ? 1 : 0
-  # db_password = var.db_password
+  source            = "./environments/aws"
+  gcp_vpc_self_link = module.gcp_env.gcp_vpc_self_link
 }
 
 module "gcp_env" {
-  source = "./environments/gcp"
-  # count  = var.cloud_provider == "gcp" ? 1 : 0
-  # db_password = var.db_password
+  source           = "./environments/gcp"
+  gcp_network_name = var.gcp_network_name
+
+  gcp_web_fw_name = var.gcp_web_fw_name
+  gcp_db_fw_name  = var.gcp_db_fw_name
 }
 
 resource "random_string" "vpn_shared_secret" {

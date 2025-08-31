@@ -95,12 +95,77 @@ resource "aws_route_table_association" "private" {
 }
 
 # ----------------------
+# AWS Security Groups
+# ----------------------
+
+# SG for web (SSH + HTTP + HTTPS)
+resource "aws_security_group" "web_sg" {
+  count       = var.cloud_provider == "aws" ? 1 : 0
+  name        = "${var.env}-web-sg"
+  description = "Allow HTTP, HTTPS, and SSH"
+  vpc_id      = aws_vpc.main[0].id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# SG for DB
+resource "aws_security_group" "db_sg" {
+  count       = var.cloud_provider == "aws" ? 1 : 0
+  name        = "${var.env}-db-sg"
+  description = "Allow DB traffic only from web SG"
+  vpc_id      = aws_vpc.main[0].id
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.web_sg[0].id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+
+# ----------------------
 # GCP VPC + Subnets + NAT + IGW
 # ----------------------
-resource "google_compute_network" "main" {
-  count                   = var.cloud_provider == "gcp" ? 1 : 0
-  name                    = "${var.name_prefix}-vpc"
-  auto_create_subnetworks = false
+resource "google_compute_network" "vpc_network" {
+  count                           = var.cloud_provider == "gcp" ? 1 : 0
+  name                            = "${var.name_prefix}-vpc"
+  auto_create_subnetworks         = false
+  routing_mode                    = "REGIONAL"
+  delete_default_routes_on_create = var.manage_default_routes
 }
 
 resource "google_compute_subnetwork" "public" {
@@ -108,7 +173,7 @@ resource "google_compute_subnetwork" "public" {
   name          = "${var.name_prefix}-public-${count.index}"
   ip_cidr_range = var.public_subnets[count.index]
   region        = var.gcp_region
-  network       = google_compute_network.main[0].name
+  network       = google_compute_network.vpc_network[0].name
 }
 
 resource "google_compute_subnetwork" "private" {
@@ -116,7 +181,7 @@ resource "google_compute_subnetwork" "private" {
   name                     = "${var.name_prefix}-private-${count.index}"
   ip_cidr_range            = var.private_subnets[count.index]
   region                   = var.gcp_region
-  network                  = google_compute_network.main[0].name
+  network                  = google_compute_network.vpc_network[0].name
   private_ip_google_access = true
 }
 
@@ -124,7 +189,7 @@ resource "google_compute_router" "main" {
   count   = var.cloud_provider == "gcp" ? 1 : 0
   name    = "${var.name_prefix}-router"
   region  = var.gcp_region
-  network = google_compute_network.main[0].name
+  network = google_compute_network.vpc_network[0].name
 }
 
 resource "google_compute_address" "nat_ip" {
@@ -143,3 +208,42 @@ resource "google_compute_router_nat" "nat" {
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
+resource "google_compute_route" "default_internet" {
+  count   = var.manage_default_routes ? 1 : 0
+  name    = "${var.name_prefix}-default-internet"
+  network = length(google_compute_network.vpc_network) > 0 ? google_compute_network.vpc_network[0].id : null
+
+  dest_range       = "0.0.0.0/0"
+  next_hop_gateway = true
+}
+
+
+
+# Allow HTTP, HTTPS, SSH
+resource "google_compute_firewall" "web_fw" {
+  count   = var.cloud_provider == "gcp" ? 1 : 0
+  name    = "${var.env}-web-fw"
+  network = google_compute_network.vpc_network[0].name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "80", "443"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+}
+
+# Allow DB traffic only from web instances (tag-based)
+resource "google_compute_firewall" "db_fw" {
+  count   = var.cloud_provider == "gcp" ? 1 : 0
+  name    = "${var.env}-db-fw"
+  network = google_compute_network.vpc_network[0].name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["5432"]
+  }
+
+  source_tags = ["web"]
+  target_tags = ["db"]
+}

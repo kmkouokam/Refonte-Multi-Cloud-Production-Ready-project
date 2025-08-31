@@ -7,9 +7,12 @@ variable "vpn_name" {
 variable "gcp_project_id" {
   type = string
 }
+
 variable "gcp_region" {
-  type = string
+  type    = string
+  default = "us-central1"
 }
+
 variable "gcp_network_self_link" {
   description = "Self link of the GCP VPC to terminate the VPN on"
   type        = string
@@ -23,7 +26,8 @@ variable "gcp_router_asn" {
 
 # -------- AWS inputs --------
 variable "aws_region" {
-  type = string
+  type    = string
+  default = "us-east-1"
 
 }
 variable "aws_vpc_id" {

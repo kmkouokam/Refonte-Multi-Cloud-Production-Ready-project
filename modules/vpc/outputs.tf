@@ -1,18 +1,67 @@
-output "vpc_id" {
-  value = var.cloud_provider == "aws" ? aws_vpc.main[0].id : google_compute_network.main[0].id
+
+# AWS outputs
+output "aws_vpc_id" {
+  value       = var.cloud_provider == "aws" ? aws_vpc.main[0].id : null
+  description = "AWS VPC ID (only for AWS)"
 }
 
-output "public_subnet_ids" {
-  value = var.cloud_provider == "aws" ? aws_subnet.public[*].id : google_compute_subnetwork.public[*].id
+output "aws_web_sg_id" {
+  value       = var.cloud_provider == "aws" ? aws_security_group.web_sg[0].id : null
+  description = "AWS Web SG ID (only for AWS)"
 }
 
-output "private_subnet_ids" {
-  value = var.cloud_provider == "aws" ? aws_subnet.private[*].id : google_compute_subnetwork.private[*].id
+output "aws_db_sg_id" {
+  value       = var.cloud_provider == "aws" ? aws_security_group.db_sg[0].id : null
+  description = "AWS DB SG ID (only for AWS)"
 }
+
+# GCP outputs
+output "gcp_network_name" {
+  value       = var.cloud_provider == "gcp" ? google_compute_network.vpc_network[0].name : null
+  description = "GCP VPC Network name (only for GCP)"
+}
+
+
+
+output "gcp_web_fw_name" {
+  value       = var.cloud_provider == "gcp" ? google_compute_firewall.web_fw[0].name : null
+  description = "GCP Web Firewall Rule name"
+}
+
+output "gcp_db_fw_name" {
+  value       = var.cloud_provider == "gcp" ? google_compute_firewall.db_fw[0].name : null
+  description = "GCP DB Firewall Rule name"
+}
+
+# AWS outputs
+output "aws_public_subnet_ids" {
+  value       = aws_subnet.public[*].id
+  description = "AWS public subnet IDs"
+}
+
+output "aws_private_subnet_ids" {
+  value       = aws_subnet.private[*].id
+  description = "AWS private subnet IDs"
+}
+
+# GCP outputs
+output "gcp_public_subnet_name" {
+  value = length(google_compute_subnetwork.public) > 0 ? google_compute_subnetwork.public[0].name : null
+}
+
+output "gcp_private_subnet_name" {
+  value = length(google_compute_subnetwork.private) > 0 ? google_compute_subnetwork.private[0].name : null
+}
+
+
+
+
+
+
 
 output "gcp_vpc_self_link" {
   description = "Self link of the GCP VPC (used for private service networking)"
-  value       = length(google_compute_network.main) > 0 ? google_compute_network.main[0].self_link : null
+  value       = length(google_compute_network.vpc_network) > 0 ? google_compute_network.vpc_network[0].self_link : null
 }
 
 
@@ -20,10 +69,7 @@ output "private_route_table_ids" {
   value = var.cloud_provider == "aws" ? aws_route_table.private[*].id : null
 }
 
-# output "private_subnet_self_links" {
-#   description = "Private subnet self-links in GCP"
-#   value       = google_compute_subnetwork.private[*].self_link
-# }
+
 
 
 

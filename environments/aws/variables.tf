@@ -4,13 +4,6 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-
-
-variable "availability_zone" {
-  description = "The availability zone to deploy resources in"
-  type        = string
-  default     = "us-east-1a"
-}
 variable "vpc_cidr" {
   description = "The CIDR block for the VPC"
   type        = string
@@ -103,5 +96,26 @@ variable "aws_amazon_side_asn" {
   default = 64512
 }
 
+variable "gcp_project_id" {
+  description = "GCP Project ID"
+  default     = "prod-251618-359501"
+}
 
+variable "gcp_region" {
+  description = "The region to deploy resources in"
+  type        = string
+  default     = "us-central1"
+}
+
+
+variable "create_custom_db" {
+  description = "Whether to create a custom database in addition to the default"
+  type        = bool
+  default     = true
+}
+
+variable "gcp_vpc_self_link" {
+  description = "Self link of the GCP VPC network"
+  type        = string
+}
 

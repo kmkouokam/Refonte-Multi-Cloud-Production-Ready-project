@@ -3,6 +3,7 @@ locals {
   is_gcp = lower(var.cloud_provider) == "gcp"
 }
 
+
 # -----------------------
 # AWS Security Resources
 # -----------------------
@@ -23,59 +24,17 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-resource "aws_security_group" "allow_access" {
-  count       = local.is_aws ? 1 : 0
-  name        = "allow-access"
-  description = "Allow SSH and HTTPS"
-  vpc_id      = var.vpc_id
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidrs
-  }
-
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidrs
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# -----------------------
-# GCP Security Resources
-# -----------------------
-resource "google_compute_firewall" "allow_access" {
-  count   = local.is_gcp ? 1 : 0
-  name    = "${var.project}-${var.env}llow-access"
-  network = var.gcp_vpc_self_link.gcp_vpc_self_link
-
-  allow {
-    protocol = "tcp"
-    ports    = ["22", "443"]
-  }
-
-  source_ranges = var.allowed_cidrs
-  depends_on    = [module.vpc]
-
-}
 
 resource "google_project_iam_binding" "bindings" {
   for_each = local.is_gcp ? var.gcp_iam_bindings : {}
   project  = "prod-251618-359501"
   role     = each.key
   members  = each.value
+}
+
+resource "random_id" "keyring_suffix" {
+  byte_length = 4
 }
 
 # -----------------------
@@ -98,7 +57,7 @@ resource "aws_kms_alias" "encryption_alias" {
 
 resource "google_kms_key_ring" "encryption" {
   count    = local.is_gcp && var.kms_key_name != "" ? 1 : 0
-  name     = "${var.project}-${var.env}-keyring"
+  name     = "${var.project}-${var.env}-keyring-${random_id.keyring_suffix.hex}"
   location = var.gcp_region
 }
 
@@ -133,7 +92,7 @@ resource "random_password" "db_password" {
 # -------------------------
 locals {
   secret_suffix     = formatdate("YYYY-MM-DD-HH-mm-ss", timestamp())
-  secret_name_final = "${var.secret_name}-${local.secret_suffix}"
+  secret_name_final = local.is_aws || local.is_gcp ? "${var.secret_name}-${local.secret_suffix}" : null
 }
 
 # # -------------------------
@@ -141,12 +100,12 @@ locals {
 # # -------------------------
 resource "aws_secretsmanager_secret" "db_password" {
   count       = local.is_aws ? 1 : 0
-  name_prefix = "${var.project}-${var.env}-db-password" #local.secret_name_final
+  name_prefix = "${var.project}-${var.env}-${var.secret_name}" #local.secret_name_final
   description = "Database password for environment"
   kms_key_id  = length(aws_kms_key.encryption) > 0 ? aws_kms_key.encryption[0].id : null
 
   tags = {
-    Environment = "prod-db-secret"
+    Environment = "${var.env}-db-secret"
   }
   lifecycle {
     prevent_destroy = false  # Set true in production to keep secret
@@ -187,7 +146,7 @@ data "aws_secretsmanager_secret_version" "db_password" {
 # -------------------------
 resource "google_secret_manager_secret" "db_password" {
   count     = local.is_gcp ? 1 : 0
-  secret_id = "${var.project}-${var.env}-db-password"
+  secret_id = "${var.project}-${var.env}-${var.secret_name}" #local.secret_name_final
 
   replication {
     auto {}
@@ -214,14 +173,16 @@ resource "google_secret_manager_secret_version" "db_password" {
 # Data block to retrieve GCP secret
 
 data "google_secret_manager_secret" "db_password" {
-  count      = local.is_gcp && length(google_secret_manager_secret.db_password) > 0 ? 1 : 0
-  secret_id  = google_secret_manager_secret.db_password[0].name
+  count      = local.is_gcp ? 1 : 0
+  project    = var.gcp_project_id
+  secret_id  = "${var.project}-${var.env}-${var.secret_name}"
   depends_on = [google_secret_manager_secret_version.db_password]
 }
 
 data "google_secret_manager_secret_version" "db_password" {
-  count      = local.is_gcp && length(data.google_secret_manager_secret.db_password) > 0 ? 1 : 0
-  secret     = data.google_secret_manager_secret.db_password[0].name
+  count      = local.is_gcp ? 1 : 0
+  project    = var.gcp_project_id
+  secret     = data.google_secret_manager_secret.db_password[0].id
   version    = "latest"
   depends_on = [google_secret_manager_secret_version.db_password]
 }

@@ -9,11 +9,11 @@ variable "vpc_cidr" {
 
 }
 
-variable "vpc_name" {
-  description = "Prefix for resource names"
+variable "name_prefix" {
+  description = "Prefix for naming VPC resources"
   type        = string
-
 }
+
 
 # AWS specific
 variable "availability_zones" {
@@ -26,6 +26,7 @@ variable "availability_zones" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
+  default     = "us-central1"
 
 }
 
@@ -48,4 +49,15 @@ variable "gcp_vpc_self_link" {
   default     = null
 }
 
+variable "manage_default_routes" {
+  description = "Whether to manage and clean up default routes created by GCP"
+  type        = bool
+  default     = false
+}
+
+
+variable "env" {
+  description = "The environment for the deployment (e.g., dev, staging, prod)"
+  type        = string
+}
 
