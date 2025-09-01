@@ -21,8 +21,8 @@ variable "availability_zones" {
   default     = ["us-east-1a", "us-east-1b"]
 }
 
-variable "vpc_name" {
-  description = "Name of the VPC"
+variable "name_prefix" {
+  description = "Name prefix for resources"
   type        = string
   default     = "multi-cloud-vpc"
 }

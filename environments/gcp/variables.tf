@@ -40,8 +40,8 @@ variable "cloud_provider" {
   type        = string
   default     = "gcp"
 }
-variable "name_suffix" {
-  description = "Name suffix for resources"
+variable "name_prefix" {
+  description = "Name prefix for resources"
   type        = string
   default     = "multi-cloud-vpc"
 }

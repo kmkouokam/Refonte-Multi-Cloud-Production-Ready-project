@@ -17,9 +17,9 @@ resource "google_compute_address" "gcp_vpn_ip" {
 }
 
 ############################
-# GCP: Classic VPN gateway (target gateway) + Cloud Router (BGP)
+# GCP: Classic VPN gateway (target gateway) + Cloud Router (Border Gateway Protocol)
 ############################
-resource "google_compute_vpn_gateway" "gcp_vpn_gw" {
+resource "google_compute_vpn_gateway" "gcp_vpn_gateway" {
   name    = "${var.vpn_name}-gcp-vpn-gw"
   network = var.gcp_network_self_link
   region  = var.gcp_region
@@ -61,6 +61,7 @@ resource "aws_customer_gateway" "gcp" {
   tags = {
     Name = "${var.vpn_name}-cgw"
   }
+  depends_on = [google_compute_address.gcp_vpn_ip]
 }
 
 # Single AWS VPN connection (creates 2 tunnels) with BGP enabled (static_routes_only=false)
@@ -89,9 +90,11 @@ resource "aws_vpn_connection" "aws_to_gcp" {
 
 # Propagate learned routes from VGW into selected route tables
 resource "aws_vpn_gateway_route_propagation" "propagation" {
-  for_each       = zipmap(range(length(var.aws_private_route_table_ids)), var.aws_private_route_table_ids)
+  for_each       = { for idx, rtb_id in var.aws_private_route_table_ids : idx => rtb_id }
   route_table_id = each.value
   vpn_gateway_id = aws_vpn_gateway.vgw.id
+
+  depends_on = [aws_vpn_gateway_attachment.vgw_attach]
 }
 
 
@@ -104,7 +107,7 @@ resource "aws_vpn_gateway_route_propagation" "propagation" {
 resource "google_compute_vpn_tunnel" "tunnel1" {
   name               = "${var.vpn_name}-tunnel1"
   region             = var.gcp_region
-  target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gw.id
+  target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gateway.id
   peer_ip            = aws_vpn_connection.aws_to_gcp.tunnel1_address
   shared_secret      = var.vpn_shared_secret
   ike_version        = 2
@@ -134,7 +137,7 @@ resource "google_compute_router_peer" "peer1" {
 resource "google_compute_vpn_tunnel" "tunnel2" {
   name               = "${var.vpn_name}-tunnel2"
   region             = var.gcp_region
-  target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gw.id
+  target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gateway.id
   peer_ip            = aws_vpn_connection.aws_to_gcp.tunnel2_address
   shared_secret      = var.vpn_shared_secret
   ike_version        = 2
@@ -159,6 +162,33 @@ resource "google_compute_router_peer" "peer2" {
   peer_asn        = var.aws_amazon_side_asn
   advertise_mode  = "DEFAULT"
 }
+
+resource "google_compute_forwarding_rule" "esp" {
+  name        = "${var.vpn_name_prefix}-esp"
+  region      = var.gcp_region
+  ip_protocol = "ESP"
+  ip_address  = google_compute_address.gcp_vpn_ip.address
+  target      = google_compute_vpn_gateway.gcp_vpn_gateway.self_link
+}
+
+resource "google_compute_forwarding_rule" "udp500" {
+  name        = "${var.vpn_name_prefix}-udp500"
+  region      = var.gcp_region
+  ip_protocol = "UDP"
+  port_range  = "500"
+  ip_address  = google_compute_address.gcp_vpn_ip.address
+  target      = google_compute_vpn_gateway.gcp_vpn_gateway.self_link
+}
+
+resource "google_compute_forwarding_rule" "udp4500" {
+  name        = "${var.vpn_name_prefix}-udp4500"
+  region      = var.gcp_region
+  ip_protocol = "UDP"
+  port_range  = "4500"
+  ip_address  = google_compute_address.gcp_vpn_ip.address
+  target      = google_compute_vpn_gateway.gcp_vpn_gateway.self_link
+}
+
 
 #################################
 # Notes:

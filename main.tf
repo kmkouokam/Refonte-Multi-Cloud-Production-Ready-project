@@ -17,7 +17,7 @@ resource "random_string" "vpn_shared_secret" {
   special = false
 }
 
-module "multi_cloud_vpn" {
+module "aws_gcp_vpn" {
   source = "./modules/multi_cloud_vpn"
 
   vpn_name          = var.vpn_name

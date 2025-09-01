@@ -174,6 +174,7 @@ resource "google_compute_subnetwork" "public" {
   ip_cidr_range = var.public_subnets[count.index]
   region        = var.gcp_region
   network       = google_compute_network.vpc_network[0].name
+  depends_on    = [google_compute_network.vpc_network]
 }
 
 resource "google_compute_subnetwork" "private" {
@@ -183,19 +184,22 @@ resource "google_compute_subnetwork" "private" {
   region                   = var.gcp_region
   network                  = google_compute_network.vpc_network[0].name
   private_ip_google_access = true
+  depends_on               = [google_compute_network.vpc_network]
 }
 
 resource "google_compute_router" "main" {
-  count   = var.cloud_provider == "gcp" ? 1 : 0
-  name    = "${var.name_prefix}-router"
-  region  = var.gcp_region
-  network = google_compute_network.vpc_network[0].name
+  count      = var.cloud_provider == "gcp" ? 1 : 0
+  name       = "${var.name_prefix}-router"
+  region     = var.gcp_region
+  network    = google_compute_network.vpc_network[0].name
+  depends_on = [google_compute_network.vpc_network]
 }
 
 resource "google_compute_address" "nat_ip" {
-  count  = var.cloud_provider == "gcp" ? 1 : 0
-  name   = "${var.name_prefix}-nat-ip"
-  region = var.gcp_region
+  count      = var.cloud_provider == "gcp" ? 1 : 0
+  name       = "${var.name_prefix}-nat-ip"
+  region     = var.gcp_region
+  depends_on = [google_compute_network.vpc_network]
 }
 
 resource "google_compute_router_nat" "nat" {
@@ -206,6 +210,7 @@ resource "google_compute_router_nat" "nat" {
   nat_ip_allocate_option             = "MANUAL_ONLY"
   nat_ips                            = [google_compute_address.nat_ip[0].self_link]
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  depends_on                         = [google_compute_address.nat_ip]
 }
 
 resource "google_compute_route" "default_internet" {
@@ -215,6 +220,7 @@ resource "google_compute_route" "default_internet" {
 
   dest_range       = "0.0.0.0/0"
   next_hop_gateway = true
+  depends_on       = [google_compute_network.vpc_network]
 }
 
 
@@ -231,6 +237,7 @@ resource "google_compute_firewall" "web_fw" {
   }
 
   source_ranges = ["0.0.0.0/0"]
+  depends_on    = [google_compute_network.vpc_network]
 }
 
 # Allow DB traffic only from web instances (tag-based)
@@ -246,4 +253,5 @@ resource "google_compute_firewall" "db_fw" {
 
   source_tags = ["web"]
   target_tags = ["db"]
+  depends_on  = [google_compute_network.vpc_network]
 }

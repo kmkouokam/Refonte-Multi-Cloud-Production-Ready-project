@@ -58,3 +58,8 @@ variable "gcp_router_advertise_all_subnets" {
   default = true
 }
 
+variable "vpn_name_prefix" {
+  description = "Name prefix for resources"
+  type        = string
+  default     = "multi-cloud-vpn"
+}

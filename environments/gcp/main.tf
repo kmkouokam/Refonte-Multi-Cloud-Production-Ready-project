@@ -36,7 +36,7 @@ module "gcp_security" {
   secret_name    = "mygcpdb-password"
 
 
-  name_suffix = var.name_suffix
+  name_suffix = var.name_prefix
 
   gcp_region   = var.gcp_region
   kms_key_name = var.kms_key_name
