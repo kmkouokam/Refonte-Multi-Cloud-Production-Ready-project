@@ -21,6 +21,12 @@ resource "google_project_service" "servicenetworking" {
 
   # Ensure API stays enabled
   disable_on_destroy = false
+
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes  = all
+  }
+
 }
 
 
@@ -29,11 +35,12 @@ resource "google_project_service" "servicenetworking" {
 # ------------------------
 resource "google_compute_global_address" "private_ip_range" {
   count         = local.is_gcp ? 1 : 0
-  name          = "${var.name_suffix}-private-ip-range"
+  name          = "${var.name_suffix}-${random_id.suffix.hex}-private-ip-range"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
   network       = var.gcp_vpc_self_link
+  depends_on    = [google_project_service.servicenetworking]
 }
 
 # ------------------------
@@ -48,7 +55,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 
   depends_on = [
     google_project_service.servicenetworking,
-    # google_compute_global_address.private_ip_range
+    google_compute_global_address.private_ip_range
   ]
 
   lifecycle {
@@ -81,6 +88,7 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group[0].name
   skip_final_snapshot    = true
   publicly_accessible    = false
+  depends_on             = [aws_db_subnet_group.db_subnet_group]
 }
 
 # ----------------------
@@ -102,6 +110,12 @@ resource "google_sql_database_instance" "postgres" {
 
   deletion_protection = false
 
+  lifecycle {
+    ignore_changes  = [settings[0].ip_configuration[0].private_network]
+    prevent_destroy = false
+
+  }
+
   depends_on = [
     google_service_networking_connection.private_vpc_connection
   ]
@@ -112,6 +126,8 @@ resource "google_sql_user" "postgres_user" {
   name     = var.db_username
   instance = google_sql_database_instance.postgres[0].name
   password = var.db_password
+
+  depends_on = [google_sql_database_instance.postgres, google_sql_user.postgres_user]
 }
 
 # ------------------------
@@ -121,5 +137,7 @@ resource "google_sql_database" "custom" {
   count    = local.is_gcp && var.create_custom_db ? 1 : 0
   name     = var.db_name
   instance = google_sql_database_instance.postgres[0].name
+
+  depends_on = [google_sql_database_instance.postgres, google_sql_user.postgres_user]
 }
 

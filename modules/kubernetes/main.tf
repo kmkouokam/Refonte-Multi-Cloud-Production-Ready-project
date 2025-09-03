@@ -4,6 +4,10 @@ locals {
   is_gcp = var.cloud_provider == "gcp"
 }
 
+resource "random_id" "suffix" {
+  byte_length = 2
+}
+
 ################
 # AWS EKS Setup
 ################
@@ -58,6 +62,8 @@ resource "aws_iam_instance_profile" "eks_node_instance_profile" {
   count = local.is_aws ? 1 : 0
   name  = "${var.cluster_name}-node-profile"
   role  = aws_iam_role.eks_node_role[0].name
+
+  depends_on = [aws_iam_role.eks_node_role, aws_iam_instance_profile.eks_node_instance_profile]
 }
 
 resource "aws_iam_role_policy_attachment" "node_policies" {
@@ -68,6 +74,8 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
   ], count.index)
+
+  depends_on = [aws_iam_role.eks_node_role, aws_iam_instance_profile.eks_node_instance_profile]
 }
 
 resource "aws_eks_cluster" "aws_eks_cluster" {
@@ -80,7 +88,7 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
     subnet_ids = var.public_subnet_ids
   }
 
-  depends_on = [aws_iam_role.eks_cluster_role]
+  depends_on = [aws_iam_role.eks_cluster_role, aws_iam_role.eks_node_role]
 }
 
 ###############
@@ -89,41 +97,41 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
 ##########################
 # GCP Prereqs (APIs + IAM)
 ##########################
-resource "google_project_service" "container_api" {
-  count   = local.is_gcp ? 1 : 0
-  project = var.gcp_project_id
-  service = "container.googleapis.com"
+# resource "google_project_service" "container_api" {
+#   count   = local.is_gcp ? 1 : 0
+#   project = var.gcp_project_id
+#   service = "container.googleapis.com"
 
-  disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies  
-  disable_on_destroy         = false
+#   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies  
+#   disable_on_destroy         = false
 
-  lifecycle {
-    prevent_destroy = false
-    ignore_changes  = all
-  }
-}
+#   lifecycle {
+#     prevent_destroy = false
+#     ignore_changes  = all
+#   }
+# }
 
 
-resource "google_project_service" "compute_api" {
-  count                      = local.is_gcp ? 1 : 0
-  project                    = var.gcp_project_id
-  service                    = "compute.googleapis.com"
-  disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
-  disable_on_destroy         = false
-  depends_on = [google_container_cluster.gcp_cluster,
-  google_container_node_pool.primary_nodes]
+# resource "google_project_service" "compute_api" {
+#   count                      = local.is_gcp ? 1 : 0
+#   project                    = var.gcp_project_id
+#   service                    = "compute.googleapis.com"
+#   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
+#   disable_on_destroy         = false
+#   depends_on = [google_container_cluster.gcp_cluster,
+#   google_container_node_pool.primary_nodes]
 
-  lifecycle {
-    prevent_destroy = false
-    ignore_changes  = all
-  }
-}
+#   lifecycle {
+#     prevent_destroy = false
+#     ignore_changes  = all
+#   }
+# }
 
-# To enable the GCP API for secret manager
-resource "google_project_service" "secret_manager" {
-  project = var.gcp_project_id
-  service = "secretmanager.googleapis.com"
-}
+# # To enable the GCP API for secret manager
+# resource "google_project_service" "secret_manager" {
+#   project = var.gcp_project_id
+#   service = "secretmanager.googleapis.com"
+# }
 
 
 
@@ -132,7 +140,7 @@ resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
   account_id   = "${var.cluster_name}-gke-sa"
   display_name = "GKE Service Account"
-  # depends_on   = [google_project_service.compute_api, google_project_service.container_api]
+
 }
 
 # Bind GKE service account to required roles
@@ -149,6 +157,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
   members = [
     "serviceAccount:${google_service_account.gke_sa[0].email}"
   ]
+  depends_on = [google_service_account.gke_sa]
 }
 
 resource "google_container_cluster" "gcp_cluster" {
@@ -166,11 +175,13 @@ resource "google_container_cluster" "gcp_cluster" {
   release_channel {
     channel = "REGULAR"
   }
+  depends_on = [google_service_account.gke_sa]
+
 }
 
 resource "google_container_node_pool" "primary_nodes" {
   count    = local.is_gcp ? 1 : 0
-  name     = "${var.cluster_name}-node-pool"
+  name     = "${var.cluster_name}${random_id.suffix.hex}-node-pool"
   cluster  = google_container_cluster.gcp_cluster[0].name
   location = var.gcp_region
 
@@ -186,6 +197,8 @@ resource "google_container_node_pool" "primary_nodes" {
     min_node_count = 1
     max_node_count = 3
   }
+
+  depends_on = [google_container_cluster.gcp_cluster, google_service_account.gke_sa]
 }
 
 

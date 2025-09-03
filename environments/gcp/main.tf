@@ -7,7 +7,14 @@ module "vpc" {
   gcp_region         = var.gcp_region
   vpc_cidr           = var.vpc_cidr
   availability_zones = var.availability_zones
+  gcp_project_id     = var.gcp_project_id
 
+
+  enabled_apis = [
+    "compute.googleapis.com",
+    "container.googleapis.com",
+    "secretmanager.googleapis.com"
+  ]
 
   env = var.env
 
@@ -25,6 +32,8 @@ module "k8s" {
   gcp_network       = module.vpc.gcp_network_name
   gcp_subnetwork    = module.vpc.gcp_private_subnet_name
   public_subnet_ids = module.vpc.aws_public_subnet_ids
+
+  depends_on = [module.vpc.enabled_services] # <– ensures APIs are ready before k8s runs
 }
 
 
@@ -68,6 +77,7 @@ module "gcp_db" {
   aws_vpc_id        = module.vpc.aws_vpc_id
   aws_web_sg_id     = module.vpc.aws_web_sg_id
 }
+
 
 
 

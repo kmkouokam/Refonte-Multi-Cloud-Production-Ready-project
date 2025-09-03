@@ -10,3 +10,8 @@ output "kubeconfig" {
 }
 
 
+# output "enabled_apis" {
+#   description = "List of enabled APIs"
+#   value       = keys(google_project_service.secret_manager)
+# }
+

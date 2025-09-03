@@ -63,3 +63,14 @@ variable "vpn_name_prefix" {
   type        = string
   default     = "multi-cloud-vpn"
 }
+
+variable "aws_private_subnet_cidrs" {
+  description = "List of private subnet CIDRs in AWS"
+  type        = list(string)
+}
+
+variable "gcp_private_subnet_cidrs" {
+  description = "List of private subnet CIDRs in GCP"
+  type        = list(string)
+}
+

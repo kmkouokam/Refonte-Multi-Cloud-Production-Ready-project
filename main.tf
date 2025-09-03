@@ -34,6 +34,8 @@ module "aws_gcp_vpn" {
   aws_vpc_id                  = module.aws_env.aws_vpc_id
   aws_amazon_side_asn         = 64512
   aws_private_route_table_ids = module.aws_env.aws_private_route_table_ids
+  aws_private_subnet_cidrs    = module.aws_env.aws_private_subnet_cidrs
+  gcp_private_subnet_cidrs    = module.gcp_env.gcp_private_subnet_cidrs
 
   depends_on = [
     module.aws_env,

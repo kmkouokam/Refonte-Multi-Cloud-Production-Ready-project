@@ -14,6 +14,8 @@ locals {
 resource "google_compute_address" "gcp_vpn_ip" {
   name   = "${var.vpn_name}-gcp-vpn-ip"
   region = var.gcp_region
+  labels = local.gcp_labels
+
 }
 
 ############################
@@ -23,6 +25,8 @@ resource "google_compute_vpn_gateway" "gcp_vpn_gateway" {
   name    = "${var.vpn_name}-gcp-vpn-gw"
   network = var.gcp_network_self_link
   region  = var.gcp_region
+
+  depends_on = [google_compute_address.gcp_vpn_ip]
 }
 
 resource "google_compute_router" "gcp_router" {
@@ -35,6 +39,8 @@ resource "google_compute_router" "gcp_router" {
     advertise_mode    = var.gcp_router_advertise_all_subnets ? "CUSTOM" : "DEFAULT"
     advertised_groups = var.gcp_router_advertise_all_subnets ? ["ALL_SUBNETS"] : null
   }
+
+  depends_on = [google_compute_vpn_gateway.gcp_vpn_gateway]
 }
 
 
@@ -46,11 +52,13 @@ resource "aws_vpn_gateway" "vgw" {
   tags = {
     Name = "${var.vpn_name}-vgw"
   }
+
 }
 
 resource "aws_vpn_gateway_attachment" "vgw_attach" {
   vpc_id         = var.aws_vpc_id
   vpn_gateway_id = aws_vpn_gateway.vgw.id
+  depends_on     = [aws_vpn_gateway.vgw]
 }
 
 # The GCP side appears to AWS as a "Customer Gateway" (CGW) using the GCP VPN public IP
@@ -61,7 +69,7 @@ resource "aws_customer_gateway" "gcp" {
   tags = {
     Name = "${var.vpn_name}-cgw"
   }
-  depends_on = [google_compute_address.gcp_vpn_ip]
+  depends_on = [google_compute_address.gcp_vpn_ip, google_compute_vpn_gateway.gcp_vpn_gateway]
 }
 
 # Single AWS VPN connection (creates 2 tunnels) with BGP enabled (static_routes_only=false)
@@ -85,7 +93,7 @@ resource "aws_vpn_connection" "aws_to_gcp" {
     Name = "${var.vpn_name}-aws-vpn"
   }
 
-  depends_on = [aws_vpn_gateway_attachment.vgw_attach]
+  depends_on = [aws_vpn_gateway_attachment.vgw_attach, aws_customer_gateway.gcp]
 }
 
 # Propagate learned routes from VGW into selected route tables
@@ -112,7 +120,10 @@ resource "google_compute_vpn_tunnel" "tunnel1" {
   shared_secret      = var.vpn_shared_secret
   ike_version        = 2
 
-  depends_on = [aws_vpn_connection.aws_to_gcp]
+  local_traffic_selector  = var.gcp_private_subnet_cidrs
+  remote_traffic_selector = var.aws_private_subnet_cidrs
+
+  depends_on = [aws_vpn_connection.aws_to_gcp, google_compute_vpn_gateway.gcp_vpn_gateway]
 }
 
 resource "google_compute_router_interface" "ri1" {
@@ -121,6 +132,8 @@ resource "google_compute_router_interface" "ri1" {
   region     = var.gcp_region
   ip_range   = "${aws_vpn_connection.aws_to_gcp.tunnel1_cgw_inside_address}/30" # GCP (customer) side inside /30
   vpn_tunnel = google_compute_vpn_tunnel.tunnel1.name
+
+  depends_on = [google_compute_vpn_tunnel.tunnel1]
 }
 
 resource "google_compute_router_peer" "peer1" {
@@ -131,6 +144,8 @@ resource "google_compute_router_peer" "peer1" {
   peer_ip_address = aws_vpn_connection.aws_to_gcp.tunnel1_vgw_inside_address # AWS (VGW) inside IP
   peer_asn        = var.aws_amazon_side_asn
   advertise_mode  = "DEFAULT"
+
+
 }
 
 # TUNNEL 2
@@ -142,7 +157,12 @@ resource "google_compute_vpn_tunnel" "tunnel2" {
   shared_secret      = var.vpn_shared_secret
   ike_version        = 2
 
-  depends_on = [aws_vpn_connection.aws_to_gcp]
+  local_traffic_selector  = var.gcp_private_subnet_cidrs
+  remote_traffic_selector = var.aws_private_subnet_cidrs
+
+  depends_on = [aws_vpn_connection.aws_to_gcp,
+    google_compute_vpn_gateway.gcp_vpn_gateway
+  ]
 }
 
 resource "google_compute_router_interface" "ri2" {
@@ -151,6 +171,10 @@ resource "google_compute_router_interface" "ri2" {
   region     = var.gcp_region
   ip_range   = "${aws_vpn_connection.aws_to_gcp.tunnel2_cgw_inside_address}/30" # GCP side inside /30
   vpn_tunnel = google_compute_vpn_tunnel.tunnel2.name
+
+  depends_on = [
+    google_compute_vpn_tunnel.tunnel2
+  ]
 }
 
 resource "google_compute_router_peer" "peer2" {
@@ -161,6 +185,8 @@ resource "google_compute_router_peer" "peer2" {
   peer_ip_address = aws_vpn_connection.aws_to_gcp.tunnel2_vgw_inside_address
   peer_asn        = var.aws_amazon_side_asn
   advertise_mode  = "DEFAULT"
+
+
 }
 
 resource "google_compute_forwarding_rule" "esp" {
@@ -169,6 +195,8 @@ resource "google_compute_forwarding_rule" "esp" {
   ip_protocol = "ESP"
   ip_address  = google_compute_address.gcp_vpn_ip.address
   target      = google_compute_vpn_gateway.gcp_vpn_gateway.self_link
+
+
 }
 
 resource "google_compute_forwarding_rule" "udp500" {
@@ -178,6 +206,7 @@ resource "google_compute_forwarding_rule" "udp500" {
   port_range  = "500"
   ip_address  = google_compute_address.gcp_vpn_ip.address
   target      = google_compute_vpn_gateway.gcp_vpn_gateway.self_link
+
 }
 
 resource "google_compute_forwarding_rule" "udp4500" {
@@ -187,6 +216,7 @@ resource "google_compute_forwarding_rule" "udp4500" {
   port_range  = "4500"
   ip_address  = google_compute_address.gcp_vpn_ip.address
   target      = google_compute_vpn_gateway.gcp_vpn_gateway.self_link
+
 }
 
 

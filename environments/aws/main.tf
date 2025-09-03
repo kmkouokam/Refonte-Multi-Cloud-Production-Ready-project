@@ -8,6 +8,7 @@ module "vpc" {
   public_subnets     = var.public_subnet_cidrs
   env                = var.env
   gcp_region         = var.gcp_region
+  gcp_project_id     = var.gcp_project_id
 }
 
 module "k8s" {
@@ -48,10 +49,13 @@ module "aws_db" {
   db_instance_class = var.db_instance_class
   db_storage_size   = var.db_storage_size
 
-  aws_region       = var.aws_region
-  db_password      = module.aws_security.db_password
-  db_subnet_ids    = module.vpc.aws_private_subnet_ids
-  depends_on       = [module.aws_security, module.vpc]
+  aws_region    = var.aws_region
+  db_password   = module.aws_security.db_password
+  db_subnet_ids = module.vpc.aws_private_subnet_ids
+  depends_on = [
+    module.aws_security,
+    module.vpc
+  ]
   gcp_project_id   = var.gcp_project_id
   create_custom_db = var.create_custom_db
   gcp_network_name = module.vpc.gcp_network_name
@@ -62,6 +66,8 @@ module "aws_db" {
   aws_db_sg_id     = module.vpc.aws_db_sg_id
   aws_vpc_id       = module.vpc.aws_vpc_id
   aws_web_sg_id    = module.vpc.aws_web_sg_id
+
+
 }
 
 

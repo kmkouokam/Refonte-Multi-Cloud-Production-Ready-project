@@ -54,10 +54,11 @@ output "gcp_private_subnet_name" {
 }
 
 
-
-
-
-
+output "enabled_services" {
+  value = [
+    for s in google_project_service.enabled_apis : s.id
+  ]
+}
 
 output "gcp_vpc_self_link" {
   description = "Self link of the GCP VPC (used for private service networking)"
@@ -68,6 +69,30 @@ output "gcp_vpc_self_link" {
 output "private_route_table_ids" {
   value = var.cloud_provider == "aws" ? aws_route_table.private[*].id : null
 }
+
+
+# AWS subnet CIDRs
+output "aws_public_subnet_cidrs" {
+  description = "CIDR blocks for AWS public subnets"
+  value       = aws_subnet.public[*].cidr_block
+}
+
+output "aws_private_subnet_cidrs" {
+  description = "CIDR blocks for AWS private subnets"
+  value       = aws_subnet.private[*].cidr_block
+}
+
+# GCP subnet CIDRs
+output "gcp_public_subnet_cidrs" {
+  description = "CIDR ranges for GCP public subnets"
+  value       = [for s in google_compute_subnetwork.public : s.ip_cidr_range]
+}
+
+output "gcp_private_subnet_cidrs" {
+  description = "CIDR ranges for GCP private subnets"
+  value       = [for s in google_compute_subnetwork.private : s.ip_cidr_range]
+}
+
 
 
 

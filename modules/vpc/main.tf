@@ -1,6 +1,25 @@
 # This is a reusable VPC module for AWS and GCP.
 # Logic is switched based on the cloud_provider variable.
 
+# Enabled APIS in GCP Cloud
+
+resource "google_project_service" "enabled_apis" {
+  for_each = var.cloud_provider == "gcp" ? toset(var.enabled_apis) : []
+
+  project = var.gcp_project_id
+  service = each.key
+
+  disable_on_destroy = false
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes  = all
+  }
+}
+
+resource "random_id" "suffix" {
+  byte_length = 2
+}
+
 # ----------------------
 # AWS VPC + Subnets + NAT + IGW
 # ----------------------
@@ -162,15 +181,20 @@ resource "aws_security_group" "db_sg" {
 # ----------------------
 resource "google_compute_network" "vpc_network" {
   count                           = var.cloud_provider == "gcp" ? 1 : 0
-  name                            = "${var.name_prefix}-vpc"
+  name                            = "${var.name_prefix}-${random_id.suffix.hex}-vpc"
   auto_create_subnetworks         = false
   routing_mode                    = "REGIONAL"
   delete_default_routes_on_create = var.manage_default_routes
+  lifecycle {
+    ignore_changes = [routing_mode]
+  }
+
+  depends_on = [google_project_service.enabled_apis]
 }
 
 resource "google_compute_subnetwork" "public" {
   count         = var.cloud_provider == "gcp" ? length(var.public_subnets) : 0
-  name          = "${var.name_prefix}-public-${count.index}"
+  name          = "${var.name_prefix}-public-${count.index}-${random_id.suffix.hex}"
   ip_cidr_range = var.public_subnets[count.index]
   region        = var.gcp_region
   network       = google_compute_network.vpc_network[0].name
@@ -179,7 +203,7 @@ resource "google_compute_subnetwork" "public" {
 
 resource "google_compute_subnetwork" "private" {
   count                    = var.cloud_provider == "gcp" ? length(var.private_subnets) : 0
-  name                     = "${var.name_prefix}-private-${count.index}"
+  name                     = "${var.name_prefix}-private-${count.index}-${random_id.suffix.hex}"
   ip_cidr_range            = var.private_subnets[count.index]
   region                   = var.gcp_region
   network                  = google_compute_network.vpc_network[0].name
@@ -189,7 +213,7 @@ resource "google_compute_subnetwork" "private" {
 
 resource "google_compute_router" "main" {
   count      = var.cloud_provider == "gcp" ? 1 : 0
-  name       = "${var.name_prefix}-router"
+  name       = "${var.name_prefix}-${random_id.suffix.hex}-router"
   region     = var.gcp_region
   network    = google_compute_network.vpc_network[0].name
   depends_on = [google_compute_network.vpc_network]
@@ -197,14 +221,14 @@ resource "google_compute_router" "main" {
 
 resource "google_compute_address" "nat_ip" {
   count      = var.cloud_provider == "gcp" ? 1 : 0
-  name       = "${var.name_prefix}-nat-ip"
+  name       = "${var.name_prefix}-${random_id.suffix.hex}-nat-ip"
   region     = var.gcp_region
   depends_on = [google_compute_network.vpc_network]
 }
 
 resource "google_compute_router_nat" "nat" {
   count                              = var.cloud_provider == "gcp" ? 1 : 0
-  name                               = "${var.name_prefix}-nat"
+  name                               = "${var.name_prefix}-${random_id.suffix.hex}-nat"
   router                             = google_compute_router.main[0].name
   region                             = var.gcp_region
   nat_ip_allocate_option             = "MANUAL_ONLY"
@@ -215,12 +239,12 @@ resource "google_compute_router_nat" "nat" {
 
 resource "google_compute_route" "default_internet" {
   count   = var.manage_default_routes ? 1 : 0
-  name    = "${var.name_prefix}-default-internet"
+  name    = "${var.name_prefix}-${random_id.suffix.hex}-default-internet"
   network = length(google_compute_network.vpc_network) > 0 ? google_compute_network.vpc_network[0].id : null
 
   dest_range       = "0.0.0.0/0"
   next_hop_gateway = true
-  depends_on       = [google_compute_network.vpc_network]
+  depends_on       = [google_compute_network.vpc_network, google_compute_router.main, google_compute_address.nat_ip]
 }
 
 
@@ -228,7 +252,7 @@ resource "google_compute_route" "default_internet" {
 # Allow HTTP, HTTPS, SSH
 resource "google_compute_firewall" "web_fw" {
   count   = var.cloud_provider == "gcp" ? 1 : 0
-  name    = "${var.env}-web-fw"
+  name    = "${var.env}-${random_id.suffix.hex}-web-fw"
   network = google_compute_network.vpc_network[0].name
 
   allow {
@@ -243,7 +267,7 @@ resource "google_compute_firewall" "web_fw" {
 # Allow DB traffic only from web instances (tag-based)
 resource "google_compute_firewall" "db_fw" {
   count   = var.cloud_provider == "gcp" ? 1 : 0
-  name    = "${var.env}-db-fw"
+  name    = "${var.env}-${random_id.suffix.hex}-db-fw"
   network = google_compute_network.vpc_network[0].name
 
   allow {

@@ -30,6 +30,22 @@ variable "gcp_region" {
 
 }
 
+variable "enabled_apis" {
+  description = "List of GCP APIs to enable before provisioning"
+  type        = list(string)
+  default = [
+    "compute.googleapis.com",
+    "container.googleapis.com",
+    "secretmanager.googleapis.com"
+  ]
+}
+
+variable "gcp_project_id" {
+  description = "GCP Project ID"
+  type        = string
+
+}
+
 # Shared
 variable "public_subnets" {
   description = "List of public subnet CIDRs"
