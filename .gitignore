@@ -2,10 +2,11 @@
 **/.terraform/
 .terraform.lock.hcl
 *.tfstate*
-
+ 
 # Terraform state files (often contain sensitive info)
 terraform.tfstate
 terraform.tfstate.backup
+ 
 
 # Crash logs
 crash.log
@@ -38,4 +39,3 @@ ehthumbs.db
 
 # Windows PowerShell history file
 ConsoleHost_history.txt
-tfplan
