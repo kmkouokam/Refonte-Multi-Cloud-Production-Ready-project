@@ -7,6 +7,25 @@
 terraform.tfstate
 terraform.tfstate.backup
 
+modules/
+environments/
+*.tf
+*.tfstate*
+README
+main.tf  
+mygcp-creds.json
+terraform_multicloud_full_guide.md
+terraform-commands.md
+ variables.tf
+providers.tf
+'Final Cloud Engineering Assignment.docx'
+
+
+
+
+
+
+
 # Crash logs
 crash.log
 
