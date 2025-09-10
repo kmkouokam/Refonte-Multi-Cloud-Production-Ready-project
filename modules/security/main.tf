@@ -186,3 +186,48 @@ data "google_secret_manager_secret_version" "db_password" {
   version    = "latest"
   depends_on = [google_secret_manager_secret_version.db_password]
 }
+
+
+# -------------------------
+# AWS Kubernetes Secret
+# -------------------------
+resource "kubernetes_secret" "flask_db_aws" {
+  count = local.is_aws ? 1 : 0
+
+  metadata {
+    name      = "flask-app-db-secret"
+    namespace = "default"
+  }
+
+  data = {
+    DB_HOST     = module.db.aws_db_endpoint
+    DB_PORT     = "5432"
+    DB_NAME     = "flaskdb"
+    DB_USER     = "flaskuser"
+    DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
+  }
+
+  type = "Opaque"
+}
+
+# -------------------------
+# GCP Kubernetes Secret
+# -------------------------
+resource "kubernetes_secret" "flask_db_gcp" {
+  count = local.is_gcp ? 1 : 0
+
+  metadata {
+    name      = "flask-app-db-secret"
+    namespace = "default"
+  }
+
+  data = {
+    DB_HOST     = module.db.gcp_db_endpoint
+    DB_PORT     = "5432"
+    DB_NAME     = "flaskdb"
+    DB_USER     = "flaskuser"
+    DB_PASSWORD = jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data).password
+  }
+
+  type = "Opaque"
+}
