@@ -8,11 +8,14 @@ locals {
   }
 }
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
 ############################
 # GCP: reserve a public IP for the VPN gateway
 ############################
 resource "google_compute_address" "gcp_vpn_ip" {
-  name   = "${var.vpn_name}-gcp-vpn-ip"
+  name   = "${var.vpn_name}-gcp-vpn-ip-${random_id.suffix.hex}"
   region = var.gcp_region
   labels = local.gcp_labels
 
@@ -22,7 +25,7 @@ resource "google_compute_address" "gcp_vpn_ip" {
 # GCP: Classic VPN gateway (target gateway) + Cloud Router (Border Gateway Protocol)
 ############################
 resource "google_compute_vpn_gateway" "gcp_vpn_gateway" {
-  name    = "${var.vpn_name}-gcp-vpn-gw"
+  name    = "${var.vpn_name}-gcp-vpn-gw-${random_id.suffix.hex}"
   network = var.gcp_network_self_link
   region  = var.gcp_region
 
@@ -30,7 +33,7 @@ resource "google_compute_vpn_gateway" "gcp_vpn_gateway" {
 }
 
 resource "google_compute_router" "gcp_router" {
-  name    = "${var.vpn_name}-cr"
+  name    = "${var.vpn_name}-cr-${random_id.suffix.hex}"
   region  = var.gcp_region
   network = var.gcp_network_self_link
 
@@ -50,7 +53,7 @@ resource "google_compute_router" "gcp_router" {
 resource "aws_vpn_gateway" "vgw" {
   amazon_side_asn = var.aws_amazon_side_asn
   tags = {
-    Name = "${var.vpn_name}-vgw"
+    Name = "${var.vpn_name}-vgw-${random_id.suffix.hex}"
   }
 
 }
@@ -67,7 +70,7 @@ resource "aws_customer_gateway" "gcp" {
   ip_address = google_compute_address.gcp_vpn_ip.address
   type       = "ipsec.1"
   tags = {
-    Name = "${var.vpn_name}-cgw"
+    Name = "${var.vpn_name}-cgw-${random_id.suffix.hex}"
   }
   depends_on = [google_compute_address.gcp_vpn_ip, google_compute_vpn_gateway.gcp_vpn_gateway]
 }
@@ -90,7 +93,7 @@ resource "aws_vpn_connection" "aws_to_gcp" {
   tunnel2_preshared_key = var.vpn_shared_secret
 
   tags = {
-    Name = "${var.vpn_name}-aws-vpn"
+    Name = "${var.vpn_name}-aws-vpn-${random_id.suffix.hex}"
   }
 
   depends_on = [aws_vpn_gateway_attachment.vgw_attach, aws_customer_gateway.gcp]
@@ -113,7 +116,7 @@ resource "aws_vpn_gateway_route_propagation" "propagation" {
 
 # TUNNEL 1
 resource "google_compute_vpn_tunnel" "tunnel1" {
-  name               = "${var.vpn_name}-tunnel1"
+  name               = "${var.vpn_name}-tunnel1-${random_id.suffix.hex}"
   region             = var.gcp_region
   target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gateway.id
   peer_ip            = aws_vpn_connection.aws_to_gcp.tunnel1_address
@@ -127,7 +130,7 @@ resource "google_compute_vpn_tunnel" "tunnel1" {
 }
 
 resource "google_compute_router_interface" "ri1" {
-  name       = "${var.vpn_name}-ri1"
+  name       = "${var.vpn_name}-ri1-${random_id.suffix.hex}"
   router     = google_compute_router.gcp_router.name
   region     = var.gcp_region
   ip_range   = "${aws_vpn_connection.aws_to_gcp.tunnel1_cgw_inside_address}/30" # GCP (customer) side inside /30
@@ -137,7 +140,7 @@ resource "google_compute_router_interface" "ri1" {
 }
 
 resource "google_compute_router_peer" "peer1" {
-  name            = "${var.vpn_name}-peer1"
+  name            = "${var.vpn_name}-peer1-${random_id.suffix.hex}"
   router          = google_compute_router.gcp_router.name
   region          = var.gcp_region
   interface       = google_compute_router_interface.ri1.name
@@ -150,7 +153,7 @@ resource "google_compute_router_peer" "peer1" {
 
 # TUNNEL 2
 resource "google_compute_vpn_tunnel" "tunnel2" {
-  name               = "${var.vpn_name}-tunnel2"
+  name               = "${var.vpn_name}-tunnel2-${random_id.suffix.hex}"
   region             = var.gcp_region
   target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gateway.id
   peer_ip            = aws_vpn_connection.aws_to_gcp.tunnel2_address
@@ -166,7 +169,7 @@ resource "google_compute_vpn_tunnel" "tunnel2" {
 }
 
 resource "google_compute_router_interface" "ri2" {
-  name       = "${var.vpn_name}-ri2"
+  name       = "${var.vpn_name}-ri2-${random_id.suffix.hex}"
   router     = google_compute_router.gcp_router.name
   region     = var.gcp_region
   ip_range   = "${aws_vpn_connection.aws_to_gcp.tunnel2_cgw_inside_address}/30" # GCP side inside /30
@@ -178,7 +181,7 @@ resource "google_compute_router_interface" "ri2" {
 }
 
 resource "google_compute_router_peer" "peer2" {
-  name            = "${var.vpn_name}-peer2"
+  name            = "${var.vpn_name}-peer2-${random_id.suffix.hex}"
   router          = google_compute_router.gcp_router.name
   region          = var.gcp_region
   interface       = google_compute_router_interface.ri2.name
@@ -190,7 +193,7 @@ resource "google_compute_router_peer" "peer2" {
 }
 
 resource "google_compute_forwarding_rule" "esp" {
-  name        = "${var.vpn_name_prefix}-esp"
+  name        = "${var.vpn_name_prefix}-esp-${random_id.suffix.hex}"
   region      = var.gcp_region
   ip_protocol = "ESP"
   ip_address  = google_compute_address.gcp_vpn_ip.address
@@ -200,7 +203,7 @@ resource "google_compute_forwarding_rule" "esp" {
 }
 
 resource "google_compute_forwarding_rule" "udp500" {
-  name        = "${var.vpn_name_prefix}-udp500"
+  name        = "${var.vpn_name_prefix}-udp500-${random_id.suffix.hex}"
   region      = var.gcp_region
   ip_protocol = "UDP"
   port_range  = "500"
@@ -210,7 +213,7 @@ resource "google_compute_forwarding_rule" "udp500" {
 }
 
 resource "google_compute_forwarding_rule" "udp4500" {
-  name        = "${var.vpn_name_prefix}-udp4500"
+  name        = "${var.vpn_name_prefix}-udp4500-${random_id.suffix.hex}"
   region      = var.gcp_region
   ip_protocol = "UDP"
   port_range  = "4500"

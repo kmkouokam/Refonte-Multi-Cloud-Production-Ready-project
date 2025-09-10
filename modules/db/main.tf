@@ -71,10 +71,11 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 
 resource "aws_db_subnet_group" "db_subnet_group" {
   count       = local.is_aws ? 1 : 0
-  name        = "${var.env}-db-subnet-group"
+  name        = "${var.env}-db-subnet-group-${random_id.suffix.hex}"
   description = "Subnet group for RDS"
   subnet_ids  = var.db_subnet_ids
 }
+
 resource "aws_db_instance" "postgres" {
   count                  = local.is_aws ? 1 : 0
   allocated_storage      = var.db_storage_size
@@ -119,6 +120,7 @@ resource "google_sql_database_instance" "postgres" {
   depends_on = [
     google_service_networking_connection.private_vpc_connection
   ]
+
 }
 
 resource "google_sql_user" "postgres_user" {

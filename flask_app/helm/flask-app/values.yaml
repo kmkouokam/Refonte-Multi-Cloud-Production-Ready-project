@@ -1,0 +1,27 @@
+replicaCount: 2
+
+image:
+  repository: kmkouokam/flaskr-tdd
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+env:
+  FLASK_ENV: production
+  DATABASE_URL: "sqlite:///project/flaskr.db"
+
+ingress:
+  enabled: false
+  host: flask-app.local
+  annotations: {}

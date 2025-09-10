@@ -1,0 +1,18 @@
+replicaCount: 2
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 300Mi
+  limits:
+    cpu: 600m
+    memory: 600Mi
+
+ingress:
+  enabled: true
+  host: refonte-flask-app.devopsguru.today # replace with your GoDaddy domain
+  annotations:
+    kubernetes.io/ingress.class: gce
