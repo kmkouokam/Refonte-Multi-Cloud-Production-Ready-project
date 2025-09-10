@@ -1,7 +1,7 @@
 replicaCount: 2
 
 image:
-  repository: your-dockerhub-username/flask-app
+  repository: kmkouokam/flaskr-tdd:latest
   tag: v1.0.0
   pullPolicy: IfNotPresent
 

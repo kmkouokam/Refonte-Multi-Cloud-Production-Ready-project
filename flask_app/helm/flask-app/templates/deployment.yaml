@@ -16,11 +16,9 @@ spec:
         - name: flask-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-            - name: FLASK_ENV
-              value: {{ .Values.env.FLASK_ENV }}
-            - name: DATABASE_URL
-              value: {{ .Values.env.DATABASE_URL }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.env.secretName }}
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}

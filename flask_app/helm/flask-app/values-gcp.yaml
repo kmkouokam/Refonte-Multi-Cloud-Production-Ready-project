@@ -1,5 +1,10 @@
 replicaCount: 2
 
+image:
+  repository: kmkouokam/flaskr-tdd:latest
+  tag: latest
+  pullPolicy: IfNotPresent
+
 service:
   type: ClusterIP
 
@@ -13,6 +18,10 @@ resources:
 
 ingress:
   enabled: true
-  host: flask-app.gcp.example.com
+  host: flask-app.devopsguru.today
   annotations:
     kubernetes.io/ingress.class: gce
+
+env:
+  # Database credentials are pulled from Kubernetes Secret
+  secretName: { { .Values.env.secretName } }
