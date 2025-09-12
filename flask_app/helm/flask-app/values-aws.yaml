@@ -17,3 +17,9 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
+db:
+  host: refonte-flask-db.devopsguru.today # replace with your GoDaddy domain
+  port: { { .Values.db.port } }
+  name: { { .Values.db.name } }
+  user: { { .Values.db.user } }
+  password: { { .Values.db.password } }

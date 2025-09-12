@@ -64,6 +64,14 @@ variable "gcp_project_id" {
   default     = null
 }
 
+variable "db_endpoint" {
+  description = "Database endpoint (only for GCP)"
+  type        = string
+  default     = null
+}
 
-
+variable "helm_values_file" {
+  description = "Path to Helm values file"
+  type        = string
+}
 

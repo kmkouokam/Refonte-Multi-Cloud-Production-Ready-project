@@ -58,6 +58,10 @@ variable "gcp_credentials_file" {
   default     = "../../mygcp-creds.json"
 }
 
+# variable "gcp_db_endpoint" {
+#   type = string
+# }
+
 
 
 

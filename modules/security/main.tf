@@ -3,6 +3,19 @@ locals {
   is_gcp = lower(var.cloud_provider) == "gcp"
 }
 
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.8.0"
+    }
+  }
+}
+
 
 # -----------------------
 # AWS Security Resources
@@ -192,7 +205,8 @@ data "google_secret_manager_secret_version" "db_password" {
 # AWS Kubernetes Secret
 # -------------------------
 resource "kubernetes_secret" "flask_db_aws" {
-  count = local.is_aws ? 1 : 0
+  provider = kubernetes.aws
+  count    = local.is_aws ? 1 : 0
 
   metadata {
     name      = "flask-app-db-secret"
@@ -200,10 +214,10 @@ resource "kubernetes_secret" "flask_db_aws" {
   }
 
   data = {
-    DB_HOST     = module.db.aws_db_endpoint
+    DB_HOST     = var.db_endpoint
     DB_PORT     = "5432"
-    DB_NAME     = "flaskdb"
-    DB_USER     = "flaskuser"
+    DB_NAME     = var.db_name
+    DB_USER     = var.db_username
     DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
   }
 
@@ -214,7 +228,8 @@ resource "kubernetes_secret" "flask_db_aws" {
 # GCP Kubernetes Secret
 # -------------------------
 resource "kubernetes_secret" "flask_db_gcp" {
-  count = local.is_gcp ? 1 : 0
+  provider = kubernetes.gcp
+  count    = local.is_gcp ? 1 : 0
 
   metadata {
     name      = "flask-app-db-secret"
@@ -222,12 +237,26 @@ resource "kubernetes_secret" "flask_db_gcp" {
   }
 
   data = {
-    DB_HOST     = module.db.gcp_db_endpoint
+    DB_HOST     = var.db_endpoint
     DB_PORT     = "5432"
-    DB_NAME     = "flaskdb"
-    DB_USER     = "flaskuser"
+    DB_NAME     = var.db_name
+    DB_USER     = var.db_username
     DB_PASSWORD = jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data).password
   }
 
   type = "Opaque"
 }
+
+# -------------------------
+# Used by both clouds
+#-------------------------
+
+resource "helm_release" "flask_app" {
+  name       = "flask-app"
+  chart      = "${path.module}/../../flask_app/helm/flask-app"
+  namespace  = "default"
+  values     = [file(var.helm_values_file)]
+  depends_on = [kubernetes_secret.flask_db_aws, kubernetes_secret.flask_db_gcp]
+}
+
+

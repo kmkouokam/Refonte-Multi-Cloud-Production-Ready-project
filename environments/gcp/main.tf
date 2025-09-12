@@ -33,7 +33,7 @@ module "k8s" {
   gcp_subnetwork    = module.vpc.gcp_private_subnet_name
   public_subnet_ids = module.vpc.aws_public_subnet_ids
 
-  depends_on = [module.vpc.enabled_services] # <– ensures APIs are ready before k8s runs
+  depends_on = [module.vpc.enabled_services, module.vpc] # <– ensures APIs are ready before k8s runs
 }
 
 
@@ -44,13 +44,19 @@ module "gcp_security" {
   project        = var.project
   secret_name    = "mygcpdb-password"
 
-
-  name_suffix = var.name_prefix
+  helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
+  name_suffix      = var.name_prefix
 
   gcp_region   = var.gcp_region
   kms_key_name = var.kms_key_name
   gcp_iam_bindings = {
     "roles/compute.networkAdmin" = ["serviceAccount:${var.gcp_service_account_email}"]
+  }
+  db_endpoint = module.gcp_db.db_endpoint
+  depends_on  = [module.vpc, module.k8s]
+  providers = {
+    kubernetes = kubernetes.gcp
+    helm       = helm.gcp
   }
 }
 
@@ -76,7 +82,16 @@ module "gcp_db" {
   aws_db_sg_id      = module.vpc.aws_db_sg_id
   aws_vpc_id        = module.vpc.aws_vpc_id
   aws_web_sg_id     = module.vpc.aws_web_sg_id
+
 }
+
+module "helm" {
+  source         = "../../modules/helm"
+  cloud_provider = var.cloud_provider
+  db_endpoint    = module.gcp_db.db_endpoint
+
+}
+
 
 
 

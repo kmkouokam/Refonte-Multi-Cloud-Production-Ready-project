@@ -2,6 +2,7 @@
 module "aws_env" {
   source            = "./environments/aws"
   gcp_vpc_self_link = module.gcp_env.gcp_vpc_self_link
+
 }
 
 module "gcp_env" {
@@ -10,6 +11,8 @@ module "gcp_env" {
 
   gcp_web_fw_name = var.gcp_web_fw_name
   gcp_db_fw_name  = var.gcp_db_fw_name
+
+
 }
 
 resource "random_string" "vpn_shared_secret" {

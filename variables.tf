@@ -3,6 +3,13 @@ variable "aws_region" {
   type        = string
   default     = "us-east-1"
 }
+
+
+variable "db_endpoint" {
+  type    = string
+  default = "mydb.example.com"
+}
+
 variable "gcp_region" {
   description = "The GCP region to deploy resources in"
   type        = string

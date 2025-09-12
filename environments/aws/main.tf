@@ -20,6 +20,8 @@ module "k8s" {
   public_subnet_ids = module.vpc.aws_private_subnet_ids
   gcp_project_id    = var.gcp_project_id
 
+  depends_on = [module.vpc]
+
 }
 
 
@@ -35,6 +37,15 @@ module "aws_security" {
   gcp_region   = var.gcp_region
   secret_name  = "myawsdb-password"
   env          = var.env
+  db_endpoint  = module.aws_db.db_endpoint
+
+  helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-aws.yaml"
+  depends_on       = [module.vpc]
+  providers = {
+    kubernetes = kubernetes.aws
+    helm       = helm.aws
+
+  }
 
 }
 
@@ -69,5 +80,13 @@ module "aws_db" {
 
 
 }
+
+module "helm" {
+  source         = "../../modules/helm"
+  cloud_provider = var.cloud_provider
+  db_endpoint    = module.aws_db.db_endpoint
+
+}
+
 
 

@@ -119,3 +119,10 @@ variable "gcp_vpc_self_link" {
   type        = string
 }
 
+
+
+# variable "aws_db_endpoint" {
+#   type = string
+# }
+
+

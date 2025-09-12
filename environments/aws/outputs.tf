@@ -16,4 +16,8 @@ output "aws_private_route_table_ids" {
   value = module.vpc.private_route_table_ids
 }
 
+output "aws_db_endpoint" {
+  value = module.aws_env.db_endpoint
+}
+
 
