@@ -6,6 +6,8 @@
 # Terraform state files (often contain sensitive info)
 terraform.tfstate
 terraform.tfstate.backup
+*.yml
+*.yaml
  
 
 # Crash logs
