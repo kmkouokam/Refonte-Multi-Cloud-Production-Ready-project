@@ -1,8 +1,28 @@
+# terraform {
+#   required_providers {
+#     aws = {
+#       source = "hashicorp/aws"
+#     }
+#     kubernetes = {
+#       source = "hashicorp/kubernetes"
+#     }
+#     helm = {
+#       source = "hashicorp/helm"
+#     }
+#   }
+# }
+
+
+
 
 module "aws_env" {
   source            = "./environments/aws"
   gcp_vpc_self_link = module.gcp_env.gcp_vpc_self_link
-
+  providers = {
+    kubernetes = kubernetes
+    helm       = helm
+    aws        = aws
+  }
 }
 
 module "gcp_env" {
@@ -11,7 +31,12 @@ module "gcp_env" {
 
   gcp_web_fw_name = var.gcp_web_fw_name
   gcp_db_fw_name  = var.gcp_db_fw_name
+  providers = {
+    kubernetes = kubernetes
+    helm       = helm
 
+
+  }
 
 }
 

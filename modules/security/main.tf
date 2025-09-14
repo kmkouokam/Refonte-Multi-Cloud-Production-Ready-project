@@ -13,6 +13,14 @@ terraform {
       source  = "hashicorp/helm"
       version = ">= 2.8.0"
     }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.12.0"
+    }
   }
 }
 

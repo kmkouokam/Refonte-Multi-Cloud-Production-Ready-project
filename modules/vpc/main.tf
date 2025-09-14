@@ -2,6 +2,20 @@
 # Logic is switched based on the cloud_provider variable.
 
 # Enabled APIS in GCP Cloud
+terraform {
+  required_providers {
+
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.12.0"
+    }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+
+  }
+}
 
 resource "google_project_service" "enabled_apis" {
   for_each = var.cloud_provider == "gcp" ? toset(var.enabled_apis) : []

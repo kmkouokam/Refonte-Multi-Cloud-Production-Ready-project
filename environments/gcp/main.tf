@@ -1,3 +1,26 @@
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.8.0"
+    }
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.12.0"
+    }
+  }
+}
+
+
+
+
+
+
+
 module "vpc" {
   source             = "../../modules/vpc"
   cloud_provider     = var.cloud_provider
@@ -56,6 +79,7 @@ module "gcp_security" {
   depends_on  = [module.vpc, module.k8s]
   providers = {
     kubernetes = kubernetes.gcp
+    gcp        = gcp
     helm       = helm.gcp
   }
 }
@@ -90,6 +114,12 @@ module "helm" {
   cloud_provider = var.cloud_provider
   db_endpoint    = module.gcp_db.db_endpoint
 
+  providers = {
+    kubernetes = kubernetes.gcp
+    helm       = helm.gcp
+    gcp        = gcp
+
+  }
 }
 
 

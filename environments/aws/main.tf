@@ -1,3 +1,20 @@
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+    }
+    helm = {
+      source = "hashicorp/helm"
+    }
+  }
+}
+
+
+
+
 module "vpc" {
   source             = "../../modules/vpc"
   cloud_provider     = var.cloud_provider
@@ -22,6 +39,8 @@ module "k8s" {
 
   depends_on = [module.vpc]
 
+
+
 }
 
 
@@ -42,12 +61,13 @@ module "aws_security" {
   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-aws.yaml"
   depends_on       = [module.vpc]
   providers = {
-    kubernetes = kubernetes.aws
-    helm       = helm.aws
+    kubernetes = kubernetes
+    helm       = helm
+
 
   }
-
 }
+
 
 
 module "aws_db" {
@@ -86,6 +106,12 @@ module "helm" {
   cloud_provider = var.cloud_provider
   db_endpoint    = module.aws_db.db_endpoint
 
+  providers = {
+    kubernetes = kubernetes
+    helm       = helm
+    aws        = aws
+
+  }
 }
 
 

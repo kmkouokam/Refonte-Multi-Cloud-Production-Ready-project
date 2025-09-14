@@ -1,4 +1,22 @@
 # modules/k8s/main.tf
+terraform {
+  required_providers {
+
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.12.0"
+    }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+
+  }
+}
+
+
+
+
 locals {
   is_aws = var.cloud_provider == "aws"
   is_gcp = var.cloud_provider == "gcp"
