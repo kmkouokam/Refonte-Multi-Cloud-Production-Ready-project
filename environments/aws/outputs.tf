@@ -20,4 +20,18 @@ output "aws_db_endpoint" {
   value = module.aws_env.db_endpoint
 }
 
+# environments/aws/outputs.tf
+output "eks_cluster_name" {
+  value = module.k8s.cluster_name
+}
+
+output "eks_cluster_endpoint" {
+  value = module.k8s.cluster_endpoint
+}
+
+output "eks_cluster_ca_certificate" {
+  value = module.k8s.cluster_ca_certificate
+}
+
+
 

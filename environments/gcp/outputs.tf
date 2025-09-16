@@ -16,3 +16,13 @@ output "gcp_db_endpoint" {
   value = module.gcp_env.db_endpoint
 }
 
+# environments/gcp/outputs.tf
+output "gke_cluster_endpoint" {
+  value = module.k8s.cluster_endpoint
+}
+
+output "gke_cluster_ca_certificate" {
+  value = module.k8s.cluster_ca_certificate
+}
+
+

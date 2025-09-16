@@ -8,6 +8,7 @@ terraform.tfstate
 terraform.tfstate.backup
 *.yml
 *.yaml
+tfplan
  
 
 # Crash logs

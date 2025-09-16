@@ -75,3 +75,25 @@ variable "helm_values_file" {
   type        = string
 }
 
+
+variable "aws_region" {
+  description = "AWS region to deploy resources"
+  type        = string
+
+
+}
+
+variable "db_name" {
+  description = "Database name"
+  type        = string
+
+
+}
+variable "db_username" {
+  description = "Database username"
+  type        = string
+
+}
+
+
+

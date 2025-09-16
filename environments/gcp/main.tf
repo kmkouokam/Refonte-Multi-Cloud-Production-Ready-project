@@ -1,25 +1,7 @@
-terraform {
-  required_providers {
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.8.0"
-    }
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 6.12.0"
-    }
-  }
+locals {
+  is_aws = var.cloud_provider == "aws"
+  is_gcp = var.cloud_provider == "gcp"
 }
-
-
-
-
-
-
 
 module "vpc" {
   source             = "../../modules/vpc"
@@ -40,7 +22,10 @@ module "vpc" {
   ]
 
   env = var.env
-
+  providers = {
+    aws.aws    = aws.aws
+    google.gcp = google.gcp
+  }
 }
 
 
@@ -57,30 +42,46 @@ module "k8s" {
   public_subnet_ids = module.vpc.aws_public_subnet_ids
 
   depends_on = [module.vpc.enabled_services, module.vpc] # <– ensures APIs are ready before k8s runs
+
+  providers = {
+    kubernetes.aws = kubernetes.aws
+    kubernetes.gcp = kubernetes.gcp
+    helm.aws       = helm.aws
+    helm.gcp       = helm.gcp
+    aws.aws        = aws.aws
+    aws            = aws
+    google         = google
+    google.gcp     = google.gcp
+  }
 }
 
 
 module "gcp_security" {
-  source         = "../../modules/security"
-  cloud_provider = var.cloud_provider
-  env            = var.env
-  project        = var.project
-  secret_name    = "mygcpdb-password"
-
+  source           = "../../modules/security"
+  cloud_provider   = var.cloud_provider
+  env              = var.env
+  project          = var.project
+  secret_name      = "mygcpdb-password"
+  aws_region       = var.aws_region
   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
   name_suffix      = var.name_prefix
-
-  gcp_region   = var.gcp_region
-  kms_key_name = var.kms_key_name
+  db_name          = module.gcp_db.db_name
+  db_username      = module.gcp_db.db_username
+  gcp_region       = var.gcp_region
+  kms_key_name     = var.kms_key_name
   gcp_iam_bindings = {
     "roles/compute.networkAdmin" = ["serviceAccount:${var.gcp_service_account_email}"]
   }
   db_endpoint = module.gcp_db.db_endpoint
   depends_on  = [module.vpc, module.k8s]
   providers = {
-    kubernetes = kubernetes.gcp
-    gcp        = gcp
-    helm       = helm.gcp
+
+    kubernetes.gcp = kubernetes.gcp
+    helm.gcp       = helm.gcp
+    helm.aws       = helm.aws
+    aws.aws        = aws.aws
+    google.gcp     = google.gcp
+    kubernetes.aws = kubernetes.aws
   }
 }
 
@@ -106,6 +107,10 @@ module "gcp_db" {
   aws_db_sg_id      = module.vpc.aws_db_sg_id
   aws_vpc_id        = module.vpc.aws_vpc_id
   aws_web_sg_id     = module.vpc.aws_web_sg_id
+  providers = {
+    aws.aws    = aws.aws
+    google.gcp = google.gcp
+  }
 
 }
 
@@ -115,11 +120,18 @@ module "helm" {
   db_endpoint    = module.gcp_db.db_endpoint
 
   providers = {
-    kubernetes = kubernetes.gcp
-    helm       = helm.gcp
-    gcp        = gcp
-
+    kubernetes.aws = kubernetes.aws
+    kubernetes.gcp = kubernetes.gcp
+    helm.aws       = helm.aws
+    helm.gcp       = helm.gcp
+    aws.aws        = aws.aws
+    google.gcp     = google.gcp
   }
+  helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
+  depends_on = [module.gcp_security,
+    module.gcp_security.kubernetes_secret.flask_db_gcp,
+  module.k8s]
+
 }
 
 

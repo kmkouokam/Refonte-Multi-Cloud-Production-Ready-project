@@ -24,4 +24,12 @@ output "db_password" {
   sensitive   = true
 }
 
+output "flask_db_secret_aws" {
+  value = kubernetes_secret.flask_db_aws[0].metadata[0].name
+}
+
+output "flask_db_secret_gcp" {
+  value = kubernetes_secret.flask_db_gcp[0].metadata[0].name
+}
+
 

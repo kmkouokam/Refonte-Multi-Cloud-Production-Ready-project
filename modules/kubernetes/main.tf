@@ -1,21 +1,4 @@
 # modules/k8s/main.tf
-terraform {
-  required_providers {
-
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 6.12.0"
-    }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-
-  }
-}
-
-
-
 
 locals {
   is_aws = var.cloud_provider == "aws"
@@ -107,58 +90,21 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
   }
 
   depends_on = [aws_iam_role.eks_cluster_role, aws_iam_role.eks_node_role]
+
+  provider = aws.aws
+
 }
 
 ###############
 #GCP GKE Setup
 ###############
-##########################
-# GCP Prereqs (APIs + IAM)
-##########################
-# resource "google_project_service" "container_api" {
-#   count   = local.is_gcp ? 1 : 0
-#   project = var.gcp_project_id
-#   service = "container.googleapis.com"
-
-#   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies  
-#   disable_on_destroy         = false
-
-#   lifecycle {
-#     prevent_destroy = false
-#     ignore_changes  = all
-#   }
-# }
-
-
-# resource "google_project_service" "compute_api" {
-#   count                      = local.is_gcp ? 1 : 0
-#   project                    = var.gcp_project_id
-#   service                    = "compute.googleapis.com"
-#   disable_dependent_services = true # Disable dependent services to avoid issues with service dependencies
-#   disable_on_destroy         = false
-#   depends_on = [google_container_cluster.gcp_cluster,
-#   google_container_node_pool.primary_nodes]
-
-#   lifecycle {
-#     prevent_destroy = false
-#     ignore_changes  = all
-#   }
-# }
-
-# # To enable the GCP API for secret manager
-# resource "google_project_service" "secret_manager" {
-#   project = var.gcp_project_id
-#   service = "secretmanager.googleapis.com"
-# }
-
-
 
 
 resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
   account_id   = "${var.cluster_name}-gke-sa"
   display_name = "GKE Service Account"
-
+  provider     = google.gcp
 }
 
 # Bind GKE service account to required roles
@@ -176,6 +122,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
     "serviceAccount:${google_service_account.gke_sa[0].email}"
   ]
   depends_on = [google_service_account.gke_sa]
+  provider   = google.gcp
 }
 
 resource "google_container_cluster" "gcp_cluster" {
@@ -194,6 +141,7 @@ resource "google_container_cluster" "gcp_cluster" {
     channel = "REGULAR"
   }
   depends_on = [google_service_account.gke_sa]
+  provider   = google.gcp
 
 }
 
@@ -217,6 +165,41 @@ resource "google_container_node_pool" "primary_nodes" {
   }
 
   depends_on = [google_container_cluster.gcp_cluster, google_service_account.gke_sa]
+  provider   = google.gcp
 }
+
+
+
+# # -------------------------
+# # Helm Release for AWS
+# # -------------------------
+# resource "helm_release" "flask_app_aws" {
+#   provider = helm.aws
+#   count    = local.is_aws ? 1 : 0
+
+#   name      = "flask-app"
+#   chart     = "${path.module}/../../flask_app/helm/flask-app"
+#   namespace = "default"
+#   values    = [file(var.helm_values_file)]
+
+#   depends_on = [kubernetes_secret.flask_db_aws]
+# }
+
+# # -------------------------
+# # Helm Release for GCP
+# # -------------------------
+# resource "helm_release" "flask_app_gcp" {
+#   provider = helm.gcp
+#   count    = local.is_gcp ? 1 : 0
+
+#   name      = "flask-app"
+#   chart     = "${path.module}/../../flask_app/helm/flask-app"
+#   namespace = "default"
+#   values    = [file(var.helm_values_file)]
+
+#   depends_on = [kubernetes_secret.flask_db_gcp]
+# }
+
+
 
 
