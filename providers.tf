@@ -1,29 +1,8 @@
-terraform {
-  required_version = ">= 1.3.0"
+#provider configurations
 
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 6.12.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = ">= 2.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.8.0"
-    }
-  }
-}
+
+
+
 
 # ----------------
 # Random provider
@@ -57,8 +36,12 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  alias      = "aws"
-  kubernetes = kubernetes.aws
+  alias = "aws"
+  kubernetes {
+    host                   = module.aws_env.module.k8s.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.aws_env.module.k8s.cluster_ca_certificate)
+    token                  = data.aws_eks_cluster_auth.eks.token
+  }
 }
 
 # ----------------
@@ -87,8 +70,12 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  alias      = "gcp"
-  kubernetes = kubernetes.gcp
+  alias = "gcp"
+  kubernetes {
+    host                   = "https://${module.gcp_env.module.k8s.gke_cluster_endpoint}"
+    cluster_ca_certificate = base64decode(module.gcp_env.module.k8s.gke_cluster_ca_certificate)
+    token                  = data.google_client_config.default.access_token
+  }
 }
 
 
