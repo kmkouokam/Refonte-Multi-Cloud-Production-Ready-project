@@ -13,7 +13,7 @@ output "gcp_public_subnet_cidrs" {
 }
 
 output "gcp_db_endpoint" {
-  value = module.gcp_env.db_endpoint
+  value = module.gcp_db.db_endpoint
 }
 
 # environments/gcp/outputs.tf

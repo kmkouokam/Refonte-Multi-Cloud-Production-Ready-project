@@ -41,6 +41,7 @@ resource "google_compute_global_address" "private_ip_range" {
   prefix_length = 16
   network       = var.gcp_vpc_self_link
   depends_on    = [google_project_service.servicenetworking]
+
 }
 
 # ------------------------
@@ -74,6 +75,7 @@ resource "aws_db_subnet_group" "db_subnet_group" {
   name        = "${var.env}-db-subnet-group-${random_id.suffix.hex}"
   description = "Subnet group for RDS"
   subnet_ids  = var.db_subnet_ids
+
 }
 
 resource "aws_db_instance" "postgres" {
@@ -90,6 +92,7 @@ resource "aws_db_instance" "postgres" {
   skip_final_snapshot    = true
   publicly_accessible    = false
   depends_on             = [aws_db_subnet_group.db_subnet_group]
+
 }
 
 # ----------------------
@@ -130,6 +133,7 @@ resource "google_sql_user" "postgres_user" {
   password = var.db_password
 
   depends_on = [google_sql_database_instance.postgres, google_sql_user.postgres_user]
+
 }
 
 # ------------------------
@@ -141,5 +145,6 @@ resource "google_sql_database" "custom" {
   instance = google_sql_database_instance.postgres[0].name
 
   depends_on = [google_sql_database_instance.postgres, google_sql_user.postgres_user]
+
 }
 

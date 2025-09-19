@@ -15,6 +15,7 @@ resource "google_project_service" "enabled_apis" {
     prevent_destroy = false
     ignore_changes  = all
   }
+
 }
 
 resource "random_id" "suffix" {
@@ -32,6 +33,7 @@ resource "aws_vpc" "main" {
   tags = {
     Name = "${var.name_prefix}-vpc"
   }
+
 }
 
 resource "aws_internet_gateway" "main" {
@@ -40,11 +42,13 @@ resource "aws_internet_gateway" "main" {
   tags = {
     Name = "${var.name_prefix}-igw"
   }
+
 }
 
 resource "aws_eip" "nat" {
   count  = var.cloud_provider == "aws" ? 1 : 0
   domain = "vpc"
+
 }
 
 resource "aws_nat_gateway" "main" {
@@ -55,6 +59,7 @@ resource "aws_nat_gateway" "main" {
     Name = "${var.name_prefix}-nat"
   }
   depends_on = [aws_internet_gateway.main]
+
 }
 
 resource "aws_subnet" "public" {
@@ -66,6 +71,7 @@ resource "aws_subnet" "public" {
   tags = {
     Name = "${var.name_prefix}-public-${count.index}"
   }
+
 }
 
 resource "aws_subnet" "private" {
@@ -76,6 +82,7 @@ resource "aws_subnet" "private" {
   tags = {
     Name = "${var.name_prefix}-private-${count.index}"
   }
+
 }
 
 resource "aws_route_table" "public" {
@@ -88,12 +95,14 @@ resource "aws_route_table" "public" {
   tags = {
     Name = "${var.name_prefix}-public-rt"
   }
+
 }
 
 resource "aws_route_table_association" "public" {
   count          = var.cloud_provider == "aws" ? length(var.public_subnets) : 0
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public[0].id
+
 }
 
 resource "aws_route_table" "private" {
@@ -106,12 +115,14 @@ resource "aws_route_table" "private" {
   tags = {
     Name = "${var.name_prefix}-private-rt"
   }
+
 }
 
 resource "aws_route_table_association" "private" {
   count          = var.cloud_provider == "aws" ? length(var.private_subnets) : 0
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[0].id
+
 }
 
 # ----------------------
@@ -152,6 +163,7 @@ resource "aws_security_group" "web_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
 }
 
 # SG for DB
@@ -174,6 +186,7 @@ resource "aws_security_group" "db_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
 }
 
 
@@ -190,6 +203,7 @@ resource "google_compute_network" "vpc_network" {
     ignore_changes = [routing_mode]
   }
 
+
   depends_on = [google_project_service.enabled_apis]
 }
 
@@ -200,6 +214,7 @@ resource "google_compute_subnetwork" "public" {
   region        = var.gcp_region
   network       = google_compute_network.vpc_network[0].name
   depends_on    = [google_compute_network.vpc_network]
+
 }
 
 resource "google_compute_subnetwork" "private" {
@@ -210,6 +225,7 @@ resource "google_compute_subnetwork" "private" {
   network                  = google_compute_network.vpc_network[0].name
   private_ip_google_access = true
   depends_on               = [google_compute_network.vpc_network]
+
 }
 
 resource "google_compute_router" "main" {
@@ -218,6 +234,7 @@ resource "google_compute_router" "main" {
   region     = var.gcp_region
   network    = google_compute_network.vpc_network[0].name
   depends_on = [google_compute_network.vpc_network]
+
 }
 
 resource "google_compute_address" "nat_ip" {
@@ -225,6 +242,7 @@ resource "google_compute_address" "nat_ip" {
   name       = "${var.name_prefix}-${random_id.suffix.hex}-nat-ip"
   region     = var.gcp_region
   depends_on = [google_compute_network.vpc_network]
+
 }
 
 resource "google_compute_router_nat" "nat" {
@@ -236,6 +254,7 @@ resource "google_compute_router_nat" "nat" {
   nat_ips                            = [google_compute_address.nat_ip[0].self_link]
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
   depends_on                         = [google_compute_address.nat_ip]
+
 }
 
 resource "google_compute_route" "default_internet" {
@@ -245,7 +264,10 @@ resource "google_compute_route" "default_internet" {
 
   dest_range       = "0.0.0.0/0"
   next_hop_gateway = true
-  depends_on       = [google_compute_network.vpc_network, google_compute_router.main, google_compute_address.nat_ip]
+  depends_on = [google_compute_network.vpc_network,
+    google_compute_router.main,
+  google_compute_address.nat_ip]
+
 }
 
 
@@ -263,6 +285,7 @@ resource "google_compute_firewall" "web_fw" {
 
   source_ranges = ["0.0.0.0/0"]
   depends_on    = [google_compute_network.vpc_network]
+
 }
 
 # Allow DB traffic only from web instances (tag-based)
@@ -279,4 +302,5 @@ resource "google_compute_firewall" "db_fw" {
   source_tags = ["web"]
   target_tags = ["db"]
   depends_on  = [google_compute_network.vpc_network]
+
 }

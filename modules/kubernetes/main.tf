@@ -36,6 +36,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   count      = local.is_aws ? 1 : 0
   role       = aws_iam_role.eks_cluster_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+
 }
 
 # Node Role + Instance Profile
@@ -45,6 +46,7 @@ resource "aws_iam_role" "eks_node_role" {
   name = "${var.cluster_name}-eks-node-role"
 
   assume_role_policy = data.aws_iam_policy_document.eks_node_assume[0].json
+
 }
 
 data "aws_iam_policy_document" "eks_node_assume" {
@@ -57,6 +59,7 @@ data "aws_iam_policy_document" "eks_node_assume" {
       identifiers = ["ec2.amazonaws.com"]
     }
   }
+
 }
 
 resource "aws_iam_instance_profile" "eks_node_instance_profile" {
@@ -91,10 +94,7 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
 
   depends_on = [aws_iam_role.eks_cluster_role, aws_iam_role.eks_node_role]
 
-  provider = aws.aws
-
 }
-
 ###############
 #GCP GKE Setup
 ###############
@@ -104,7 +104,7 @@ resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
   account_id   = "${var.cluster_name}-gke-sa"
   display_name = "GKE Service Account"
-  provider     = google.gcp
+
 }
 
 # Bind GKE service account to required roles
@@ -122,7 +122,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
     "serviceAccount:${google_service_account.gke_sa[0].email}"
   ]
   depends_on = [google_service_account.gke_sa]
-  provider   = google.gcp
+
 }
 
 resource "google_container_cluster" "gcp_cluster" {
@@ -141,7 +141,7 @@ resource "google_container_cluster" "gcp_cluster" {
     channel = "REGULAR"
   }
   depends_on = [google_service_account.gke_sa]
-  provider   = google.gcp
+
 
 }
 
@@ -165,7 +165,7 @@ resource "google_container_node_pool" "primary_nodes" {
   }
 
   depends_on = [google_container_cluster.gcp_cluster, google_service_account.gke_sa]
-  provider   = google.gcp
+
 }
 
 

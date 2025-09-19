@@ -3,14 +3,14 @@ terraform {
 
   required_providers {
     aws = {
-      source                = "hashicorp/aws"
-      version               = "~> 5.0"
-      configuration_aliases = [aws.aws] # allow aws.aws in modules
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+
     }
     google = {
-      source                = "hashicorp/google"
-      version               = ">= 6.12.0"
-      configuration_aliases = [google.gcp] # allow google.gcp in modules
+      source  = "hashicorp/google"
+      version = ">= 6.12.0"
+
     }
     random = {
       source  = "hashicorp/random"
@@ -19,13 +19,13 @@ terraform {
     kubernetes = {
       source                = "hashicorp/kubernetes"
       version               = ">= 2.0"
-      configuration_aliases = [kubernetes.aws, kubernetes.gcp] # allow kubernetes.aws / kubernetes.gcp
+      configuration_aliases = [kubernetes.gcp, kubernetes.aws] # allow kubernetes.aws / kubernetes.gcp
     }
     helm = {
       source                = "hashicorp/helm"
       version               = ">= 2.8.0"
-      configuration_aliases = [helm.aws, helm.gcp] # allow helm.aws / helm.gcp
+      configuration_aliases = [helm.gcp, helm.aws] # allow helm.aws / helm.gcp
     }
   }
 }
- 
+

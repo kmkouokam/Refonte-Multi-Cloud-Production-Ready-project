@@ -10,16 +10,20 @@
 provider "random" {}
 
 # ----------------
-# AWS Providers
+# For AWS Environments
 # ----------------
 provider "aws" {
   region = var.aws_region
 }
 
-provider "aws" {
-  alias  = "aws"
-  region = var.aws_region
+provider "helm" {
+  alias      = "aws"
+  kubernetes = kubernetes.aws
 }
+# provider "aws" {
+#   alias  = "aws"
+#   region = var.aws_region
+# }
 
 # ----------------
 # AWS EKS Kubernetes provider
@@ -35,17 +39,17 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.eks.token
 }
 
-provider "helm" {
-  alias = "aws"
-  kubernetes {
-    host                   = module.aws_env.module.k8s.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.aws_env.module.k8s.cluster_ca_certificate)
-    token                  = data.aws_eks_cluster_auth.eks.token
-  }
-}
+# provider "helm" {
+#   alias = "aws"
+#   kubernetes {
+#     host                   = module.aws_env.module.k8s.cluster_endpoint
+#     cluster_ca_certificate = base64decode(module.aws_env.module.k8s.cluster_ca_certificate)
+#     token                  = data.aws_eks_cluster_auth.eks.token
+#   }
+# }
 
 # ----------------
-# GCP Providers
+# for GCP Environments
 # ----------------
 provider "google" {
   project     = var.gcp_project_id
@@ -53,12 +57,12 @@ provider "google" {
   credentials = file("${path.module}/${var.gcp_credentials_file}")
 }
 
-provider "google" {
-  alias       = "gcp"
-  project     = var.gcp_project_id
-  region      = var.gcp_region
-  credentials = file("${path.module}/${var.gcp_credentials_file}")
-}
+# provider "google" {
+#   alias       = "gcp"
+#   project     = var.gcp_project_id
+#   region      = var.gcp_region
+#   credentials = file("${path.module}/${var.gcp_credentials_file}")
+# }
 
 data "google_client_config" "default" {}
 
@@ -70,13 +74,19 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  alias = "gcp"
-  kubernetes {
-    host                   = "https://${module.gcp_env.module.k8s.gke_cluster_endpoint}"
-    cluster_ca_certificate = base64decode(module.gcp_env.module.k8s.gke_cluster_ca_certificate)
-    token                  = data.google_client_config.default.access_token
-  }
+  alias      = "gcp"
+  kubernetes = kubernetes.gcp
 }
+
+
+# provider "helm" {
+#   alias = "gcp"
+#   kubernetes {
+#     host                   = "https://${module.gcp_env.module.k8s.gke_cluster_endpoint}"
+#     cluster_ca_certificate = base64decode(module.gcp_env.module.k8s.gke_cluster_ca_certificate)
+#     token                  = data.google_client_config.default.access_token
+#   }
+# }
 
 
 
@@ -133,10 +143,7 @@ provider "helm" {
 #   token                  = data.aws_eks_cluster_auth.eks.token
 # }
 
-# provider "helm" {
-#   alias      = "aws"
-#   kubernetes = kubernetes.aws
-# }
+
 
 # # GCP
 # provider "google" {
@@ -163,7 +170,4 @@ provider "helm" {
 #   token                  = data.google_client_config.default.access_token
 # }
 
-# provider "helm" {
-#   alias      = "gcp"
-#   kubernetes = kubernetes.gcp
-# }
+

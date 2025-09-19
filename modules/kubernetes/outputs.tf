@@ -9,7 +9,9 @@ output "cluster_ca_certificate" {
 }
 
 output "cluster_name" {
-  description = "Kubernetes cluster name"
-  value       = var.cluster_name
+  value = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].name : (
+    local.is_gcp ? google_container_cluster.gcp_cluster[0].name : null
+  )
+  description = "Kubernetes cluster name (EKS if AWS, GKE if GCP)"
 }
- 
+

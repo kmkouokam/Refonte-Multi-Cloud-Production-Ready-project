@@ -3,7 +3,13 @@ locals {
   is_gcp = var.cloud_provider == "gcp"
 }
 
+locals {
+  flask_namespace = "flask-app"
+  flask_release   = "flask-app-release"
+}
+
 module "vpc" {
+  count              = local.is_gcp ? 1 : 0
   source             = "../../modules/vpc"
   cloud_provider     = var.cloud_provider
   name_prefix        = "${var.project}-${var.env}"
@@ -13,8 +19,6 @@ module "vpc" {
   vpc_cidr           = var.vpc_cidr
   availability_zones = var.availability_zones
   gcp_project_id     = var.gcp_project_id
-
-
   enabled_apis = [
     "compute.googleapis.com",
     "container.googleapis.com",
@@ -22,15 +26,13 @@ module "vpc" {
   ]
 
   env = var.env
-  providers = {
-    aws.aws    = aws.aws
-    google.gcp = google.gcp
-  }
+
 }
 
 
 
 module "k8s" {
+  count          = local.is_gcp ? 1 : 0
   source         = "../../modules/kubernetes"
   cloud_provider = "gcp"
   cluster_name   = "my-gcp-cluster"
@@ -44,19 +46,16 @@ module "k8s" {
   depends_on = [module.vpc.enabled_services, module.vpc] # <– ensures APIs are ready before k8s runs
 
   providers = {
-    kubernetes.aws = kubernetes.aws
+    kubernetes     = kubernetes.gcp
     kubernetes.gcp = kubernetes.gcp
-    helm.aws       = helm.aws
-    helm.gcp       = helm.gcp
-    aws.aws        = aws.aws
-    aws            = aws
-    google         = google
-    google.gcp     = google.gcp
+    kubernetes.aws = kubernetes.aws
+
   }
 }
 
 
 module "gcp_security" {
+  count            = local.is_gcp ? 1 : 0
   source           = "../../modules/security"
   cloud_provider   = var.cloud_provider
   env              = var.env
@@ -74,18 +73,21 @@ module "gcp_security" {
   }
   db_endpoint = module.gcp_db.db_endpoint
   depends_on  = [module.vpc, module.k8s]
-  providers = {
 
-    kubernetes.gcp = kubernetes.gcp
+  providers = {
+    kubernetes     = kubernetes.gcp
+    helm           = helm.gcp
     helm.gcp       = helm.gcp
     helm.aws       = helm.aws
-    aws.aws        = aws.aws
-    google.gcp     = google.gcp
+    kubernetes.gcp = kubernetes.gcp
     kubernetes.aws = kubernetes.aws
+
   }
+
 }
 
 module "gcp_db" {
+  count             = local.is_gcp ? 1 : 0
   source            = "../../modules/db"
   cloud_provider    = "gcp"
   db_name           = var.db_name
@@ -107,31 +109,26 @@ module "gcp_db" {
   aws_db_sg_id      = module.vpc.aws_db_sg_id
   aws_vpc_id        = module.vpc.aws_vpc_id
   aws_web_sg_id     = module.vpc.aws_web_sg_id
-  providers = {
-    aws.aws    = aws.aws
-    google.gcp = google.gcp
-  }
 
 }
 
 module "helm" {
+  count          = local.is_gcp ? 1 : 0
   source         = "../../modules/helm"
   cloud_provider = var.cloud_provider
   db_endpoint    = module.gcp_db.db_endpoint
 
-  providers = {
-    kubernetes.aws = kubernetes.aws
-    kubernetes.gcp = kubernetes.gcp
-    helm.aws       = helm.aws
-    helm.gcp       = helm.gcp
-    aws.aws        = aws.aws
-    google.gcp     = google.gcp
-  }
   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
-  depends_on = [module.gcp_security,
-    module.gcp_security.kubernetes_secret.flask_db_gcp,
-  module.k8s]
+  depends_on       = [module.gcp_db]
+  flask_namespace  = local.flask_namespace
+  flask_release    = local.flask_release
+  providers = {
+    helm.gcp = helm.gcp
+    helm     = helm.gcp
+    helm.aws = helm.aws
 
+
+  }
 }
 
 

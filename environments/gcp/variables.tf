@@ -70,9 +70,6 @@ variable "aws_region" {
 }
 
 
-
-
-
 variable "kms_key_name" {
   description = "KMS key name for encryption"
   type        = string

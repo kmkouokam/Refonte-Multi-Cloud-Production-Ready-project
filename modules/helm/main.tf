@@ -5,62 +5,62 @@ locals {
 
 
 
-resource "helm_release" "flask_app_aws" {
-  provider = helm.aws
-  count    = local.is_aws ? 1 : 0
-
-  name      = "flask-app"
-  chart     = "${path.module}/../../flask_app/helm/flask-app"
-  namespace = "default"
-  values    = var.helm_values_file != "" ? [file(var.helm_values_file)] : []
-
-  set {
-    name  = "db.host"
-    value = var.db_endpoint
-  }
-
-  depends_on = []
-}
-
-resource "helm_release" "flask_app_gcp" {
-  provider = helm.gcp
-  count    = local.is_gcp ? 1 : 0
-
-  name      = "flask-app"
-  chart     = "${path.module}/../../flask_app/helm/flask-app"
-  namespace = "default"
-  values    = var.helm_values_file != "" ? [file(var.helm_values_file)] : []
-
-  set {
-    name  = "db.host"
-    value = var.db_endpoint
-  }
-
-  depends_on = []
-}
-# AWS Helm Release
 # resource "helm_release" "flask_app_aws" {
+#   provider = helm.aws
 #   count    = local.is_aws ? 1 : 0
-#   name     = "flask-app"
-#   chart    = "${path.module}/../../flask_app/helm/flask-app"
+
+#   name      = "flask-app"
+#   chart     = "${path.module}/../../flask_app/helm/flask-app"
 #   namespace = "default"
+#   values    = var.helm_values_file != "" ? [file(var.helm_values_file)] : []
 
-#   values = [file(var.helm_values_file)]
-#   providers = { helm = helm.aws, kubernetes = kubernetes.aws }
+#   set {
+#     name  = "db.host"
+#     value = var.db_endpoint
+#   }
 
-#   depends_on = var.aws_secret_depends_on
+#   depends_on = []
 # }
+
+# resource "helm_release" "flask_app_gcp" {
+#   provider = helm.gcp
+#   count    = local.is_gcp ? 1 : 0
+
+#   name      = "flask-app"
+#   chart     = "${path.module}/../../flask_app/helm/flask-app"
+#   namespace = "default"
+#   values    = var.helm_values_file != "" ? [file(var.helm_values_file)] : []
+
+#   set {
+#     name  = "db.host"
+#     value = var.db_endpoint
+#   }
+
+#   depends_on = []
+# }
+# AWS Helm Release
+resource "helm_release" "flask_app_aws" {
+  count     = local.is_aws ? 1 : 0
+  name      = var.flask_release
+  chart     = "${path.module}/../../flask_app/helm/flask-app"
+  namespace = var.flask_namespace
+
+  values   = [file(var.helm_values_file)]
+  provider = helm.aws
+
+  depends_on = [var.db_dependency]
+}
 
 # # GCP Helm Release
-# resource "helm_release" "flask_app_gcp" {
-#   count    = local.is_gcp ? 1 : 0
-#   name     = "flask-app"
-#   chart    = "${path.module}/../../flask_app/helm/flask-app"
-#   namespace = "default"
+resource "helm_release" "flask_app_gcp" {
+  count     = local.is_gcp ? 1 : 0
+  name      = var.flask_release
+  chart     = "${path.module}/../../flask_app/helm/flask-app"
+  namespace = var.flask_namespace
 
-#   values = [file(var.helm_values_file)]
-#   providers = { helm = helm.gcp, kubernetes = kubernetes.gcp }
+  values   = [file(var.helm_values_file)]
+  provider = helm.gcp
 
-#   depends_on = var.gcp_secret_depends_on
-# }
+  depends_on = [var.db_dependency]
+}
 

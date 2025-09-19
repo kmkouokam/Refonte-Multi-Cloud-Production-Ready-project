@@ -4,9 +4,14 @@ locals {
 }
 
 
+locals {
+  flask_namespace = "flask-app"
+  flask_release   = "flask-app-release"
+}
 
 
 module "vpc" {
+  count              = local.is_aws ? 1 : 0
   source             = "../../modules/vpc"
   cloud_provider     = var.cloud_provider
   vpc_cidr           = var.vpc_cidr
@@ -18,14 +23,11 @@ module "vpc" {
   gcp_region         = var.gcp_region
   gcp_project_id     = var.gcp_project_id
 
-  providers = {
-    aws.aws    = aws.aws
-    google.gcp = google.gcp
 
-  }
 }
 
 module "k8s" {
+  count          = local.is_aws ? 1 : 0
   source         = "../../modules/kubernetes"
   cloud_provider = var.cloud_provider
   cluster_name   = var.cluster_name
@@ -37,21 +39,19 @@ module "k8s" {
   depends_on = [module.vpc]
 
   providers = {
-    kubernetes.aws = kubernetes.aws
+    kubernetes     = kubernetes.aws
     kubernetes.gcp = kubernetes.gcp
-    helm.aws       = helm.aws
-    helm.gcp       = helm.gcp
-    aws            = aws
-    aws.aws        = aws.aws
+    kubernetes.aws = kubernetes.aws
 
-    google     = google
-    google.gcp = google.gcp
+
+
   }
 }
 
 
 # Security module
 module "aws_security" {
+  count            = local.is_aws ? 1 : 0
   source           = "../../modules/security"
   cloud_provider   = var.cloud_provider
   aws_iam_roles    = ["eksNodeRole", "appRole"]
@@ -68,12 +68,12 @@ module "aws_security" {
   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-aws.yaml"
   depends_on       = [module.vpc]
   providers = {
-    aws.aws        = aws.aws
-    google.gcp     = google.gcp
+    kubernetes     = kubernetes.aws
+    helm           = helm.aws
     kubernetes.gcp = kubernetes.gcp
-    helm.aws       = helm.aws
-    helm.gcp       = helm.gcp
     kubernetes.aws = kubernetes.aws
+    helm.gcp       = helm.gcp
+    helm.aws       = helm.aws
 
   }
 }
@@ -82,6 +82,7 @@ module "aws_security" {
 
 
 module "aws_db" {
+  count          = local.is_aws ? 1 : 0
   source         = "../../modules/db"
   cloud_provider = var.cloud_provider
   env            = var.env
@@ -109,30 +110,25 @@ module "aws_db" {
   aws_vpc_id       = module.vpc.aws_vpc_id
   aws_web_sg_id    = module.vpc.aws_web_sg_id
 
-  providers = {
-    aws.aws    = aws.aws
-    google.gcp = google.gcp
-  }
+
 }
 
 module "helm" {
+  count          = local.is_aws ? 1 : 0
   source         = "../../modules/helm"
   cloud_provider = var.cloud_provider
   db_endpoint    = module.aws_db.db_endpoint
 
-  providers = {
-    kubernetes.aws = kubernetes.aws
-    kubernetes.gcp = kubernetes.gcp
-    helm.aws       = helm.aws
-    helm.gcp       = helm.gcp
-    aws.aws        = aws.aws
-    google.gcp     = google.gcp
-  }
   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-aws.yaml"
-  depends_on = [module.aws_security,
-    module.aws_security.kubernetes_secret.flask_db_aws,
-  module.k8s]
-}
+  depends_on       = [module.aws_db]
+  flask_namespace  = local.flask_namespace
+  flask_release    = local.flask_release
+  providers = {
+    helm     = helm.aws
+    helm.gcp = helm.gcp
+    helm.aws = helm.aws
 
+  }
+}
 
 

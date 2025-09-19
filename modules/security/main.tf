@@ -17,6 +17,7 @@ resource "aws_iam_role" "this" {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
+
 data "aws_iam_policy_document" "assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -25,6 +26,7 @@ data "aws_iam_policy_document" "assume_role" {
       identifiers = ["ec2.amazonaws.com"]
     }
   }
+
 }
 
 
@@ -34,6 +36,7 @@ resource "google_project_iam_binding" "bindings" {
   project  = "prod-251618-359501"
   role     = each.key
   members  = each.value
+
 }
 
 resource "random_id" "keyring_suffix" {
@@ -50,11 +53,13 @@ resource "aws_kms_key" "encryption" {
   enable_key_rotation     = true
 }
 
+
 # Optional alias for easy reference
 resource "aws_kms_alias" "encryption_alias" {
   count         = local.is_aws && var.kms_key_name != "" ? 1 : 0
   name_prefix   = "alias/${var.project}-${var.env}-${var.kms_key_name}" # prevent collisions
   target_key_id = aws_kms_key.encryption[0].key_id
+
 }
 
 
@@ -62,6 +67,7 @@ resource "google_kms_key_ring" "encryption" {
   count    = local.is_gcp && var.kms_key_name != "" ? 1 : 0
   name     = "${var.project}-${var.env}-keyring-${random_id.keyring_suffix.hex}"
   location = var.gcp_region
+
 }
 
 resource "google_kms_crypto_key" "encryption" {
@@ -73,6 +79,7 @@ resource "google_kms_crypto_key" "encryption" {
   labels = {
     environment = var.env
   }
+
 }
 
 
@@ -115,6 +122,7 @@ resource "aws_secretsmanager_secret" "db_password" {
     ignore_changes  = [name] # Prevent duplicate creations on reapply
   }
   depends_on = [aws_kms_key.encryption, aws_kms_alias.encryption_alias]
+
 }
 
 # Store the random password as secret value (JSON structure)
@@ -128,6 +136,7 @@ resource "aws_secretsmanager_secret_version" "db_password" {
     ignore_changes = [secret_string] # Prevent re-creation on password change
   }
   depends_on = [aws_secretsmanager_secret.db_password]
+
 }
 
 # Optional: Safe data source for AWS secret
@@ -135,12 +144,14 @@ data "aws_secretsmanager_secret" "db_password" {
   count      = local.is_aws && length(aws_secretsmanager_secret.db_password) > 0 ? 1 : 0
   name       = aws_secretsmanager_secret.db_password[0].name
   depends_on = [aws_secretsmanager_secret_version.db_password]
+
 }
 
 data "aws_secretsmanager_secret_version" "db_password" {
   count      = local.is_aws && length(data.aws_secretsmanager_secret.db_password) > 0 ? 1 : 0
   secret_id  = data.aws_secretsmanager_secret.db_password[0].id
   depends_on = [aws_secretsmanager_secret_version.db_password]
+
 }
 
 
@@ -159,6 +170,7 @@ resource "google_secret_manager_secret" "db_password" {
     prevent_destroy = false       # Set true in production
     ignore_changes  = [secret_id] # Prevent duplicate creations on reapply
   }
+
 }
 
 resource "google_secret_manager_secret_version" "db_password" {
@@ -171,6 +183,7 @@ resource "google_secret_manager_secret_version" "db_password" {
     ignore_changes = [secret_data] # Prevent re-creation on password change
   }
   depends_on = [google_secret_manager_secret.db_password]
+
 }
 
 # Data block to retrieve GCP secret
@@ -180,6 +193,7 @@ data "google_secret_manager_secret" "db_password" {
   project    = var.gcp_project_id
   secret_id  = "${var.project}-${var.env}-${var.secret_name}"
   depends_on = [google_secret_manager_secret_version.db_password]
+
 }
 
 data "google_secret_manager_secret_version" "db_password" {
@@ -188,6 +202,7 @@ data "google_secret_manager_secret_version" "db_password" {
   secret     = data.google_secret_manager_secret.db_password[0].id
   version    = "latest"
   depends_on = [google_secret_manager_secret_version.db_password]
+
 }
 
 

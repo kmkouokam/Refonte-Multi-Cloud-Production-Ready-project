@@ -1,13 +1,32 @@
 variable "cloud_provider" {
-  type = string
+  description = "Cloud provider (aws or gcp)"
+  type        = string
 }
 
 variable "db_endpoint" {
-  type = string
+  description = "Database endpoint"
+  type        = string
 }
 
 variable "helm_values_file" {
   description = "Path to Helm values file"
   type        = string
 }
+
+variable "db_dependency" {
+  description = "Optional dependency to force Helm to wait for DB module"
+  type        = any
+  default     = null
+}
+variable "flask_namespace" {
+  description = "Kubernetes namespace for Flask app"
+  type        = string
+  default     = "flask-app"
+}
+variable "flask_release" {
+  description = "Helm release name for Flask app"
+  type        = string
+  default     = "flask-app-release"
+}
+
 
