@@ -18,18 +18,10 @@ output "gcp_kms_key_id" {
 # -------------------------
 
 
-output "db_password" {
-  description = "Database password generated in the security module"
-  value       = random_password.db_password.result
-  sensitive   = true
-}
 
-output "flask_db_secret_aws" {
-  value = kubernetes_secret.flask_db_aws[0].metadata[0].name
-}
 
-output "flask_db_secret_gcp" {
-  value = kubernetes_secret.flask_db_gcp[0].metadata[0].name
-}
+
+
+
 
 

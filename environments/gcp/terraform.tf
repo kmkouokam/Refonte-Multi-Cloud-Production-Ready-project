@@ -1,27 +1,18 @@
 terraform {
   required_providers {
     kubernetes = {
-      source                = "hashicorp/kubernetes"
-      version               = ">= 2.0"
-      configuration_aliases = [kubernetes.gcp, kubernetes.aws]
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.11.0"
+      # configuration_aliases = [kubernetes.gcp]
     }
     helm = {
-      source                = "hashicorp/helm"
-      version               = ">= 2.8.0"
-      configuration_aliases = [helm.gcp, helm.aws]
+      source  = "hashicorp/helm"
+      version = "~> 2.8.0"
+      # configuration_aliases = [helm.gcp]
     }
     google = {
       source  = "hashicorp/google"
-      version = ">= 6.12.0"
-
-    }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-
+      version = ">= 5.0"
     }
   }
 }
-
-
-

@@ -119,6 +119,28 @@ variable "gcp_vpc_self_link" {
   type        = string
 }
 
+variable "gcp_private_subnet_name" {
+  description = "Name of the GCP private subnet"
+  type        = string
+  default     = "gcp-private-subnet"
+
+}
+
+variable "gcp_network_name" {
+  description = "Name of the GCP VPC network"
+  type        = string
+  default     = "multi-cloud-vpc"
+
+}
+variable "gcp_web_fw_name" {
+  description = "Name of the GCP firewall rule for web traffic"
+  type        = string
+  default     = "gcp-web-fw"
+
+}
+
+
+
 
 
 # variable "aws_db_endpoint" {

@@ -32,6 +32,12 @@ variable "db_username" {
 
 }
 
+variable "db_password" {
+  description = "Database password"
+  type        = string
+
+}
+
 variable "db_instance_class" {
   description = "Instance type / machine type"
   type        = string
@@ -60,12 +66,6 @@ variable "gcp_region" {
   description = "Region for GCP resources"
   type        = string
   default     = "us-central1"
-}
-
-
-variable "db_password" {
-  description = "Database password (from security module)"
-  type        = string
 }
 
 variable "gcp_vpc_self_link" {

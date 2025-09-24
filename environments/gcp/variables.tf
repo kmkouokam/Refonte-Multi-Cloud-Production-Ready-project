@@ -55,7 +55,7 @@ variable "gcp_project_id" {
 
 variable "gcp_credentials_file" {
   description = "Path to the GCP credentials JSON file"
-  default     = "../../mygcp-creds.json"
+  default     = "./mygcp-creds.json"
 }
 
 # variable "gcp_db_endpoint" {
@@ -160,6 +160,7 @@ variable "gcp_router_asn" {
 variable "gcp_network_name" {
   description = "GCP VPC Network name (only for GCP)"
   type        = string
+  default     = "multi-cloud-vpc"
 }
 
 variable "private_subnet_ids" {
@@ -171,11 +172,33 @@ variable "private_subnet_ids" {
 variable "gcp_web_fw_name" {
   description = "GCP Web Firewall Rule name"
   type        = string
+  default     = "gcp-web-fw"
+
 }
 
 variable "gcp_db_fw_name" {
   description = "GCP DB Firewall Rule name"
   type        = string
+  default     = "gcp-db-fw"
 }
+
+variable "aws_db_sg_id" {
+  description = "AWS Security Group ID for the database (only for AWS)"
+  type        = string
+  default     = null
+}
+variable "aws_vpc_id" {
+  description = "AWS VPC ID (only for AWS)"
+  type        = string
+  default     = null
+}
+variable "aws_web_sg_id" {
+  description = "AWS Security Group ID for web traffic (only for AWS)"
+  type        = string
+  default     = null
+}
+
+
+
 
 

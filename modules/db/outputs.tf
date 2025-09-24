@@ -20,3 +20,17 @@ output "gcp_sql_database_name" {
   value       = local.is_gcp && var.create_custom_db && length(google_sql_database.custom) > 0 ? google_sql_database.custom[0].name : ""
 }
 
+output "db_name" {
+  description = "Database name"
+  value       = var.db_name
+}
+output "db_username" {
+  description = "Database username"
+  value       = var.db_username
+}
+
+output "db_password" {
+  description = "Database password"
+  value       = var.db_password
+}
+

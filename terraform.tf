@@ -16,16 +16,16 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
-    kubernetes = {
-      source                = "hashicorp/kubernetes"
-      version               = ">= 2.0"
-      configuration_aliases = [kubernetes.gcp, kubernetes.aws] # allow kubernetes.aws / kubernetes.gcp
-    }
-    helm = {
-      source                = "hashicorp/helm"
-      version               = ">= 2.8.0"
-      configuration_aliases = [helm.gcp, helm.aws] # allow helm.aws / helm.gcp
-    }
+    # kubernetes = {
+    #   source                = "hashicorp/kubernetes"
+    #   version               = ">= 2.0"
+    #   configuration_aliases = [kubernetes.gcp, kubernetes.aws] # allow kubernetes.aws / kubernetes.gcp
+    # }
+    # helm = {
+    #   source                = "hashicorp/helm"
+    #   version               = ">= 2.8.0"
+    #   configuration_aliases = [helm.gcp, helm.aws] # allow helm.aws / helm.gcp
+    # }
   }
 }
 

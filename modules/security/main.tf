@@ -90,11 +90,11 @@ resource "google_kms_crypto_key" "encryption" {
 # -------------------------
 
 
-resource "random_password" "db_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_+{}<>?"
-}
+# resource "random_password" "db_password" {
+#   length           = 16
+#   special          = true
+#   override_special = "!#$%&*()-_+{}<>?"
+# }
 
 
 # -------------------------
@@ -130,7 +130,7 @@ resource "aws_secretsmanager_secret_version" "db_password" {
   count     = local.is_aws ? 1 : 0
   secret_id = aws_secretsmanager_secret.db_password[0].id
   secret_string = jsonencode({
-    password = random_password.db_password.result
+    password = var.db_password
   })
   lifecycle {
     ignore_changes = [secret_string] # Prevent re-creation on password change
@@ -177,7 +177,7 @@ resource "google_secret_manager_secret_version" "db_password" {
   count  = local.is_gcp ? 1 : 0
   secret = google_secret_manager_secret.db_password[0].id
   secret_data = jsonencode({
-    password = random_password.db_password.result
+    password = var.db_password
   })
   lifecycle {
     ignore_changes = [secret_data] # Prevent re-creation on password change
@@ -205,52 +205,55 @@ data "google_secret_manager_secret_version" "db_password" {
 
 }
 
+# # -------------------------
+# # AWS Kubernetes Secret
+# # -------------------------
+# resource "kubernetes_secret" "flask_db_aws" {
+#   provider = kubernetes.aws
+#   count    = local.is_aws ? 1 : 0
 
-# -------------------------
-# AWS Kubernetes Secret
-# -------------------------
-resource "kubernetes_secret" "flask_db_aws" {
-  provider = kubernetes.aws
-  count    = local.is_aws ? 1 : 0
+#   metadata {
+#     name      = "flask-app-db-secret"
+#     namespace = "default"
+#   }
 
-  metadata {
-    name      = "flask-app-db-secret"
-    namespace = "default"
-  }
+#   data = {
+#     DB_HOST     = var.db_endpoint
+#     DB_PORT     = "5432"
+#     DB_NAME     = var.db_name
+#     DB_USER     = var.db_username
+#     DB_PASSWORD = var.db_password
+#     # DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
+#   }
 
-  data = {
-    DB_HOST     = var.db_endpoint
-    DB_PORT     = "5432"
-    DB_NAME     = var.db_name
-    DB_USER     = var.db_username
-    DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
-  }
+#   type = "Opaque"
+# }
 
-  type = "Opaque"
-}
+# # -------------------------
+# # GCP Kubernetes Secret
+# # -------------------------
+# resource "kubernetes_secret" "flask_db_gcp" {
+#   provider = kubernetes.gcp
+#   count    = local.is_gcp ? 1 : 0
 
-# -------------------------
-# GCP Kubernetes Secret
-# -------------------------
-resource "kubernetes_secret" "flask_db_gcp" {
-  provider = kubernetes.gcp
-  count    = local.is_gcp ? 1 : 0
+#   metadata {
+#     name      = "flask-app-db-secret"
+#     namespace = "default"
+#   }
 
-  metadata {
-    name      = "flask-app-db-secret"
-    namespace = "default"
-  }
+#   data = {
+#     DB_HOST     = var.db_endpoint
+#     DB_PORT     = "5432"
+#     DB_NAME     = var.db_name
+#     DB_USER     = var.db_username
+#     DB_PASSWORD = var.db_password
+#     # DB_PASSWORD = jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data).password
+#   }
 
-  data = {
-    DB_HOST     = var.db_endpoint
-    DB_PORT     = "5432"
-    DB_NAME     = var.db_name
-    DB_USER     = var.db_username
-    DB_PASSWORD = jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data).password
-  }
+#   type = "Opaque"
+# }
 
-  type = "Opaque"
-}
+
 
 # -------------------------
 # Used by both clouds

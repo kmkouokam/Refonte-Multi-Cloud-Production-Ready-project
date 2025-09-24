@@ -21,7 +21,7 @@ variable "db_dependency" {
 variable "flask_namespace" {
   description = "Kubernetes namespace for Flask app"
   type        = string
-  default     = "flask-app"
+  default     = "default"
 }
 variable "flask_release" {
   description = "Helm release name for Flask app"

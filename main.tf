@@ -1,17 +1,5 @@
 
-module "aws_env" {
-  source            = "./environments/aws"
-  gcp_vpc_self_link = module.gcp_env.gcp_vpc_self_link
-  providers = {
-    kubernetes.gcp = kubernetes.gcp
-    helm.gcp       = helm.gcp
-    kubernetes     = kubernetes.aws
-    helm           = helm.aws
-    helm.aws       = helm.aws
-    kubernetes.aws = kubernetes.aws
-  }
 
-}
 
 module "gcp_env" {
   source           = "./environments/gcp"
@@ -20,15 +8,21 @@ module "gcp_env" {
   gcp_web_fw_name = var.gcp_web_fw_name
   gcp_db_fw_name  = var.gcp_db_fw_name
 
-  providers = {
-    kubernetes     = kubernetes.gcp
-    helm           = helm.gcp
-    kubernetes.aws = kubernetes.aws
-    helm.aws       = helm.aws
-    helm.gcp       = helm.gcp
-    kubernetes.gcp = kubernetes.gcp
+  gcp_region           = var.gcp_region
+  gcp_project_id       = var.gcp_project_id
+  gcp_credentials_file = var.gcp_credentials_file
 
-  }
+
+}
+
+
+module "aws_env" {
+  source            = "./environments/aws"
+  gcp_vpc_self_link = module.gcp_env.gcp_vpc_self_link
+  aws_region        = var.aws_region
+
+
+
 
 }
 
