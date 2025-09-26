@@ -71,12 +71,9 @@ output "flask_app_url_gcp" {
   value       = "http://${data.kubernetes_service.flask_app_gcp.status[0].load_balancer[0].ingress[0].ip}"
 }
 
-# output "flask_app_release_name_gcp" {
-#   value = length(helm_release.flask_app) > 0 ? helm_release.flask_app[0].name : null
-# }
-
-# output "flask_app_namespace_gcp" {
-#   value = length(helm_release.flask_app) > 0 ? helm_release.flask_app[0].namespace : null
-# }
+# Output the service account email
+output "terraform_sa_email" {
+  value = google_service_account.terraform.email
+}
 
 

@@ -139,7 +139,12 @@ variable "gcp_web_fw_name" {
 
 }
 
+# variable "terraform_assume_role_arn" {
+#   description = "ARN of the IAM role to assume for Terraform operations"
+#   type        = string
+#   default     = "arn:aws:iam::435329769674:role/TerraformRole"
 
+# }
 
 
 

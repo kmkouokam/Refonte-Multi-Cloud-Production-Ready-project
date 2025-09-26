@@ -56,7 +56,8 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 
   depends_on = [
     google_project_service.servicenetworking,
-    google_compute_global_address.private_ip_range
+    google_compute_global_address.private_ip_range,
+
   ]
 
   lifecycle {

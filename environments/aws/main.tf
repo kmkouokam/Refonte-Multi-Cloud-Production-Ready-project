@@ -30,7 +30,7 @@ resource "random_password" "db_password" {
 resource "helm_release" "flask_app_aws" {
   count     = local.is_aws ? 1 : 0
   name      = local.flask_release
-  chart     = "${path.module}/../../flask_app/helm/flask-app"
+  chart     = "${path.module}/../../flask_app/helm/flask-app-0.1.0.tgz"
   namespace = local.flask_namespace
 
   values = [file(local.helm_values_file)]

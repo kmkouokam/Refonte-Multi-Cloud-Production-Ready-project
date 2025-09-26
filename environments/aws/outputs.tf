@@ -70,13 +70,10 @@ output "flask_app_url_aws" {
   value       = "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}"
 }
 
-# output "flask_app_release_name_aws" {
-#   value = length(helm_release.flask_app) > 0 ? helm_release.flask_app[0].name : null
-# }
-
-# output "flask_app_namespace_aws" {
-#   value = length(helm_release.flask_app) > 0 ? helm_release.flask_app[0].namespace : null
-# }
+# Output the IAM role ARN
+output "terraform_iam_role_arn" {
+  value = aws_iam_role.terraform.arn
+}
 
 
 
