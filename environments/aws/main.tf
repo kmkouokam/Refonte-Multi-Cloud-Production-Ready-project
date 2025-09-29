@@ -26,17 +26,74 @@ resource "random_password" "db_password" {
   override_special = "!#$%&*()-_+{}<>?"
 }
 
+# -------------------------
+# AWS Kubernetes Secret
+# -------------------------
+resource "kubernetes_secret" "flask_db_aws" {
+  provider = kubernetes.aws
+  count    = local.is_aws ? 1 : 0
+
+  metadata {
+    name      = "flask-app-db-secret"
+    namespace = "default"
+  }
+
+  data = {
+    DB_HOST     = module.aws_db[0].db_endpoint
+    DB_PORT     = "5432"
+    DB_NAME     = var.db_name
+    DB_USER     = var.db_username
+    DB_PASSWORD = random_password.db_password.result
+    # DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
+  }
+
+  type = "Opaque"
+}
+
 
 resource "helm_release" "flask_app_aws" {
+  provider  = helm.aws
   count     = local.is_aws ? 1 : 0
   name      = local.flask_release
   chart     = "${path.module}/../../flask_app/helm/flask-app-0.1.0.tgz"
   namespace = local.flask_namespace
 
-  values = [file(local.helm_values_file)]
+  values = [
+    yamlencode({
+      replicaCount = 2
+      service = {
+        type = "LoadBalancer"
+      }
+      resources = {
+        requests = {
+          cpu    = "500m"
+          memory = "512Mi"
+        }
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
+      }
+      ingress = {
+        enabled = true
+        host    = "refonte-flask-app.devopsguru.today"
+        annotations = {
+          "kubernetes.io/ingress.class"      = "alb"
+          "alb.ingress.kubernetes.io/scheme" = "internet-facing"
+        }
+      }
+      db = {
+        host     = module.aws_db[0].db_endpoint
+        port     = "5432"
+        name     = local.db_name
+        user     = local.db_username
+        password = random_password.db_password.result
+      }
+    })
+  ]
 
 
-  depends_on = [module.aws_db] # depends only on AWS DB
+  depends_on = [module.aws_db, kubernetes_secret.flask_db_aws] # depends only on AWS DB
 }
 
 module "vpc" {
@@ -99,29 +156,7 @@ module "aws_security" {
 #   region  = var.gcp_region
 # }
 
-# -------------------------
-# AWS Kubernetes Secret
-# -------------------------
-resource "kubernetes_secret" "flask_db_aws" {
-  provider = kubernetes.aws
-  count    = local.is_aws ? 1 : 0
 
-  metadata {
-    name      = "flask-app-db-secret"
-    namespace = "default"
-  }
-
-  data = {
-    DB_HOST     = module.aws_db[0].db_endpoint
-    DB_PORT     = "5432"
-    DB_NAME     = var.db_name
-    DB_USER     = var.db_username
-    DB_PASSWORD = random_password.db_password.result
-    # DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
-  }
-
-  type = "Opaque"
-}
 
 
 

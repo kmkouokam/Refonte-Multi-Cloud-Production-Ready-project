@@ -28,23 +28,54 @@ resource "random_password" "db_password" {
 }
 
 resource "helm_release" "flask_app_gcp" {
+  provider  = helm.gcp
   count     = local.is_gcp ? 1 : 0
   name      = local.flask_release
   chart     = "${path.module}/../../flask_app/helm/flask-app-0.1.0.tgz"
   namespace = local.flask_namespace
 
-  values = [file(local.helm_values_file)]
+  values = [
+    yamlencode({
+      replicaCount = 2
+      service = {
+        type = "ClusterIP"
+      }
+      resources = {
+        requests = {
+          cpu    = "300m"
+          memory = "300Mi"
+        }
+        limits = {
+          cpu    = "600m"
+          memory = "600Mi"
+        }
+      }
+      ingress = {
+        enabled = true
+        host    = "refonte-flask-app.devopsguru.today"
+        annotations = {
+          "kubernetes.io/ingress.class" = "gce"
+        }
+      }
+      db = {
+        host     = "refonte-flask-db.devopsguru.today"
+        port     = "5432"
+        name     = local.db_name
+        user     = local.db_username
+        password = random_password.db_password.result
+      }
+    })
+  ]
 
-
-  depends_on = [module.gcp_db] # depends only on GCP DB
+  depends_on = [module.gcp_db, kubernetes_secret.flask_db_gcp] # depends only on GCP DB
 }
 
 # -------------------------
 # GCP Kubernetes Secret
 # -------------------------
 resource "kubernetes_secret" "flask_db_gcp" {
-
-  count = local.is_gcp ? 1 : 0
+  provider = kubernetes.gcp
+  count    = local.is_gcp ? 1 : 0
 
   metadata {
     name      = "flask-app-db-secret"
@@ -57,7 +88,7 @@ resource "kubernetes_secret" "flask_db_gcp" {
     DB_NAME     = var.db_name
     DB_USER     = var.db_username
     DB_PASSWORD = random_password.db_password.result
-    # DB_PASSWORD = jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data).password
+
   }
 
   type = "Opaque"
