@@ -47,7 +47,8 @@ resource "kubernetes_secret" "flask_db_aws" {
     # DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
   }
 
-  type = "Opaque"
+  type       = "Opaque"
+  depends_on = [module.aws_db]
 }
 
 
@@ -93,7 +94,11 @@ resource "helm_release" "flask_app_aws" {
   ]
 
 
-  depends_on = [module.aws_db, kubernetes_secret.flask_db_aws] # depends only on AWS DB
+  depends_on = [module.aws_db,
+    kubernetes_secret.flask_db_aws,
+    kubernetes_config_map.aws_auth_patch
+  ]
+
 }
 
 module "vpc" {

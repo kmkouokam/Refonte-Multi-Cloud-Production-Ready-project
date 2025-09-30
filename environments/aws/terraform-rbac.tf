@@ -80,13 +80,26 @@ resource "kubernetes_config_map" "aws_auth_patch" {
     namespace = "kube-system"
   }
 
-  data = merge(
-    data.kubernetes_config_map.aws_auth.data,
-    {
-      "mapRoles" = local.new_map_roles
-    }
-  )
+  data = {
+    mapRoles = jsonencode([
+      {
+        rolearn  = module.k8s[0].node_role_arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      }
+    ])
+  }
+
+  # data = merge(
+  #   data.kubernetes_config_map.aws_auth.data,
+  #   {
+  #     "mapRoles" = local.new_map_roles
+  #   }
+  # )
 
   # Ensure this runs after the IAM role is created
-  depends_on = [aws_iam_role.terraform, aws_iam_role_policy_attachment.terraform_admin]
+  depends_on = [aws_iam_role.terraform,
+    aws_iam_role_policy_attachment.terraform_admin,
+  module.k8s]
+
 }

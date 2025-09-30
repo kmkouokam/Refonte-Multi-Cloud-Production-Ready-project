@@ -15,3 +15,9 @@ output "cluster_name" {
   description = "Kubernetes cluster name (EKS if AWS, GKE if GCP)"
 }
 
+# AWS EKS Node Role ARN
+output "node_role_arn" {
+  value       = local.is_aws ? aws_iam_role.eks_node_role[0].arn : null
+  description = "ARN of the EKS node IAM role (AWS only)"
+}
+

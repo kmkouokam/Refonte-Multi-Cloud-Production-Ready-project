@@ -76,11 +76,29 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
   policy_arn = element([
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   ], count.index)
 
   depends_on = [aws_iam_role.eks_node_role, aws_iam_instance_profile.eks_node_instance_profile]
 }
+
+# resource "kubernetes_config_map" "aws_auth_patch" {
+#   depends_on = [module.k8s] # wait for cluster to exist
+#   metadata {
+#     name      = "aws-auth"
+#     namespace = "kube-system"
+#   }
+
+#   data = {
+#     mapRoles = jsonencode([{
+#       rolearn  = module.kubernetes.node_role_arn
+#       username = "system:node:{{EC2PrivateDNSName}}"
+#       groups   = ["system:bootstrappers", "system:nodes"]
+#     }])
+#   }
+# }
+
 
 resource "aws_eks_cluster" "aws_eks_cluster" {
   count = local.is_aws ? 1 : 0
@@ -95,6 +113,35 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
   depends_on = [aws_iam_role.eks_cluster_role, aws_iam_role.eks_node_role]
 
 }
+
+#########################
+# AWS EKS Node Group
+#########################
+resource "aws_eks_node_group" "aws_node_group" {
+  count           = local.is_aws ? 1 : 0
+  cluster_name    = aws_eks_cluster.aws_eks_cluster[0].name
+  node_group_name = "${var.cluster_name}-node-group"
+  node_role_arn   = aws_iam_role.eks_node_role[0].arn
+  subnet_ids      = var.public_subnet_ids
+
+  scaling_config {
+    desired_size = 2
+    max_size     = 3
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
+  disk_size      = 20
+
+  depends_on = [
+    aws_eks_cluster.aws_eks_cluster,
+    aws_iam_role.eks_node_role,
+    aws_iam_role_policy_attachment.node_policies
+  ]
+}
+
+
+
 ###############
 #GCP GKE Setup
 ###############
@@ -154,14 +201,22 @@ resource "google_container_node_pool" "primary_nodes" {
   node_config {
     service_account = google_service_account.gke_sa[0].email
     machine_type    = "e2-medium"
+    disk_size_gb    = 20
+
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring"
     ]
   }
 
   autoscaling {
     min_node_count = 1
     max_node_count = 3
+  }
+  management {
+    auto_repair  = true
+    auto_upgrade = true
   }
 
   depends_on = [google_container_cluster.gcp_cluster, google_service_account.gke_sa]

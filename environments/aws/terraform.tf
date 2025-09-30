@@ -7,8 +7,8 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.8.0"
-      # configuration_aliases = [helm.aws]
+      version = ">= 2.8.0"
+
     }
     aws = {
       source  = "hashicorp/aws"
