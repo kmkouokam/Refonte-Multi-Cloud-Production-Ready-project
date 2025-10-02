@@ -2,6 +2,7 @@ replicaCount: 2
 
 service:
   type: ClusterIP
+  port: 5000
 
 resources:
   requests:
@@ -13,13 +14,9 @@ resources:
 
 ingress:
   enabled: true
-  host: refonte-flask-app.devopsguru.today # replace with your GoDaddy domain
+  host: "refonte-flask-app.devopsguru.today"
   annotations:
     kubernetes.io/ingress.class: gce
 
 db:
-  host: refonte-flask-db.devopsguru.today # replace with your GoDaddy
-  port: { { .Values.db.port } }
-  name: { { .Values.db.name } }
-  user: { { .Values.db.user } }
-  password: { { .Values.db.password } }
+  secretName: "flask-db-secret"

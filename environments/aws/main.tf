@@ -47,8 +47,9 @@ resource "kubernetes_secret" "flask_db_aws" {
     # DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
   }
 
-  type       = "Opaque"
-  depends_on = [module.aws_db]
+  type = "Opaque"
+  depends_on = [module.aws_db,
+  kubernetes_config_map.aws_auth_patch]
 }
 
 

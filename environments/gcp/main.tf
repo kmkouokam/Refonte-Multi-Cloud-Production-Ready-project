@@ -67,7 +67,11 @@ resource "helm_release" "flask_app_gcp" {
     })
   ]
 
-  depends_on = [module.gcp_db, kubernetes_secret.flask_db_gcp] # depends only on GCP DB
+  depends_on = [module.gcp_db,
+    kubernetes_secret.flask_db_gcp,
+    kubernetes_cluster_role_binding.terraform_admin,
+    module.k8s
+  ] # depends only on GCP DB
 }
 
 # -------------------------
@@ -92,6 +96,8 @@ resource "kubernetes_secret" "flask_db_gcp" {
   }
 
   type = "Opaque"
+  depends_on = [module.gcp_db,
+  kubernetes_cluster_role_binding.terraform_admin]
 }
 
 

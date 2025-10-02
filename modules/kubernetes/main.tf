@@ -67,20 +67,29 @@ resource "aws_iam_instance_profile" "eks_node_instance_profile" {
   name  = "${var.cluster_name}-node-profile"
   role  = aws_iam_role.eks_node_role[0].name
 
-  depends_on = [aws_iam_role.eks_node_role, aws_iam_instance_profile.eks_node_instance_profile]
+  depends_on = [aws_iam_role.eks_node_role]
 }
 
-resource "aws_iam_role_policy_attachment" "node_policies" {
-  count = local.is_aws ? 3 : 0
-  role  = aws_iam_role.eks_node_role[0].name
-  policy_arn = element([
+# -------------------------
+# Attach node policies (explicit list -> for_each)
+# -------------------------
+locals {
+  node_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  ], count.index)
+  ]
+}
 
-  depends_on = [aws_iam_role.eks_node_role, aws_iam_instance_profile.eks_node_instance_profile]
+resource "aws_iam_role_policy_attachment" "node_policies" {
+  for_each   = local.is_aws ? toset(local.node_policy_arns) : []
+  role       = aws_iam_role.eks_node_role[0].name
+  policy_arn = each.key
+
+  depends_on = [aws_iam_role.eks_node_role,
+    aws_iam_instance_profile.eks_node_instance_profile
+  ]
 }
 
 # resource "kubernetes_config_map" "aws_auth_patch" {
@@ -138,6 +147,10 @@ resource "aws_eks_node_group" "aws_node_group" {
     aws_iam_role.eks_node_role,
     aws_iam_role_policy_attachment.node_policies
   ]
+
+  tags = {
+    Name = "${var.cluster_name}-node-group-${count.index + 1}"
+  }
 }
 
 

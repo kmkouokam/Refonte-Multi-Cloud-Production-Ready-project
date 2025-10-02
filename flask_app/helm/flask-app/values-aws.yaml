@@ -2,6 +2,7 @@ replicaCount: 2
 
 service:
   type: LoadBalancer
+  port: 5000
 
 resources:
   requests:
@@ -13,13 +14,10 @@ resources:
 
 ingress:
   enabled: true
-  host: refonte-flask-app.devopsguru.today # replace with your GoDaddy domain
+  host: "refonte-flask-app.devopsguru.today"
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
+
 db:
-  host: refonte-flask-db.devopsguru.today # replace with your GoDaddy domain
-  port: { { .Values.db.port } }
-  name: { { .Values.db.name } }
-  user: { { .Values.db.user } }
-  password: { { .Values.db.password } }
+  secretName: "flask-db-secret" # must exist in AWS cluster

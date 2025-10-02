@@ -4,10 +4,12 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}
   annotations:
-{{ toYaml .Values.ingress.annotations | indent 4 }}
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
 spec:
   rules:
-    - host: {{ .Values.ingress.host }}
+    - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
           - path: /

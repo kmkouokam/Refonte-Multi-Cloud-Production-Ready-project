@@ -94,6 +94,10 @@ resource "aws_db_instance" "postgres" {
   publicly_accessible    = false
   depends_on             = [aws_db_subnet_group.db_subnet_group]
 
+  tags = {
+    Name = "${var.env}-postgres-instance"
+  }
+
 }
 
 # ----------------------

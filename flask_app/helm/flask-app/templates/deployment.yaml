@@ -18,9 +18,12 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: FLASK_ENV
-              value: {{ .Values.env.FLASK_ENV }}
+              value: {{ .Values.env.FLASK_ENV | quote }}
             - name: DATABASE_URL
-              value: {{ .Values.env.DATABASE_URL }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: database_url
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
