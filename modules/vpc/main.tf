@@ -224,7 +224,17 @@ resource "google_compute_subnetwork" "private" {
   region                   = var.gcp_region
   network                  = google_compute_network.vpc_network[0].name
   private_ip_google_access = true
-  depends_on               = [google_compute_network.vpc_network]
+  secondary_ip_range {
+    range_name    = "pods"
+    ip_cidr_range = "192.168.10.0/24" # choose a free range
+  }
+
+  secondary_ip_range {
+    range_name    = "services"
+    ip_cidr_range = "192.168.20.0/24" # choose another free range
+  }
+
+  depends_on = [google_compute_network.vpc_network]
 
 }
 

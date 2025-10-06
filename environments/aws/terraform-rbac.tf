@@ -44,43 +44,32 @@ provider "kubernetes" {
 
 }
 
-# Fetch existing aws-auth ConfigMap
-data "kubernetes_config_map" "aws_auth" {
+# ----------------------------------------
+# Patch aws-auth ConfigMap (instead of recreating)
+# ----------------------------------------
+resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
   provider = kubernetes.bootstrap
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-  depends_on = [module.k8s]
-}
 
-# Build new mapRoles with Terraform role
-locals {
-  aws_auth_roles = try(jsondecode(replace(data.kubernetes_config_map.aws_auth.data["mapRoles"], "\n", "")), [])
-
-  new_map_roles = jsonencode(
-    concat(
-      local.aws_auth_roles,
-      [
-        {
-          rolearn  = aws_iam_role.terraform.arn
-          username = "terraform"
-          groups   = ["system:masters"]
-        }
-      ]
-    )
-  )
-}
-
-# Patch aws-auth ConfigMap with new Terraform role
-resource "kubernetes_config_map" "aws_auth_patch" {
-  provider = kubernetes.bootstrap
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
   }
 
+  # Add your IAM role and user here
   data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = module.k8s[0].node_role_arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+      {
+        rolearn  = aws_iam_role.terraform.arn
+        username = "terraform"
+        groups   = ["system:masters"]
+      }
+    ])
+
     mapUsers = yamlencode([
       {
         userarn  = "arn:aws:iam::435329769674:user/refonte"
@@ -88,21 +77,77 @@ resource "kubernetes_config_map" "aws_auth_patch" {
         groups   = ["system:masters"]
       }
     ])
-
-    mapRoles = yamlencode([
-      {
-        rolearn  = module.k8s[0].node_role_arn
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = ["system:bootstrappers", "system:nodes"]
-      }
-    ])
   }
 
-
-
-  # Ensure this runs after the IAM role is created
-  depends_on = [aws_iam_role.terraform,
+  depends_on = [
+    aws_iam_role.terraform,
     aws_iam_role_policy_attachment.terraform_admin,
-  module.k8s]
+    module.k8s
+  ]
 
+  force = true
 }
+
+
+# # Fetch existing aws-auth ConfigMap
+# data "kubernetes_config_map" "aws_auth" {
+#   provider = kubernetes.bootstrap
+#   metadata {
+#     name      = "aws-auth"
+#     namespace = "kube-system"
+#   }
+#   depends_on = [module.k8s]
+# }
+
+# # Build new mapRoles with Terraform role
+# locals {
+#   aws_auth_roles = try(jsondecode(replace(data.kubernetes_config_map.aws_auth.data["mapRoles"], "\n", "")), [])
+
+#   new_map_roles = jsonencode(
+#     concat(
+#       local.aws_auth_roles,
+#       [
+#         {
+#           rolearn  = aws_iam_role.terraform.arn
+#           username = "terraform"
+#           groups   = ["system:masters"]
+#         }
+#       ]
+#     )
+#   )
+# }
+
+# # Patch aws-auth ConfigMap with new Terraform role
+# resource "kubernetes_config_map" "aws_auth_patch" {
+#   provider = kubernetes.bootstrap
+#   metadata {
+#     name      = "aws-auth"
+#     namespace = "kube-system"
+#   }
+
+#   data = {
+#     mapUsers = yamlencode([
+#       {
+#         userarn  = "arn:aws:iam::435329769674:user/refonte"
+#         username = "refonte"
+#         groups   = ["system:masters"]
+#       }
+#     ])
+
+#     mapRoles = yamlencode([
+#       {
+#         rolearn  = module.k8s[0].node_role_arn
+#         username = "system:node:{{EC2PrivateDNSName}}"
+#         groups   = ["system:bootstrappers", "system:nodes"]
+#       }
+#     ])
+#   }
+
+
+
+#   # Ensure this runs after the IAM role is created
+#   depends_on = [aws_iam_role.terraform,
+#     aws_iam_role_policy_attachment.terraform_admin,
+#   module.k8s]
+
+# }

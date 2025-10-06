@@ -11,12 +11,17 @@ locals {
 
 # Lookup the Flask app service created by Helm on AWS
 data "kubernetes_service" "flask_app_aws" {
+  provider = kubernetes.aws
+
 
   metadata {
     name      = local.flask_release # dynamic from locals
     namespace = local.flask_namespace
   }
-  depends_on = [helm_release.flask_app_aws]
+  depends_on = [helm_release.flask_app_aws,
+    module.k8s,
+    kubernetes_secret.flask_db_aws
+  ]
 }
 
 
@@ -49,7 +54,7 @@ resource "kubernetes_secret" "flask_db_aws" {
 
   type = "Opaque"
   depends_on = [module.aws_db,
-  kubernetes_config_map.aws_auth_patch]
+  kubernetes_config_map_v1_data.aws_auth_patch]
 }
 
 
@@ -97,8 +102,12 @@ resource "helm_release" "flask_app_aws" {
 
   depends_on = [module.aws_db,
     kubernetes_secret.flask_db_aws,
-    kubernetes_config_map.aws_auth_patch
+    kubernetes_config_map_v1_data.aws_auth_patch,
+    module.aws_security
   ]
+
+
+
 
 }
 

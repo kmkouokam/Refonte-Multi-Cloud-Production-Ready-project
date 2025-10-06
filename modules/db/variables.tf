@@ -41,7 +41,7 @@ variable "db_password" {
 variable "db_instance_class" {
   description = "Instance type / machine type"
   type        = string
-
+  default     = "db.t3.micro" # AWS instance type / GCP machine type
 }
 
 variable "db_storage_size" {

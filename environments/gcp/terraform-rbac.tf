@@ -25,8 +25,8 @@ resource "google_project_iam_member" "sa_storage_admin" {
 
 provider "kubernetes" {
   alias                  = "bootstrap"
-  host                   = "https://${module.k8s[0].cluster_endpoint}"
-  cluster_ca_certificate = base64decode(module.k8s[0].cluster_ca_certificate)
+  host                   = "https://${module.k8s[0].gke_endpoint}"
+  cluster_ca_certificate = base64decode(module.k8s[0].gke_ca_certificate)
   token                  = data.google_client_config.default.access_token
 
 }

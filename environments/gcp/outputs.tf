@@ -18,11 +18,11 @@ output "gcp_db_endpoint" {
 
 # environments/gcp/outputs.tf
 output "gke_cluster_endpoint" {
-  value = module.k8s[0].cluster_endpoint
+  value = module.k8s[0].gke_endpoint
 }
 
 output "gke_cluster_ca_certificate" {
-  value = module.k8s[0].cluster_ca_certificate
+  value = module.k8s[0].gke_ca_certificate
 }
 
 output "gcp_db_fw_name" {
@@ -65,11 +65,33 @@ output "flask_app_status_gcp" {
   description = "Status of the Flask app Helm release on GCP"
 }
 
-# Flask App Service Ingress IP (GCP GKE)
+# Optional public URL output (use safe conditional to avoid destroy-time errors)
 output "flask_app_url_gcp" {
   description = "Public URL of the Flask app on GCP"
-  value       = "http://${data.kubernetes_service.flask_app_gcp.status[0].load_balancer[0].ingress[0].ip}"
+  value = try(
+    "http://${data.kubernetes_service.flask_app_gcp.status[0].load_balancer[0].ingress[0].ip}",
+    null
+  )
+  depends_on = [data.kubernetes_service.flask_app_gcp]
 }
+
+
+
+# Optional: only output load balancer IP if Helm release exists
+# output "flask_app_url_gcp" {
+#   value = helm_release.flask_app_gcp[0].status[0].load_balancer[0].ingress[0].ip
+#   description = "Public URL of the Flask app on GCP"
+
+#   depends_on = [helm_release.flask_app_gcp]
+
+#   sensitive  = false
+# }
+
+# Flask App Service Ingress IP (GCP GKE)
+# output "flask_app_url_gcp" {
+#   description = "Public URL of the Flask app on GCP"
+#   value       = "http://${data.kubernetes_service.flask_app_gcp.status[0].load_balancer[0].ingress[0].ip}"
+# }
 
 # Output the service account email
 output "terraform_sa_email" {

@@ -191,6 +191,8 @@ resource "google_container_cluster" "gcp_cluster" {
   location   = var.gcp_region
   network    = var.gcp_network
   subnetwork = var.gcp_subnetwork
+  project    = var.gcp_project_id
+
 
   deletion_protection = false
 
@@ -199,6 +201,18 @@ resource "google_container_cluster" "gcp_cluster" {
 
   release_channel {
     channel = "REGULAR"
+  }
+
+  ip_allocation_policy {
+    cluster_secondary_range_name  = "pods"
+    services_secondary_range_name = "services"
+
+  }
+
+  private_cluster_config {
+    enable_private_nodes    = true
+    master_ipv4_cidr_block  = "172.16.0.0/28"
+    enable_private_endpoint = true
   }
   depends_on = [google_service_account.gke_sa]
 

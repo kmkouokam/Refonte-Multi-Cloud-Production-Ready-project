@@ -26,11 +26,11 @@ output "eks_cluster_name" {
 }
 
 output "eks_cluster_endpoint" {
-  value = module.k8s[0].cluster_endpoint
+  value = module.k8s[0].eks_endpoint
 }
 
 output "eks_cluster_ca_certificate" {
-  value = module.k8s[0].cluster_ca_certificate
+  value = module.k8s[0].eks_ca_certificate
 }
 
 output "aws_db_sg_id" {
@@ -64,11 +64,22 @@ output "flask_app_status_aws" {
   description = "Status of the Flask app Helm release on AWS"
 }
 
-# Flask App Service LoadBalancer Hostname (AWS EKS)
+
 output "flask_app_url_aws" {
   description = "Public URL of the Flask app on AWS"
-  value       = "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}"
+  value = try(
+    "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}",
+    null
+  )
+  depends_on = [data.kubernetes_service.flask_app_aws]
 }
+
+
+# Flask App Service LoadBalancer Hostname (AWS EKS)
+# output "flask_app_url_aws" {
+#   description = "Public URL of the Flask app on AWS"
+#   value       = "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}"
+# }
 
 # Output the IAM role ARN
 output "terraform_iam_role_arn" {

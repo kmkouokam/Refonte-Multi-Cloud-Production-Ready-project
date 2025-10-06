@@ -10,14 +10,22 @@ locals {
   db_name     = var.db_name != "" ? var.db_name : "flaskdb"
 }
 
+resource "null_resource" "wait_k8s" {
+  depends_on = [module.k8s]
+}
+
+
 # Lookup the Flask app service created by Helm on GCP
 data "kubernetes_service" "flask_app_gcp" {
-
+  provider = kubernetes.gcp
   metadata {
     name      = local.flask_release # dynamic from locals
     namespace = local.flask_namespace
   }
-  depends_on = [helm_release.flask_app_gcp]
+  depends_on = [helm_release.flask_app_gcp,
+    null_resource.wait_k8s,
+    kubernetes_secret.flask_db_gcp
+  ]
 }
 
 
@@ -70,8 +78,11 @@ resource "helm_release" "flask_app_gcp" {
   depends_on = [module.gcp_db,
     kubernetes_secret.flask_db_gcp,
     kubernetes_cluster_role_binding.terraform_admin,
-    module.k8s
+    module.k8s,
+    module.gcp_security
   ] # depends only on GCP DB
+
+
 }
 
 # -------------------------
@@ -83,7 +94,7 @@ resource "kubernetes_secret" "flask_db_gcp" {
 
   metadata {
     name      = "flask-app-db-secret"
-    namespace = "default"
+    namespace = local.flask_namespace
   }
 
   data = {

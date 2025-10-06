@@ -2,8 +2,8 @@ data "google_client_config" "default" {}
 
 provider "kubernetes" {
   alias                  = "gcp"
-  host                   = "https://${module.k8s[0].cluster_endpoint}"
-  cluster_ca_certificate = base64decode(module.k8s[0].cluster_ca_certificate)
+  host                   = "https://${module.k8s[0].gke_endpoint}"
+  cluster_ca_certificate = base64decode(module.k8s[0].gke_ca_certificate)
   token                  = data.google_client_config.default.access_token
 }
 
@@ -25,8 +25,8 @@ provider "google" {
 provider "helm" {
   alias = "gcp"
   kubernetes {
-    host                   = "https://${module.k8s[0].cluster_endpoint}"
-    cluster_ca_certificate = base64decode(module.k8s[0].cluster_ca_certificate)
+    host                   = "https://${module.k8s[0].gke_endpoint}"
+    cluster_ca_certificate = base64decode(module.k8s[0].gke_ca_certificate)
     token                  = data.google_client_config.default.access_token
   }
 }

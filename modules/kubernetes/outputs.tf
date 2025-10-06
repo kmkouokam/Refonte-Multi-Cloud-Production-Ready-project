@@ -1,12 +1,29 @@
-output "cluster_endpoint" {
-  description = "Kubernetes API endpoint"
-  value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].endpoint : google_container_cluster.gcp_cluster[0].endpoint
+# -------------------------
+# GCP outputs
+# -------------------------
+output "gke_endpoint" {
+  description = "GKE cluster endpoint (GCP only)"
+  value       = local.is_gcp ? google_container_cluster.gcp_cluster[0].endpoint : null
 }
 
-output "cluster_ca_certificate" {
-  description = "Cluster CA certificate (base64)"
-  value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].certificate_authority[0].data : google_container_cluster.gcp_cluster[0].master_auth[0].cluster_ca_certificate
+output "gke_ca_certificate" {
+  description = "GKE cluster CA certificate (base64)"
+  value       = local.is_gcp ? google_container_cluster.gcp_cluster[0].master_auth[0].cluster_ca_certificate : null
 }
+
+# -------------------------
+# AWS outputs
+# -------------------------
+output "eks_endpoint" {
+  description = "EKS cluster endpoint (AWS only)"
+  value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].endpoint : null
+}
+
+output "eks_ca_certificate" {
+  description = "EKS cluster CA certificate (base64)"
+  value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].certificate_authority[0].data : null
+}
+
 
 output "cluster_name" {
   value = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].name : (
