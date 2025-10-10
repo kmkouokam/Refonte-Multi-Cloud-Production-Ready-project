@@ -82,6 +82,11 @@ resource "helm_release" "flask_app_gcp" {
     module.gcp_security
   ] # depends only on GCP DB
 
+  set_sensitive = [{
+    name  = "env.DATABASE_URL"
+    value = "postgresql://flask_user:${random_password.db_password.result}@34.173.219.170:5432/flaskdb"
+  }]
+
 
 }
 
@@ -217,6 +222,7 @@ module "k8s" {
   gcp_network       = module.vpc[0].gcp_network_name
   gcp_subnetwork    = module.vpc[0].gcp_private_subnet_name
   public_subnet_ids = module.vpc[0].aws_public_subnet_ids
+  # gcp_private_subnet_name = module.vpc[0].gcp_private_subnet_name
 
   depends_on = [module.vpc] # <– ensures APIs are ready before k8s runs
 

@@ -22,7 +22,12 @@ env:
 
 db:
   secretName: "flask-db-secret"
-  database_url: "postgresql://flaskuser:<SECRET_FROM_AWS_OR_GCP>@refonte-flask-db.devopsguru.today:5432/flaskr"
+  # database_url: "postgresql://flaskuser:<SECRET_FROM_AWS_OR_GCP>@refonte-flask-db.devopsguru.today:5432/flaskr"
+  # host: "refonte-flask-db.devopsguru.today"
+  # port: "5432"
+  # name: "flaskr"
+  # user: "flaskuser"
+  # password: "<SECRET_FROM_AWS_OR_GCP>"
 
 ingress:
   enabled: false

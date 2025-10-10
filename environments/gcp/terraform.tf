@@ -7,12 +7,12 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.8.0"
+      version = ">= 2.13.0"
       # configuration_aliases = [helm.gcp]
     }
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.0"
+      version = ">= 6.4.0"
     }
   }
 }

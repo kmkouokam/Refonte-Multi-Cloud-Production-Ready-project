@@ -203,21 +203,52 @@ resource "google_container_cluster" "gcp_cluster" {
     channel = "REGULAR"
   }
 
-  ip_allocation_policy {
-    cluster_secondary_range_name  = "pods"
-    services_secondary_range_name = "services"
+  #  ip_allocation_policy {
+  #   auto_create_subnetworks = true   # enable GKE IPAM
+  #   cluster_secondary_range_name  = null
+  #   services_secondary_range_name = null
+  # }
 
-  }
+  ip_allocation_policy {}
+
+
+
+  # ip_allocation_policy {
+  #   # Auto IPAM mode 
+  #   cluster_secondary_range_name  = null
+  #   services_secondary_range_name = null
+  #   auto_ipam_config {
+  #     enabled = true
+  #   }
+  #   additional_ip_ranges_config {
+  #     subnetwork           = var.gcp_private_subnet_name
+  #     pod_ipv4_range_names = ["pods"]
+
+
+  #   }
+  #   additional_pod_ranges_config {
+  #     pod_range_names = ["pods"]
+  #   }
+  # }
+
+  # master_auth {
+  #   client_certificate_config {
+  #     issue_client_certificate = false
+  #   }
+  # }
 
   private_cluster_config {
     enable_private_nodes    = true
     master_ipv4_cidr_block  = "172.16.0.0/28"
-    enable_private_endpoint = true
+    enable_private_endpoint = false
   }
   depends_on = [google_service_account.gke_sa]
-
-
 }
+
+
+
+
+
 
 resource "google_container_node_pool" "primary_nodes" {
   count    = local.is_gcp ? 1 : 0

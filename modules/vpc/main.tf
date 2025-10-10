@@ -220,19 +220,20 @@ resource "google_compute_subnetwork" "public" {
 resource "google_compute_subnetwork" "private" {
   count                    = var.cloud_provider == "gcp" ? length(var.private_subnets) : 0
   name                     = "${var.name_prefix}-private-${count.index}-${random_id.suffix.hex}"
-  ip_cidr_range            = var.private_subnets[count.index]
+  ip_cidr_range            = element(var.private_subnets, count.index)
   region                   = var.gcp_region
   network                  = google_compute_network.vpc_network[0].name
   private_ip_google_access = true
-  secondary_ip_range {
-    range_name    = "pods"
-    ip_cidr_range = "192.168.10.0/24" # choose a free range
-  }
+  # secondary_ip_range {
+  #   range_name    = "pods"
+  #   ip_cidr_range = "10.244.0.0/20" # choose a free range
 
-  secondary_ip_range {
-    range_name    = "services"
-    ip_cidr_range = "192.168.20.0/24" # choose another free range
-  }
+  # }
+
+  # secondary_ip_range {
+  #   range_name    = "services"
+  #   ip_cidr_range = "10.240.0.0/14" # choose another free range
+  # }
 
   depends_on = [google_compute_network.vpc_network]
 

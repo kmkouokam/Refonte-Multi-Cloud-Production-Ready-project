@@ -33,11 +33,11 @@ provider "aws" {
 # ----------------
 provider "helm" {
   alias = "aws"
-  kubernetes {
+  kubernetes = {
     host                   = module.k8s[0].eks_endpoint
     cluster_ca_certificate = base64decode(module.k8s[0].eks_ca_certificate)
     token                  = data.aws_eks_cluster_auth.eks.token
-    exec {
+    exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
       args        = ["eks", "get-token", "--cluster-name", var.cluster_name]

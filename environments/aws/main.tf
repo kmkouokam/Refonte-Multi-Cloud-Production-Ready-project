@@ -66,6 +66,9 @@ resource "helm_release" "flask_app_aws" {
   namespace = local.flask_namespace
 
   values = [
+    templatefile("${path.module}/../../flask_app/helm/flask-app/values-aws.yaml", {
+      DB_HOST = module.aws_db[0].db_endpoint
+    }),
     yamlencode({
       replicaCount = 2
       service = {
@@ -89,13 +92,13 @@ resource "helm_release" "flask_app_aws" {
           "alb.ingress.kubernetes.io/scheme" = "internet-facing"
         }
       }
-      db = {
-        host     = module.aws_db[0].db_endpoint
-        port     = "5432"
-        name     = local.db_name
-        user     = local.db_username
-        password = random_password.db_password.result
-      }
+      # db = {
+      #   host     = module.aws_db[0].db_endpoint
+      #   port     = "5432"
+      #   name     = local.db_name
+      #   user     = local.db_username
+      #   password = random_password.db_password.result
+      # }
     })
   ]
 
@@ -106,8 +109,12 @@ resource "helm_release" "flask_app_aws" {
     module.aws_security
   ]
 
-
-
+  set_sensitive = [
+    {
+      name  = "env.DATABASE_URL"
+      value = "postgresql://flask_user:${random_password.db_password.result}@terraform-20251009130709020200000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com:5432/flaskdb"
+    }
+  ]
 
 }
 

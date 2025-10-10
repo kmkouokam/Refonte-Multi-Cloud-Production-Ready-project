@@ -57,3 +57,10 @@ variable "gcp_vpc_self_link" {
   type        = string
   default     = null
 }
+
+# variable "gcp_private_subnet_name" {
+#   description = "GCP private subnet name for private Cloud SQL network"
+#   type        = string
+
+
+# }

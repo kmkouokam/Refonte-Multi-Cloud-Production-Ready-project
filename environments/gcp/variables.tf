@@ -19,7 +19,7 @@ variable "vpc_cidr" {
 variable "gcp_subnetwork" {
   description = "Optional: existing GCP subnetwork name. If null, a new subnet will be created using CIDR blocks."
   type        = string
-  default     = null
+  default     = "private-subnet-1"
 }
 
 variable "public_subnet_cidrs" {
@@ -31,7 +31,7 @@ variable "public_subnet_cidrs" {
 variable "private_subnet_cidrs" {
   description = "CIDR blocks for private subnets (used only if creating new subnets)"
   type        = list(string)
-  default     = ["10.0.3.0/24", "10.0.4.0/24"]
+  default     = ["10.1.3.0/24", "10.1.4.0/24"]
 }
 
 

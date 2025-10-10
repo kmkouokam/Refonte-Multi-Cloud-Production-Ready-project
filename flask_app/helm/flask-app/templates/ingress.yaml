@@ -7,6 +7,7 @@ metadata:
     {{- range $key, $value := .Values.ingress.annotations }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.ingress.host | quote }}
 spec:
   rules:
     - host: {{ .Values.ingress.host | quote }}

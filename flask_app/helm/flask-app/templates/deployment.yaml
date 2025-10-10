@@ -16,14 +16,44 @@ spec:
         - name: flask-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --source=ingress        # watch Ingress objects (or service)
+            - --domain-filter=devopsguru.today  # replace with your domain
+            - --provider=godaddy
+            - --txt-prefix=external-dns
+            - --txt-owner-id=flask-app
+            - --godaddy-api-key=3mM44YwfE5FqLU_QXXjYDLh94mnwxWDCzj4Rx
+            - --godaddy-api-secret=AmHLeF2z7zEcZZ9ZThGFbJ
+            - --godaddy-api-ote
+
           env:
             - name: FLASK_ENV
               value: {{ .Values.env.FLASK_ENV | quote }}
-            - name: DATABASE_URL
+            - name: DATABASE_NAME
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.db.secretName }}
-                  key: database_url
+                  key: name
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: password
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: port
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: host
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
@@ -31,3 +61,4 @@ spec:
             limits:
               cpu: {{ .Values.resources.limits.cpu }}
               memory: {{ .Values.resources.limits.memory }}
+ 

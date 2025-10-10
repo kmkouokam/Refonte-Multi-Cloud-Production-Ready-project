@@ -47,6 +47,12 @@ variable "gcp_network_name" {
   default     = "multi-cloud-vpc"
 }
 
+# variable "gcp_private_subnet_names" {
+#   description = "GCP private subnet names for private Cloud SQL network"
+#   type        = list(string)
+#   default     = [multi-cloud-private-0, multi-cloud-private-1]
+
+# }
 
 
 variable "gcp_web_fw_name" {
