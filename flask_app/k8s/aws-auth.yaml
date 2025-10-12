@@ -1,0 +1,14 @@
+##Apply the ConfigMap before applying your Terraform plan that creates Helm releases or Kubernetes secrets
+## In root directory, run: kubectl apply -f flask_app/k8s/aws-auth.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapUsers: |
+    - userarn: arn:aws:iam::435329769674:user/refonte
+      username: refonte
+      groups:
+        - system:masters
