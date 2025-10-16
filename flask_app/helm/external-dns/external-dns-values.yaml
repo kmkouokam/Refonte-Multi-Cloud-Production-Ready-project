@@ -1,0 +1,15 @@
+provider:
+  name: godaddy
+
+sources:
+  - ingress
+
+domainFilters:
+  - devopsguru.today
+
+txtPrefix: external-dns
+txtOwnerId: flask-app
+extraArgs:
+  - --godaddy-api-key=3mM44YwfE5FqLU_QXXjYDLh94mnwxWDCzj4Rx
+  - --godaddy-api-secret=AmHLeF2z7zEcZZ9ZThGFbJ
+    - --godaddy-api-ote
