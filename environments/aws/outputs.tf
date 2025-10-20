@@ -1,10 +1,12 @@
 output "aws_vpc_id" {
-  value = module.vpc[0].aws_vpc_id
+  description = "AWS VPC ID"
+  value       = module.vpc[0].aws_vpc_id
 }
 
 
 output "aws_private_subnet_cidrs" {
-  value = module.vpc[0].aws_private_subnet_cidrs
+  description = "AWS private subnets cidr"
+  value       = module.vpc[0].aws_private_subnet_cidrs
 }
 
 output "aws_public_subnet_cidrs" {
@@ -16,8 +18,24 @@ output "aws_private_route_table_ids" {
   value = module.vpc[0].private_route_table_ids
 }
 
-output "aws_db_endpoint" {
+output "aws_db_host" {
   value = module.aws_db[0].db_endpoint
+}
+
+output "aws_db_password" {
+  value       = local.is_aws ? module.aws_security[0].aws_db_password : null
+  description = "AWS DB password for Helm"
+  sensitive   = true
+}
+
+
+output "aws_db_name" {
+  value = module.aws_db[0].db_name
+}
+
+output "aws_db_username" {
+  value       = module.aws_db[0].db_username
+  description = "Database username for AWS"
 }
 
 # environments/aws/outputs.tf
@@ -41,38 +59,38 @@ output "aws_web_sg_id" {
   value = module.vpc[0].aws_web_sg_id
 }
 
-output "db_endpoint" {
-  value = module.aws_db[0].db_endpoint
-}
+# output "db_endpoint" {
+#   value = module.aws_db[0].db_endpoint
+# }
 
 # -------------------------
 # AWS Helm Outputs
 # -------------------------
 
-output "flask_app_release_name_aws" {
-  value       = helm_release.flask_app_aws[0].name
-  description = "Helm release name for the Flask app on AWS"
-}
+# output "flask_app_release_name_aws" {
+#   value       = helm_release.flask_app_aws[0].name
+#   description = "Helm release name for the Flask app on AWS"
+# }
 
-output "flask_app_namespace_aws" {
-  value       = helm_release.flask_app_aws[0].namespace
-  description = "Kubernetes namespace for the Flask app on AWS"
-}
+# output "flask_app_namespace_aws" {
+#   value       = helm_release.flask_app_aws[0].namespace
+#   description = "Kubernetes namespace for the Flask app on AWS"
+# }
 
-output "flask_app_status_aws" {
-  value       = helm_release.flask_app_aws[0].status
-  description = "Status of the Flask app Helm release on AWS"
-}
+# output "flask_app_status_aws" {
+#   value       = helm_release.flask_app_aws[0].status
+#   description = "Status of the Flask app Helm release on AWS"
+# }
 
 
-output "flask_app_url_aws" {
-  description = "Public URL of the Flask app on AWS"
-  value = try(
-    "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}",
-    null
-  )
-  depends_on = [data.kubernetes_service.flask_app_aws]
-}
+# output "flask_app_url_aws" {
+#   description = "Public URL of the Flask app on AWS"
+#   value = try(
+#     "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}",
+#     null
+#   )
+#   depends_on = [data.kubernetes_service.flask_app_aws]
+# }
 
 
 # Flask App Service LoadBalancer Hostname (AWS EKS)

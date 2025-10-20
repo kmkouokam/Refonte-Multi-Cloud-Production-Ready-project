@@ -12,8 +12,23 @@ output "gcp_public_subnet_cidrs" {
   value = module.vpc[0].gcp_public_subnet_cidrs
 }
 
-output "gcp_db_endpoint" {
+output "gcp_db_host" {
   value = module.gcp_db[0].db_endpoint
+}
+
+output "gcp_db_name" {
+  value = module.gcp_db[0].db_name
+}
+
+output "gcp_db_username" {
+  value = module.gcp_db[0].db_username
+}
+
+
+output "gcp_db_password" {
+  value       = local.is_gcp ? module.gcp_security[0].gcp_db_password : null
+  description = "GCP DB password for Helm"
+  sensitive   = true
 }
 
 # environments/gcp/outputs.tf
@@ -50,30 +65,30 @@ output "db_endpoint" {
 # GCP Helm Outputs
 # -------------------------
 
-output "flask_app_release_name_gcp" {
-  value       = helm_release.flask_app_gcp[0].name
-  description = "Helm release name for the Flask app on GCP"
-}
+# output "flask_app_release_name_gcp" {
+#   value       = helm_release.flask_app_gcp[0].name
+#   description = "Helm release name for the Flask app on GCP"
+# }
 
-output "flask_app_namespace_gcp" {
-  value       = helm_release.flask_app_gcp[0].namespace
-  description = "Kubernetes namespace for the Flask app on GCP"
-}
+# output "flask_app_namespace_gcp" {
+#   value       = helm_release.flask_app_gcp[0].namespace
+#   description = "Kubernetes namespace for the Flask app on GCP"
+# }
 
-output "flask_app_status_gcp" {
-  value       = helm_release.flask_app_gcp[0].status
-  description = "Status of the Flask app Helm release on GCP"
-}
+# output "flask_app_status_gcp" {
+#   value       = helm_release.flask_app_gcp[0].status
+#   description = "Status of the Flask app Helm release on GCP"
+# }
 
-# Optional public URL output (use safe conditional to avoid destroy-time errors)
-output "flask_app_url_gcp" {
-  description = "Public URL of the Flask app on GCP"
-  value = try(
-    "http://${data.kubernetes_service.flask_app_gcp.status[0].load_balancer[0].ingress[0].ip}",
-    null
-  )
-  depends_on = [data.kubernetes_service.flask_app_gcp]
-}
+# # Optional public URL output (use safe conditional to avoid destroy-time errors)
+# output "flask_app_url_gcp" {
+#   description = "Public URL of the Flask app on GCP"
+#   value = try(
+#     "http://${data.kubernetes_service.flask_app_gcp.status[0].load_balancer[0].ingress[0].ip}",
+#     null
+#   )
+#   depends_on = [data.kubernetes_service.flask_app_gcp]
+# }
 
 
 

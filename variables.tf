@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 
-variable "db_endpoint" {
+variable "db_host" {
   type    = string
-  default = "mydb.example.com"
+  default = null
 }
 
 variable "gcp_region" {
