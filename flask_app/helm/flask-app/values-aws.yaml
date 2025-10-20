@@ -26,3 +26,10 @@ ingress:
 env:
   # Database credentials are pulled from Kubernetes Secret
   secretName: { { .Values.env.secretName } }
+
+db:
+  host: ""
+  port: 5432
+  name: ""
+  user: ""
+  password: ""
