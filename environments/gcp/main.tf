@@ -2,9 +2,7 @@ locals {
 
   is_gcp = var.cloud_provider == "gcp"
 
-  helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
-  flask_namespace  = "default"
-  flask_release    = "flask-app-release"
+   
 
   db_username = var.db_username != "" ? var.db_username : "flask_user"
   db_name     = var.db_name != "" ? var.db_name : "flaskdb"
@@ -15,19 +13,7 @@ resource "null_resource" "wait_k8s" {
 }
 
 
-# Lookup the Flask app service created by Helm on GCP
-data "kubernetes_service" "flask_app_gcp" {
-  provider = kubernetes.gcp
-  metadata {
-    name      = local.flask_release # dynamic from locals
-    namespace = local.flask_namespace
-  }
-  depends_on = [helm_release.flask_app_gcp,
-    null_resource.wait_k8s,
-    kubernetes_secret.flask_db_gcp
-  ]
-}
-
+ 
 
 resource "random_password" "db_password" {
   length           = 16
@@ -35,88 +21,7 @@ resource "random_password" "db_password" {
   override_special = "!#$%&*()-_+{}<>?"
 }
 
-resource "helm_release" "flask_app_gcp" {
-  provider  = helm.gcp
-  count     = local.is_gcp ? 1 : 0
-  name      = local.flask_release
-  chart     = "${path.module}/../../flask_app/helm/flask-app-0.1.0.tgz"
-  namespace = local.flask_namespace
-
-  values = [
-    yamlencode({
-      replicaCount = 2
-      service = {
-        type = "ClusterIP"
-      }
-      resources = {
-        requests = {
-          cpu    = "300m"
-          memory = "300Mi"
-        }
-        limits = {
-          cpu    = "600m"
-          memory = "600Mi"
-        }
-      }
-      ingress = {
-        enabled = true
-        host    = "refonte-flask-app.devopsguru.today"
-        annotations = {
-          "kubernetes.io/ingress.class" = "gce"
-        }
-      }
-      db = {
-        host     = "refonte-flask-db.devopsguru.today"
-        port     = "5432"
-        name     = local.db_name
-        user     = local.db_username
-        password = random_password.db_password.result
-      }
-    })
-  ]
-
-  depends_on = [module.gcp_db,
-    kubernetes_secret.flask_db_gcp,
-    kubernetes_cluster_role_binding.terraform_admin,
-    module.k8s,
-    module.gcp_security
-  ] # depends only on GCP DB
-
-  set_sensitive = [{
-    name  = "env.DATABASE_URL"
-    value = "postgresql://flask_user:${random_password.db_password.result}@34.173.219.170:5432/flaskdb"
-  }]
-
-
-}
-
-# -------------------------
-# GCP Kubernetes Secret
-# -------------------------
-resource "kubernetes_secret" "flask_db_gcp" {
-  provider = kubernetes.gcp
-  count    = local.is_gcp ? 1 : 0
-
-  metadata {
-    name      = "flask-app-db-secret"
-    namespace = local.flask_namespace
-  }
-
-  data = {
-    DB_HOST     = module.gcp_db[0].db_endpoint
-    DB_PORT     = "5432"
-    DB_NAME     = var.db_name
-    DB_USER     = var.db_username
-    DB_PASSWORD = random_password.db_password.result
-
-  }
-
-  type = "Opaque"
-  depends_on = [module.gcp_db,
-  kubernetes_cluster_role_binding.terraform_admin]
-}
-
-
+ 
 module "vpc" {
   count              = local.is_gcp ? 1 : 0
   source             = "../../modules/vpc"
@@ -150,7 +55,7 @@ module "gcp_security" {
   project          = var.project
   secret_name      = "mygcpdb-password"
   aws_region       = var.aws_region
-  helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
+  # helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
   name_suffix      = var.name_prefix
   db_name          = local.db_name
   db_username      = local.db_username

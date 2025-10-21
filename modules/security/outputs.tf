@@ -19,17 +19,35 @@ output "gcp_kms_key_id" {
 
 
 # AWS Secrets Manager DB password
+# AWS
 output "aws_db_password" {
-  description = "AWS DB password stored in Secrets Manager"
-  value       = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string)["password"]
-  sensitive   = true
+  description = "AWS Secrets Manager DB password (decoded)"
+  value = try(
+    jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string)["password"],
+    null
+  )
+  sensitive = true
 }
+
+# GCP
+# output "gcp_db_password" {
+#   description = "GCP Secret Manager DB password (decoded)"
+#   value = try(
+#     jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data)["password"],
+#     null
+#   )
+#   sensitive = true
+# }
+
 
 # GCP Secret Manager DB password
 output "gcp_db_password" {
-  description = "GCP DB password stored in Secret Manager"
-  value       = jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data)["password"]
-  sensitive   = true
+  description = "GCP Secret Manager DB password (decoded)"
+  value = try(
+    jsondecode(data.google_secret_manager_secret_version.db_password[0].secret_data)["password"],
+    null
+  )
+  sensitive = true
 }
 
 

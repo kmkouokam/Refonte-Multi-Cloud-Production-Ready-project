@@ -70,10 +70,7 @@ variable "db_endpoint" {
   default     = null
 }
 
-variable "helm_values_file" {
-  description = "Path to Helm values file"
-  type        = string
-}
+ 
 
 
 variable "aws_region" {

@@ -153,7 +153,7 @@ module "aws_security" {
   env              = var.env
   db_endpoint      = module.aws_db[0].db_endpoint
   aws_region       = var.aws_region
-  helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-aws.yaml"
+   
   depends_on       = [module.aws_db, module.vpc]
 
 
