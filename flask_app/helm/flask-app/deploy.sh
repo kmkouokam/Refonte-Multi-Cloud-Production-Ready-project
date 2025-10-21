@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Path to your Terraform infra (master branch)
-TF_DIR="../multicloud_deployment"
+TF_DIR="/c/refonte-training/infra"
+# CHART_DIR="./flask_app/helm/flask-app"
+
 
 # Optional: fetch desired replica count from Terraform
 AWS_REPLICAS=$(terraform -chdir=$TF_DIR output -raw aws_flask_replicas)
@@ -14,12 +16,12 @@ echo "AWS Flask Replicas: $AWS_REPLICAS"
 echo "GCP Flask Replicas: $GCP_REPLICAS"
 
 # Fetch DB info dynamically from Terraform outputs
-AWS_DB_HOST=$(terraform -chdir=$TF_DIR output -raw aws_db_endpoint)
-GCP_DB_HOST=$(terraform -chdir=$TF_DIR output -raw gcp_db_endpoint)
-DB_USER=$(terraform -chdir=$TF_DIR output -raw db_user)          # dynamic
+AWS_DB_HOST=$(terraform -chdir=$TF_DIR output -raw aws_db_host)
+GCP_DB_HOST=$(terraform -chdir=$TF_DIR output -raw gcp_db_host)
+DB_USER=$(terraform -chdir=$TF_DIR output -raw aws_db_username)          # dynamic
 # Fetch sensitive DB password without printing it
-DB_PASSWORD=$(terraform -chdir=$TF_DIR output -raw db_password)  # dynamic
-DB_NAME=$(terraform -chdir=$TF_DIR output -raw db_name)          # dynamic
+DB_PASSWORD=$(terraform -chdir=$TF_DIR output -raw aws_db_password)  # dynamic
+DB_NAME=$(terraform -chdir=$TF_DIR output -raw aws_db_name)          # dynamic
 
 
 
@@ -31,7 +33,7 @@ echo "DB Name: $DB_NAME"
 echo "DB Password: ******** (hidden)"
 
 # Create temporary override YAML for AWS
-cat > ./helm/flask-app/values.override-aws.yaml <<EOF
+cat > ./values.override-aws.yaml <<EOF
 db:
   host: "$AWS_DB_HOST"
   name: "$DB_NAME"
@@ -41,7 +43,7 @@ db:
 EOF
 
 # Create temporary override YAML for GCP
-cat > ./helm/flask-app/values.override-gcp.yaml <<EOF
+cat > ./values.override-gcp.yaml <<EOF
 db:
   host: "$GCP_DB_HOST"
   name: "$DB_NAME"
@@ -52,21 +54,23 @@ EOF
 
 # Deploy to AWS
 echo "Deploying Flask app to AWS..."
-helm upgrade --install flask-app ./helm/flask-app \
-  -f ./helm/flask-app/values-aws.yaml \
-  -f ./helm/flask-app/values.override-aws.yaml \
+kubectl config use-context arn:aws:eks:us-east-1:435329769674:cluster/multi-cloud-cluster
+helm upgrade --install flask-app . \
+  -f ./values-aws.yaml \
+  -f  ./values.override-aws.yaml \
   --namespace default
 
 # Deploy to GCP
 echo "Deploying Flask app to GCP..."
-helm upgrade --install flask-app ./helm/flask-app \
-  -f ./helm/flask-app/values-gcp.yaml \
-  -f ./helm/flask-app/values.override-gcp.yaml \
+kubectl config use-context gke_prod-251618-359501_us-central1_my-gcp-cluster
+helm upgrade --install flask-app .\
+  -f ./values-gcp.yaml \
+  -f ./values.override-gcp.yaml \
   --namespace default
 
 # Clean up override files
-rm ./helm/flask-app/values.override-aws.yaml
-rm ./helm/flask-app/values.override-gcp.yaml
+rm  ./values.override-aws.yaml
+rm ./values.override-gcp.yaml
 
 echo "Flask app deployed successfully on AWS and GCP!"
 

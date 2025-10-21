@@ -1,8 +1,8 @@
 replicaCount: 2
 
 image:
-  repository: kmkouokam/flaskr-tdd:latest
-  tag: v1.0.0
+  repository: kmkouokam/flaskr-tdd
+  tag: "1.0.2"
   pullPolicy: IfNotPresent
 
 service:

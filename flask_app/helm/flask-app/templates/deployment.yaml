@@ -20,7 +20,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: 5000
+            - containerPort: {{ .Values.service.port }}
           env:
             - name: DB_HOST
               value: {{ .Values.db.host | quote }}
@@ -31,10 +31,10 @@ spec:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: flask-db-secret
+                  name: {{ .Values.env.secretName }}
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: flask-db-secret
+                  name: {{ .Values.env.secretName }}
                   key: password

@@ -1,12 +1,12 @@
 replicaCount: 2
 
 image:
-  repository: kmkouokam/flaskr-tdd:latest
-  tag: "1.0.1"
+  repository: kmkouokam/flaskr-tdd
+  tag: "1.0.2"
   pullPolicy: IfNotPresent
 
 service:
-  type: ClusterIP
+  type:  LoadBalancer
 
 resources:
   requests:
@@ -24,11 +24,11 @@ ingress:
 
 env:
   # Database credentials are pulled from Kubernetes Secret
-  secretName: { { .Values.env.secretName } }
+  secretName: flask-app-db-secret
 
 db:
-  host: ""
+  host: "34.9.5.243"
   port: 5432
-  name: ""
-  user: ""
+  name: "postgresdb"
+  user: "postgres"
   password: ""

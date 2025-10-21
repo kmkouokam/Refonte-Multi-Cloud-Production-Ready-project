@@ -28,10 +28,10 @@ COPY . .
 # Expose port
 EXPOSE ${PORT}
 
-ENTRYPOINT ["python", "create_db.py"]
+ 
  
 
 
 # Run database initialization, then Gunicorn (Terraform-recommended JSON form)
-CMD ["sh", "-c", "python create_db.py && gunicorn --bind 0.0.0.0:8080 project.app:app --workers 2 --threads 4 \"$@\"", "--source=ingress"]
+CMD ["sh", "-c", "python create_db.py && gunicorn --bind 0.0.0.0:8080 project.app:app --workers 2 --threads 4"]
  
