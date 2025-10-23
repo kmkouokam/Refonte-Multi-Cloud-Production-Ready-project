@@ -4,6 +4,12 @@ output "db_endpoint" {
   local.is_gcp ? google_sql_database_instance.postgres[0].ip_address[0].ip_address : "")
 }
 
+output "db_host" {
+  description = "Database host for Flask app"
+  value       = (local.is_aws ? aws_db_instance.postgres[0].address :
+                local.is_gcp ? google_sql_database_instance.postgres[0].ip_address[0].ip_address : "")
+}
+
 
 output "gcp_sql_instance_connection_name" {
   description = "Connection name of the Cloud SQL instance"

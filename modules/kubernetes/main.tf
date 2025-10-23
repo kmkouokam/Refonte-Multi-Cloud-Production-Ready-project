@@ -32,6 +32,8 @@ data "aws_iam_policy_document" "eks_assume_role" {
   }
 }
 
+
+
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   count      = local.is_aws ? 1 : 0
   role       = aws_iam_role.eks_cluster_role[0].name
@@ -70,6 +72,30 @@ resource "aws_iam_instance_profile" "eks_node_instance_profile" {
   depends_on = [aws_iam_role.eks_node_role]
 }
 
+data "aws_caller_identity" "current" {}
+# SSM role
+resource "aws_iam_policy" "eks_node_ssm_policy" {
+  count       = local.is_aws ? 1 : 0
+  name        = "${var.cluster_name}-eks-node-ssm"
+  description = "Allow EKS nodes to read SSM parameters for Flask app"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+        ]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/flask-app/*"
+      }
+    ]
+  })
+}
+
+
 # -------------------------
 # Attach node policies (explicit list -> for_each)
 # -------------------------
@@ -78,7 +104,8 @@ locals {
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
   ]
 }
 

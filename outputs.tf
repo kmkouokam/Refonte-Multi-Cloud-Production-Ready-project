@@ -60,3 +60,13 @@ output "gcp_db_host" {
     : module.gcp_env.gcp_db_host
   )
 }
+
+output "aws_flask_replicas" {
+  value       = 2
+  description = "Number of Flask replicas on AWS"
+}
+
+output "gcp_flask_replicas" {
+  value       = 2
+  description = "Number of Flask replicas on GCP"
+}
