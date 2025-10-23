@@ -36,6 +36,7 @@ Before running `deploy.sh`, connect to your Kubernetes cluster:
 
 ```bash
 # For AWS EKS
+Edit db host
 aws eks update-kubeconfig --region us-east-1 --name <your-eks-cluster-name>
 
 # For GCP GKE
@@ -48,6 +49,12 @@ From the `flask-app` branch:
 
 ```bash
 ./deploy.sh
+If you accidently run the script without editing the db_host:
+
+aws eks update-kubeconfig --region us-east-1 --name multi-cloud-cluster
+kubectl config use-context arn:aws:eks:us-east-1:435329769674:cluster/multi-cloud-cluster
+helm install flask-app . -f values-aws.yaml --namespace default
+
 ```
 
 This script will:

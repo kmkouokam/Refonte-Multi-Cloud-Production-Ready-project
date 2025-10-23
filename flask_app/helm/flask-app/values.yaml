@@ -6,8 +6,9 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 5000
+  targetPort: 8080
 
 resources:
   requests:
@@ -18,8 +19,16 @@ resources:
     memory: 512Mi
 
 env:
-  FLASK_ENV: production
-  DATABASE_URL: "sqlite:///project/flaskr.db"
+  secretName: flask-app-db-secret
+  FLASK_ENV: development
+
+db:
+  host: "localhost"
+  port: 5432
+  name: "postgresdb"
+  user: "postgres"
+  password: ""
+
 
 ingress:
   enabled: false

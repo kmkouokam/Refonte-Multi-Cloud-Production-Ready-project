@@ -1,6 +1,7 @@
 import os
 from functools import wraps
 from pathlib import Path
+import boto3 
 
 from flask import (
     Flask,
@@ -19,17 +20,52 @@ from flask_sqlalchemy import SQLAlchemy
 basedir = Path(__file__).resolve().parent
 
 # configuration
-DATABASE = "flaskr.db"
-USERNAME = "admin"
-PASSWORD = "admin"
-SECRET_KEY = "change_me"
-url = os.getenv("DATABASE_URL", f"sqlite:///{Path(basedir).joinpath(DATABASE)}")
+# configuration
+DATABASE_URL = os.getenv("DATABASE_URL")  # e.g. postgresql://user:pass@host:port/db
 
-if url.startswith("postgres://"):
-    url = url.replace("postgres://", "postgresql://", 1)
+if not DATABASE_URL:
+    try:
+        print("🔍 Attempting to load DATABASE_URL from AWS SSM...")
+        ssm = boto3.client("ssm", region_name=os.getenv("AWS_REGION", "us-east-1"))
+        param = ssm.get_parameter(Name="/flask-app/DATABASE_URL", WithDecryption=True)
+        DATABASE_URL = param["Parameter"]["Value"]
+        os.environ["DATABASE_URL"] = DATABASE_URL
+        print("✅ Loaded DATABASE_URL from AWS SSM")
+    except Exception as e:
+        print(f"⚠️ Could not load DATABASE_URL from SSM: {e}")
+        DATABASE_URL = None   
 
-SQLALCHEMY_DATABASE_URI = url
+# optional fallback for local development
+if not DATABASE_URL:
+    DATABASE = "flaskr.db"
+    DATABASE_URL = f"sqlite:///{Path(basedir).joinpath(DATABASE)}"
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Flask configuration
+USERNAME = os.getenv("FLASK_USERNAME", "admin")
+PASSWORD = os.getenv("FLASK_PASSWORD", "admin")
+SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "change_me")    
+
+SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+
+
+
+# DATABASE = "flaskr.db"
+# USERNAME = "admin"
+# PASSWORD = "admin"
+# SECRET_KEY = "change_me"
+# url = os.getenv("DATABASE_URL", f"sqlite:///{Path(basedir).joinpath(DATABASE)}")
+
+# if url.startswith("postgres://"):
+#     url = url.replace("postgres://", "postgresql://", 1)
+
+# SQLALCHEMY_DATABASE_URI = url
+# SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 # create and initialize a new Flask app
@@ -122,4 +158,4 @@ def search():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))

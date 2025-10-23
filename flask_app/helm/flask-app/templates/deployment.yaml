@@ -22,19 +22,21 @@ spec:
           ports:
             - containerPort: {{ .Values.service.port }}
           env:
-            - name: DB_HOST
-              value: {{ .Values.db.host | quote }}
-            - name: DB_PORT
-              value: {{ .Values.db.port | quote }}
-            - name: DB_NAME
-              value: {{ .Values.db.name | quote }}
-            - name: DB_USER
+            - name: DATABASE_URL
+              value: {{ if .Values.db.password }}{{ printf "postgresql://%s:%s@%s:%d/%s" .Values.db.username .Values.db.password .Values.db.host (default 5432 .Values.db.port) .Values.db.name | quote }}{{ else }}{{ "" | quote }}{{ end }}  
+            - name: FLASK_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.env.secretName }}
+                  name: flask-app-db-secret
                   key: username
-            - name: DB_PASSWORD
+            - name: FLASK_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.env.secretName }}
+                  name: flask-app-db-secret
                   key: password
+            - name: FLASK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: flask-app-db-secret
+                  key: secret
+ 
