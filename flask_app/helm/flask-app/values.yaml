@@ -7,8 +7,8 @@ image:
 
 service:
   type: LoadBalancer
-  port: 5000
-  targetPort: 8080
+  port: 5000    # external port for dev
+  targetPort: 5000  # container port (Flask listens here)
 
 resources:
   requests:
@@ -32,5 +32,7 @@ db:
 
 ingress:
   enabled: false
+  ingressClassName: nginx
   host: flask-app.local
-  annotations: {}
+  annotations: 
+    nginx.ingress.kubernetes.io/use-regex: "true"

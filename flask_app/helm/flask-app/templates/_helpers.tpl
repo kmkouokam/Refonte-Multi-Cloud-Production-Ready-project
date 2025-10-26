@@ -15,13 +15,20 @@
 {{- end -}}
 
 {{/* ----------------------------------------------------------------------
+  Chart helper
+  Returns name-version (used in labels)
+---------------------------------------------------------------------- */}}
+{{- define "flask-app.chart" -}}
+{{ .Chart.Name }}-{{ .Chart.Version }}
+{{- end -}}
+
+{{/* ----------------------------------------------------------------------
   Labels helper
   Standard labels for all resources
 ---------------------------------------------------------------------- */}}
 {{- define "flask-app.labels" -}}
 app.kubernetes.io/name: {{ include "flask-app.name" . }}
-helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+helm.sh/chart: {{ include "flask-app.chart" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
- 

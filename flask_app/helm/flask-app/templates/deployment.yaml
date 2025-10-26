@@ -20,7 +20,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.service.port }}
+            - containerPort: {{ .Values.service.targetPort }}
           env:
             - name: DATABASE_URL
               value: {{ if .Values.db.password }}{{ printf "postgresql://%s:%s@%s:%d/%s" .Values.db.username .Values.db.password .Values.db.host (default 5432 .Values.db.port) .Values.db.name | quote }}{{ else }}{{ "" | quote }}{{ end }}  

@@ -6,7 +6,7 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: 5000
-      targetPort: 5000
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
   selector:
     app: {{ include "flask-app.name" . }}

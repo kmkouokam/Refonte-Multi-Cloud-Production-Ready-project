@@ -7,8 +7,8 @@ image:
 
 service:
   type: LoadBalancer
-  port: 80
-  targetPort: 8080
+  port: 80           # external LoadBalancer port
+  targetPort: 5000   # containerPort inside the pod (Flask listens here)
 
 resources:
   requests:
@@ -20,12 +20,13 @@ resources:
 
 ingress:
   enabled: true
-  host: flask-app.devopsguru.today
+  host: aws.flask-app.devopsguru.today
   ingressClassName: alb
   annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    kubernetes.io/ingress.class: "alb"
 
 env:
   # Database credentials are pulled from Kubernetes Secret
@@ -33,8 +34,10 @@ env:
   FLASK_ENV: production
 
 db:
-  host: "terraform-20251023140416272500000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com"  
+  host: "terraform-20251026160001638700000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com"
   port: 5432
   name: "postgresdb"
   user: "postgres"
   password: ""
+
+secret: ""

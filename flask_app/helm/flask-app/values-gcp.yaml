@@ -6,9 +6,9 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type:  LoadBalancer
+  type: LoadBalancer
   port: 80
-  targetPort: 8080
+  targetPort: 5000   # containerPort inside the pod (Flask listens here)
 
 resources:
   requests:
@@ -20,10 +20,10 @@ resources:
 
 ingress:
   enabled: true
+  host: gcp.flask-app.devopsguru.today
   ingressClassName: gce
-  host: flask-app.devopsguru.today
   annotations:
-    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.class: "gce"
 
 env:
   # Database credentials are pulled from Kubernetes Secret
@@ -31,8 +31,11 @@ env:
   FLASK_ENV: production
 
 db:
-  host: "136.112.4.195"
+  host: "34.60.111.42"
   port: 5432
   name: "postgresdb"
   user: "postgres"
   password: ""
+
+secret: ""
+ 
