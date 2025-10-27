@@ -27,17 +27,17 @@ ingress:
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
     kubernetes.io/ingress.class: "alb"
-
+  
 env:
   # Database credentials are pulled from Kubernetes Secret
   secretName: flask-app-db-secret
   FLASK_ENV: production
 
 db:
-  host: "terraform-20251026160001638700000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com"
+  host: "" 
   port: 5432
-  name: "postgresdb"
-  user: "postgres"
+  name: ""
+  user: ""
   password: ""
 
 secret: ""

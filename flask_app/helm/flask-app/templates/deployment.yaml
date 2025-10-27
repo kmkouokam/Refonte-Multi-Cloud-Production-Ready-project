@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "flask-app.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ include "flask-app.name" . }}
 spec:
@@ -16,27 +15,90 @@ spec:
         app: {{ include "flask-app.name" . }}
     spec:
       containers:
-        - name: {{ .Chart.Name }}
+        - name: flask-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
           env:
-            - name: DATABASE_URL
-              value: {{ if .Values.db.password }}{{ printf "postgresql://%s:%s@%s:%d/%s" .Values.db.username .Values.db.password .Values.db.host (default 5432 .Values.db.port) .Values.db.name | quote }}{{ else }}{{ "" | quote }}{{ end }}  
-            - name: FLASK_USERNAME
+            # DB environment variables from Kubernetes Secret
+            - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: flask-app-db-secret
+                  name: {{ .Values.env.secretName }}
+                  key: host
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.env.secretName }}
+                  key: name
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.env.secretName }}
                   key: username
-            - name: FLASK_PASSWORD
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: flask-app-db-secret
+                  name: {{ .Values.env.secretName }}
                   key: password
-            - name: FLASK_SECRET_KEY
+            - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: flask-app-db-secret
+                  name: {{ .Values.env.secretName }}
                   key: secret
+            - name: FLASK_ENV
+              value: "{{ .Values.env.FLASK_ENV }}"
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+
+
+
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: {{ include "flask-app.fullname" . }}
+#   namespace: {{ .Release.Namespace }}
+#   labels:
+#     app: {{ include "flask-app.name" . }}
+# spec:
+#   replicas: {{ .Values.replicaCount }}
+#   selector:
+#     matchLabels:
+#       app: {{ include "flask-app.name" . }}
+#   template:
+#     metadata:
+#       labels:
+#         app: {{ include "flask-app.name" . }}
+#     spec:
+#       containers:
+#         - name: {{ .Chart.Name }}
+#           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+#           imagePullPolicy: {{ .Values.image.pullPolicy }}
+#           ports:
+#             - containerPort: {{ .Values.service.targetPort }}
+#           env:
+#             - name: DATABASE_URL
+#               value: {{ if .Values.db.password }}{{ printf "postgresql://%s:%s@%s:%d/%s" .Values.db.username .Values.db.password .Values.db.host (default 5432 .Values.db.port) .Values.db.name | quote }}{{ else }}{{ "" | quote }}{{ end }}  
+#             - name: FLASK_USERNAME
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: flask-app-db-secret
+#                   key: username
+#             - name: FLASK_PASSWORD
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: flask-app-db-secret
+#                   key: password
+#             - name: FLASK_SECRET_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: flask-app-db-secret
+#                   key: secret
  

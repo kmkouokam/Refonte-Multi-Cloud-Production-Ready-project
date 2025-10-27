@@ -24,6 +24,8 @@ ingress:
   ingressClassName: gce
   annotations:
     kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: flask-app-ip
+  
 
 env:
   # Database credentials are pulled from Kubernetes Secret
@@ -31,10 +33,10 @@ env:
   FLASK_ENV: production
 
 db:
-  host: "34.60.111.42"
+  host: ""
   port: 5432
-  name: "postgresdb"
-  user: "postgres"
+  name: ""
+  user: ""
   password: ""
 
 secret: ""
