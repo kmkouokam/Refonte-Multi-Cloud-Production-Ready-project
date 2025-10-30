@@ -1,12 +1,31 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "flask-app.fullname" . }}
+  name: {{ include "flask-app.fullname" . }}-service
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "flask-app.name" . }}
 spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
   selector:
     app: {{ include "flask-app.name" . }}
+
+
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: flask-app-service
+#   namespace: default
+# spec:
+#   type: LoadBalancer
+#   ports:
+#     - port: 80
+#       targetPort: 8080
+#   selector:
+#     app: flask-app

@@ -8,7 +8,7 @@ image:
 service:
   type: LoadBalancer
   port: 80           # external LoadBalancer port
-  targetPort: 5000   # containerPort inside the pod (Flask listens here)
+  targetPort: 8080   # container port (Flask listens here)
 
 resources:
   requests:
@@ -18,26 +18,28 @@ resources:
     cpu: 1
     memory: 1Gi
 
-ingress:
-  enabled: true
-  host: aws.flask-app.devopsguru.today
-  ingressClassName: alb
-  annotations:
-    alb.ingress.kubernetes.io/scheme: "internet-facing"
-    alb.ingress.kubernetes.io/target-type: "ip"
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
-    kubernetes.io/ingress.class: "alb"
-  
 env:
-  # Database credentials are pulled from Kubernetes Secret
-  secretName: flask-app-db-secret
+  # Loaded from Kubernetes Secret
+  secretName: flask-app-db-secret-aws
   FLASK_ENV: production
 
 db:
-  host: "" 
-  port: 5432
-  name: ""
-  user: ""
-  password: ""
+  awsHost: "terraform-20251029131648903600000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com"
+  awsName: "postgresdb"
+  awsUsername: "postgres"
+  awsPassword: "AWS_DB_PASSWORD" # Will be filled dynamically from .env or Secret
+   
+   
 
-secret: ""
+ingress:
+  enabled: true
+  ingressClassName: alb
+  host: aws.flask-app.devopsguru.today
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+
+secret: "SECRET_KEY" # Will be filled dynamically from .env or Secret
+ 
