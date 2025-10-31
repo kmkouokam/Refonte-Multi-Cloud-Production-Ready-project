@@ -1,7 +1,36 @@
 import os
+from dotenv import load_dotenv
 from functools import wraps
 from pathlib import Path
 import boto3 
+
+load_dotenv()  # loads from .env file
+
+def getenv_case_insensitive(var):
+    """Get env var regardless of case"""
+    return os.getenv(var) or os.getenv(var.lower()) or os.getenv(var.upper())
+
+# Determine provider
+provider = getenv_case_insensitive("DB_PROVIDER") or "AWS"
+provider = os.getenv("DB_PROVIDER", "AWS").upper()
+
+ 
+# Load DB credentials based on provider
+if provider == "GCP":
+    db_host = getenv_case_insensitive("gcp_db_host")
+    db_name = getenv_case_insensitive("gcp_db_name")
+    db_user = getenv_case_insensitive("gcp_db_username")
+    db_pass = getenv_case_insensitive("gcp_db_password")
+else:
+    db_host = getenv_case_insensitive("aws_db_host")
+    db_name = getenv_case_insensitive("aws_db_name")
+    db_user = getenv_case_insensitive("aws_db_username")
+    db_pass = getenv_case_insensitive("aws_db_password")
+
+print(f"Connecting to {provider} database {db_name} at {db_host} as {db_user}")
+
+ 
+
 
 from flask import (
     Flask,
@@ -19,9 +48,13 @@ from flask_sqlalchemy import SQLAlchemy
 
 basedir = Path(__file__).resolve().parent
 
-# configuration
-# configuration
-DATABASE_URL = os.getenv("DATABASE_URL")  # e.g. postgresql://user:pass@host:port/db
+# Build DATABASE_URL if not provided
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL and all([db_host, db_name, db_user, db_pass]):
+    DATABASE_URL = f"postgresql://{db_user}:{db_pass}@{db_host}/{db_name}"
+    os.environ["DATABASE_URL"] = DATABASE_URL
+
+# Try to load DATABASE_URL from AWS SSM if still not set
 
 if not DATABASE_URL:
     try:
@@ -36,17 +69,18 @@ if not DATABASE_URL:
         DATABASE_URL = None   
 
 # optional fallback for local development
+basedir = Path(__file__).resolve().parent
 if not DATABASE_URL:
-    DATABASE = "flaskr.db"
-    DATABASE_URL = f"sqlite:///{Path(basedir).joinpath(DATABASE)}"
-
+      DATABASE_URL = f"sqlite:///{Path(basedir).joinpath('flaskr.db')}" 
+     
+# Normalize URI prefix
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Flask configuration
 USERNAME = os.getenv("FLASK_USERNAME", "admin")
 PASSWORD = os.getenv("FLASK_PASSWORD", "admin")
-SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "change_me")    
+SECRET_KEY = os.getenv("SECRET_KEY", "change_me")    
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
 SQLALCHEMY_TRACK_MODIFICATIONS = False
