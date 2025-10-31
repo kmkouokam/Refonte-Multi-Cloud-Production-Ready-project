@@ -95,6 +95,12 @@ cd /c/refonte-training/flask_app/helm/flask-app
 ./deploy.sh
 
 ### 🧭 Helm Chart Repository
+### Install Helm charts
+helm repo add refonte https://kmkouokam.github.io/Refonte-Multi-Cloud-Production-Ready-project/
+helm repo update
+ 
+
+
 # 1️⃣ Go to your chart directory
 cd flask_app/helm/
 
