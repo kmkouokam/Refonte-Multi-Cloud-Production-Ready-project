@@ -4,6 +4,14 @@ This project demonstrates a **multicloud deployment pipeline** using **Terraform
 It provisions cloud infrastructure, builds and pushes a Flask application container, and deploys it automatically using Helm.
 
 ---
+### 1️⃣ Prerequisites
+
+Ensure you have:
+- AWS CLI & GCP SDK configured
+- Docker Desktop running
+- kubectl and Helm installed
+- Terraform initialized in the `master` branch
+
 
 ## 🏗️ Branch Overview
 
@@ -22,52 +30,273 @@ It provisions cloud infrastructure, builds and pushes a Flask application contai
 
 ## 🚀 Deployment Workflow
 
-### 1️⃣ Prerequisites
+1️⃣ Apply Terraform
 
-Ensure you have:
-- AWS CLI & GCP SDK configured
-- Docker Desktop running
-- kubectl and Helm installed
-- Terraform initialized in the `master` branch
+Deploy your infrastructure (VPC, RDS, etc.) for AWS and GCP:
 
-### 2️⃣ Configure kubeconfig
+cd /c/refonte-training/infra
+terraform init
+terraform apply
 
-Before running `deploy.sh`, connect to your Kubernetes cluster:
 
-```bash
-# For AWS EKS
-Edit db host
-aws eks update-kubeconfig --region us-east-1 --name <your-eks-cluster-name>
+This will create all cloud resources.
 
-# For GCP GKE
-gcloud container clusters get-credentials <your-gke-cluster-name> --region <your-region> --project <your-project-id>
-```
+2️⃣ Export Terraform outputs
 
-### 3️⃣ Run the deployment script
+Save Terraform outputs to a JSON file (optional, for reference or debugging):
 
-From the `flask-app` branch:
+terraform output -json > outputs.json
 
-```bash
+
+You can inspect this file to see DB endpoints, replica counts, etc.
+
+Example keys: aws_db_host, aws_flask_replicas, gcp_db_host, etc.
+
+3️⃣ Edit .env
+
+Update the .env file with your dynamic values:
+
+DB_PROVIDER=BOTH
+
+# -----------------------
+# AWS Configuration
+# -----------------------
+aws_db_host=""
+aws_db_name=postgresdb
+aws_db_username=postgres
+aws_db_password=""
+aws_ingress_host=""
+aws_db_secret_name=flask-app-db-secret-aws
+aws_flask_replicas=2
+
+# -----------------------
+# GCP Configuration
+# -----------------------
+gcp_db_host=""
+gcp_db_name=postgresdb
+gcp_db_username=postgres
+gcp_db_password=""
+gcp_ingress_host=""
+gcp_db_secret_name=flask-app-db-secret-gcp
+gcp_flask_replicas=2
+
+# -----------------------
+# Flask App Secret
+# -----------------------
+secret_key=myflasksecret
+
+
+
+4️⃣ Run deploy script
+
+Finally, deploy your Flask app to the target cloud(s):
+
+cd /c/refonte-training/flask_app/helm/flask-app
 ./deploy.sh
-If you accidently run the script without editing the db_host:
 
-aws eks update-kubeconfig --region us-east-1 --name multi-cloud-cluster
-kubectl config use-context arn:aws:eks:us-east-1:435329769674:cluster/multi-cloud-cluster
-helm install flask-app . -f values-aws.yaml --namespace default
+### 🧭 Helm Chart Repository
+# 1️⃣ Go to your chart directory
+cd flask_app/helm/
 
-```
+# 2️⃣ Package the chart
+helm package flask-app
+# => Output: flask-app-0.1.0.tgz
 
-This script will:
-- Build and push your Docker image to Docker Hub
-- Deploy the Flask app via Helm
-- Create a LoadBalancer service (ALB for AWS or GCLB for GCP)
-- Output the external IP for access
+# 3️⃣ Move the packaged chart to the root of your project
+mv flask-app-0.1.0.tgz ../../
 
----
+# 4️⃣ Go to your project root
+cd ../../
 
-## 📊 Project Flow Overview
+# 5️⃣ Move the package into your GitHub Pages docs folder
+mv flask-app-0.1.0.tgz Refonte-Multi-Cloud-Production-Ready-project/docs/
 
-The diagram below shows the multicloud deployment flow from Terraform infrastructure provisioning to Helm app deployment:
+# 6️⃣ Go into the docs directory
+cd Refonte-Multi-Cloud-Production-Ready-project/docs/
+
+# 7️⃣ Generate or update Helm index.yaml
+helm repo index . --url https://kmkouokam.github.io/Refonte-Multi-Cloud-Production-Ready-project/
+
+
+### 🗂️ Branch master Structure
+
+.
+|-- README
+|-- aws_deletion_script
+|   `-- delete_vpc.sh
+|-- environments
+|   |-- aws
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   |-- providers.tf
+|   |   |-- terraform-rbac.tf
+|   |   |-- terraform.tf
+|   |   `-- variables.tf
+|   `-- gcp
+|       |-- main.tf
+|       |-- mygcp-creds.json
+|       |-- outputs.tf
+|       |-- providers.tf
+|       |-- terraform-rbac.tf
+|       |-- terraform.tf
+|       `-- variables.tf
+|-- gcp_delete_script
+|   `-- delete_gcp_vpc.sh
+|-- main.tf
+|-- modules
+|   |-- db
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   `-- variables.tf
+|   |-- helm
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   |-- terraform.tf
+|   |   `-- variables.tf
+|   |-- kubernetes
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   |-- terraform.tf
+|   |   `-- variables.tf
+|   |-- multi_cloud_vpn
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   `-- variables.tf
+|   |-- security
+|   |   |-- main.tf
+|   |   |-- outputs.tf
+|   |   |-- terraform.tf
+|   |   `-- variables.tf
+|   `-- vpc
+|       |-- main.tf
+|       |-- outputs.tf
+|       `-- variables.tf
+|-- mygcp-creds.json
+|-- outputs.json
+|-- outputs.tf
+|-- outputs.json
+|-- outputs.tf
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- state-backup.json
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- state-backup.json
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- state-backup.json
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- state-backup.json
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- outputs.json
+|-- outputs.tf
+|-- outputs.json
+|-- outputs.json
+|-- outputs.tf
+|-- providers.tf
+|-- state-backup.json
+|-- terraform-commands.md
+|-- terraform.tf
+|-- terraform.tfstate
+|-- terraform.tfstate.1761675143.backup
+|-- terraform.tfstate.1761675157.backup
+|-- terraform.tfstate.backup
+|-- terraform_multicloud_full_guide.md
+`-- variables.tf
+
+12 directories, 51 files
+
+
+### 🗂️ Branch flask-app Structure
+ .
+|-- README.md
+|-- docs
+|   |-- flask-app-0.1.0.tgz
+|   `-- index.yaml
+|-- flask_app
+|   |-- Dockerfile
+|   |-- LICENSE
+|   |-- Procfile
+|   |-- README.md
+|   |-- create_db.py
+|   |-- db.py
+|   |-- flaskr-app.png
+|   |-- helm
+|   |   |-- external-dns
+|   |   |   `-- external-dns-values.yaml
+|   |   |-- external-dns-values.yaml
+|   |   `-- flask-app
+|   |       |-- Chart.yaml
+|   |       |-- deploy.sh
+|   |       |-- templates
+|   |       |   |-- _helpers.tpl
+|   |       |   |-- deployment.yaml
+|   |       |   |-- ingress.yaml
+|   |       |   |-- secret.yaml
+|   |       |   `-- service.yaml
+|   |       |-- values-aws.yaml
+|   |       |-- values-gcp.yaml
+|   |       `-- values.yaml
+|   |-- k8s
+|   |   `-- aws-auth.yaml
+|   |-- project
+|   |   |-- __init__.py
+|   |   |-- app.py
+|   |   |-- flaskr.db
+|   |   |-- models.py
+|   |   |-- static
+|   |   |   |-- main.js
+|   |   |   `-- style.css
+|   |   `-- templates
+|   |       |-- index.html
+|   |       |-- login.html
+|   |       `-- search.html
+|   |-- requirements.txt
+|   |-- runtime.txt
+|   |-- schema.sql
+|   |-- tdd.png
+|   |-- test.db
+|   `-- tests
+|       |-- __init__.py
+|       `-- app_test.py
+|-- image.png
+|-- mygcp-creds.json
+|-- terraform.tfstate
+`-- tfplan
+
+
+| Cloud Provider | Infra Tool | Database Service | Kubernetes | Ingress Controller           | Monitoring  |
+| -------------- | ---------- | ---------------- | ---------- | ---------------------------- | ----------- |
+| **AWS**        | Terraform  | Amazon RDS       | EKS        | AWS Load Balancer Controller | CloudWatch  |
+| **GCP**        | Terraform  | Cloud SQL        | GKE        | GCP Ingress                  | Stackdriver |
+
+### 🧠 Notes & Best Practices
+
+Each Helm chart is versioned via Chart.yaml
+
+Terraform outputs feed directly into .env for dynamic configuration
+
+Compatible with CI/CD pipelines (GitHub Actions, Jenkins, GitLab CI)
+
+Hosted Helm repo powered by GitHub Pages
+
+Supports multi-environment (dev, prod) deployments
+
+ 
+
+ 
+
+ 
 
 ![Flowchart](https://files.oaiusercontent.com/file-000000002ea4620986dce9dfa1606681/A_flowchart_in_the_digital_image_illustrates_a_mul.png)
 
