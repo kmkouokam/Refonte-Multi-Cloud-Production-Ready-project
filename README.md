@@ -120,159 +120,89 @@ helm repo index . --url https://kmkouokam.github.io/Refonte-Multi-Cloud-Producti
 
 ### 🗂️ Branch master Structure
 
-.
-|-- README
-|-- aws_deletion_script
-|   `-- delete_vpc.sh
-|-- environments
-|   |-- aws
-|   |   |-- main.tf
-|   |   |-- outputs.tf
-|   |   |-- providers.tf
-|   |   |-- terraform-rbac.tf
-|   |   |-- terraform.tf
-|   |   `-- variables.tf
-|   `-- gcp
-|       |-- main.tf
-|       |-- mygcp-creds.json
-|       |-- outputs.tf
-|       |-- providers.tf
-|       |-- terraform-rbac.tf
-|       |-- terraform.tf
-|       `-- variables.tf
-|-- gcp_delete_script
-|   `-- delete_gcp_vpc.sh
-|-- main.tf
-|-- modules
-|   |-- db
-|   |   |-- main.tf
-|   |   |-- outputs.tf
-|   |   `-- variables.tf
-|   |-- helm
-|   |   |-- main.tf
-|   |   |-- outputs.tf
-|   |   |-- terraform.tf
-|   |   `-- variables.tf
-|   |-- kubernetes
-|   |   |-- main.tf
-|   |   |-- outputs.tf
-|   |   |-- terraform.tf
-|   |   `-- variables.tf
-|   |-- multi_cloud_vpn
-|   |   |-- main.tf
-|   |   |-- outputs.tf
-|   |   `-- variables.tf
-|   |-- security
-|   |   |-- main.tf
-|   |   |-- outputs.tf
-|   |   |-- terraform.tf
-|   |   `-- variables.tf
-|   `-- vpc
-|       |-- main.tf
-|       |-- outputs.tf
-|       `-- variables.tf
-|-- mygcp-creds.json
-|-- outputs.json
-|-- outputs.tf
-|-- outputs.json
-|-- outputs.tf
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- state-backup.json
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- state-backup.json
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- state-backup.json
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- state-backup.json
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- outputs.json
-|-- outputs.tf
-|-- outputs.json
-|-- outputs.json
-|-- outputs.tf
-|-- providers.tf
-|-- state-backup.json
-|-- terraform-commands.md
-|-- terraform.tf
-|-- terraform.tfstate
-|-- terraform.tfstate.1761675143.backup
-|-- terraform.tfstate.1761675157.backup
-|-- terraform.tfstate.backup
-|-- terraform_multicloud_full_guide.md
-`-- variables.tf
+Refonte-Multi-Cloud-Production-Ready-project/
+├── README.md
+├── aws_deletion_script/
+│   └── delete_vpc.sh
+├── gcp_delete_script/
+│   └── delete_gcp_vpc.sh
+├── environments/
+│   ├── aws/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── providers.tf
+│   │   ├── terraform.tf
+│   │   ├── terraform-rbac.tf
+│   │   └── outputs.tf
+│   └── gcp/
+│       ├── main.tf
+│       ├── variables.tf
+│       ├── providers.tf
+│       ├── terraform.tf
+│       ├── terraform-rbac.tf
+│       └── outputs.tf
+├── modules/
+│   ├── vpc/
+│   ├── db/
+│   ├── security/
+│   ├── kubernetes/
+│   ├── multi_cloud_vpn/
+│   └── helm/
+├── terraform.tf
+├── outputs.tf
+├── variables.tf
+├── providers.tf
+├── terraform_multicloud_full_guide.md
+└── state-backup.json
 
-12 directories, 51 files
 
 
 ### 🗂️ Branch flask-app Structure
- .
-|-- README.md
-|-- docs
-|   |-- flask-app-0.1.0.tgz
-|   `-- index.yaml
-|-- flask_app
-|   |-- Dockerfile
-|   |-- LICENSE
-|   |-- Procfile
-|   |-- README.md
-|   |-- create_db.py
-|   |-- db.py
-|   |-- flaskr-app.png
-|   |-- helm
-|   |   |-- external-dns
-|   |   |   `-- external-dns-values.yaml
-|   |   |-- external-dns-values.yaml
-|   |   `-- flask-app
-|   |       |-- Chart.yaml
-|   |       |-- deploy.sh
-|   |       |-- templates
-|   |       |   |-- _helpers.tpl
-|   |       |   |-- deployment.yaml
-|   |       |   |-- ingress.yaml
-|   |       |   |-- secret.yaml
-|   |       |   `-- service.yaml
-|   |       |-- values-aws.yaml
-|   |       |-- values-gcp.yaml
-|   |       `-- values.yaml
-|   |-- k8s
-|   |   `-- aws-auth.yaml
-|   |-- project
-|   |   |-- __init__.py
-|   |   |-- app.py
-|   |   |-- flaskr.db
-|   |   |-- models.py
-|   |   |-- static
-|   |   |   |-- main.js
-|   |   |   `-- style.css
-|   |   `-- templates
-|   |       |-- index.html
-|   |       |-- login.html
-|   |       `-- search.html
-|   |-- requirements.txt
-|   |-- runtime.txt
-|   |-- schema.sql
-|   |-- tdd.png
-|   |-- test.db
-|   `-- tests
-|       |-- __init__.py
-|       `-- app_test.py
-|-- image.png
-|-- mygcp-creds.json
-|-- terraform.tfstate
-`-- tfplan
+ Refonte-Multi-Cloud-Production-Ready-project/
+├── README.md
+├── docs/
+│   ├── flask-app-0.1.0.tgz
+│   └── index.yaml
+├── flask_app/
+│   ├── Dockerfile
+│   ├── LICENSE
+│   ├── Procfile
+│   ├── README.md
+│   ├── create_db.py
+│   ├── db.py
+│   ├── flaskr-app.png
+│   ├── helm/
+│   │   ├── external-dns/
+│   │   │   └── external-dns-values.yaml
+│   │   └── flask-app/
+│   │       ├── Chart.yaml
+│   │       ├── deploy.sh
+│   │       ├── templates/
+│   │       │   ├── _helpers.tpl
+│   │       │   ├── deployment.yaml
+│   │       │   ├── ingress.yaml
+│   │       │   ├── secret.yaml
+│   │       │   └── service.yaml
+│   │       ├── values.yaml
+│   │       ├── values-aws.yaml
+│   │       └── values-gcp.yaml
+│   ├── k8s/
+│   │   └── aws-auth.yaml
+│   ├── project/
+│   │   ├── app.py
+│   │   ├── models.py
+│   │   ├── static/
+│   │   └── templates/
+│   ├── requirements.txt
+│   ├── runtime.txt
+│   ├── schema.sql
+│   └── tests/
+│       └── app_test.py
+├── image.png
+├── mygcp-creds.json
+├── terraform.tfstate
+└── tfplan
+
 
 
 | Cloud Provider | Infra Tool | Database Service | Kubernetes | Ingress Controller           | Monitoring  |
