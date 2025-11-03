@@ -1,0 +1,72 @@
+name: Build and Push Flask App Image
+
+on:
+     push:
+          branches: ["flask-app"]
+
+permissions:
+     contents: write
+     id-token: write
+
+env:
+     AWS_REGION: us-east-1
+     AWS_ACCOUNT_ID: 123456789012
+     GCP_PROJECT_ID: my-gcp-project
+     IMAGE_NAME: flask-app
+
+jobs:
+     build-and-push:
+          runs-on: ubuntu-latest
+          steps:
+               - name: Checkout Code
+                 uses: actions/checkout@v4
+
+               # ----- AWS ECR Login -----
+               - name: Configure AWS Credentials
+                 uses: aws-actions/configure-aws-credentials@v2
+                 with:
+                      role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubOIDCRole
+                      aws-region: ${{ env.AWS_REGION }}
+
+               - name: Login to AWS ECR
+                 run: |
+                      aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+               # ----- GCP Login -----
+               - name: Authenticate to GCP
+                 uses: google-github-actions/auth@v1
+                 with:
+                      workload_identity_provider: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/GITHUB/providers/gh"
+                      service_account: "github-deployer@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+               - name: Configure Docker for Artifact Registry
+                 run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+               # ----- Build Docker Image -----
+               - name: Build Image
+                 run: |
+                      docker build -t $IMAGE_NAME .
+                      docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+                      docker tag $IMAGE_NAME:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${{ github.sha }}
+
+               # ----- Push Images -----
+               - name: Push Images
+                 run: |
+                      docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
+                      docker push us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${{ github.sha }}
+
+               # ----- Update GitOps Manifests -----
+               - name: Update GitOps Deployment
+                 run: |
+                      git config user.name "GitHub Actions"
+                      git config user.email "actions@github.com"
+
+                      git fetch origin gitop
+                      git checkout gitop
+
+                      # Update the image tag in deployment manifest
+                      sed -i "s|image:.*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}|" k8s/deployment.yaml
+
+                      git add k8s/deployment.yaml
+                      git commit -m "Update image to ${{ github.sha }}"
+                      git push origin gitop
