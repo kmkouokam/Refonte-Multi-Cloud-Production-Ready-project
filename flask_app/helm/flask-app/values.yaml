@@ -1,14 +1,20 @@
 replicaCount: 2
 
 image:
-  repository: kmkouokam/flaskr-tdd
-  tag: "1.0.2"
+  repository: placeholder-repos
+  tag: placeholder-tag
   pullPolicy: IfNotPresent
 
 service:
   type: LoadBalancer
   port: 80
   targetPort: 8080
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 100%  
 
 resources:
   requests:
