@@ -1,0 +1,75 @@
+# for gcp ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flask-app-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "flask-app-ip"
+spec:
+  ingressClassName: gce
+  rules:
+    - host: gcp.flask-app.devopsguru.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flask-app-service   # matches your Service
+                port:
+                  number: 80
+
+
+# for aws ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flask-app-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - host: aws.flask-app.devopsguru.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flask-app-service   # matches your Service
+                port:
+                  number: 80
+
+# {{- if .Values.ingress.enabled }}
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: {{ include "flask-app.fullname" . }}
+#   namespace: {{ .Release.Namespace }}
+#   annotations:
+#     {{- range $key, $value := .Values.ingress.annotations }}
+#     {{ $key }}: {{ $value | quote }}
+#     {{- end }}
+  
+# spec:
+#   ingressClassName: {{ .Values.ingress.ingressClassName }}
+#   rules:
+#     - host: {{ .Values.ingress.host }}
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: {{ include "flask-app.fullname" . }}
+#                 port:
+#                   number: {{ .Values.service.port }}
+
+# {{- end }}
