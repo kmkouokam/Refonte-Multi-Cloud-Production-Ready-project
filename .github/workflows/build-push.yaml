@@ -55,8 +55,8 @@ jobs:
                       docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
                       docker push us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${{ github.sha }}
 
-               # ----- Update GitOps Manifests -----
-               - name: Update GitOps Deployment
+               # ----- Update GitOps Helm Values in gitop -----
+               - name:  Update gitop branch with new image tag
                  run: |
                       git config user.name "GitHub Actions"
                       git config user.email "actions@github.com"
@@ -64,9 +64,15 @@ jobs:
                       git fetch origin gitop
                       git checkout gitop
 
-                      # Update the image tag in deployment manifest
-                      sed -i "s|image:.*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}|" k8s/deployment.yaml
+                      # Clone gitop branch
+                      git clone --branch gitop https://github.com/${{ github.repository }} gitop
+                      cd gitop/flask_app/helm/flask-app
 
+                         # Update Helm values with new image
+                      sed -i "s|image:.*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}|" k8s/deployment.yaml
+                      sed -i "s|tag:.*|tag: $GITHUB_SHA|" values.yaml
+
+                        # Commit and push changes
                       git add k8s/deployment.yaml
                       git commit -m "Update image to ${{ github.sha }}"
                       git push origin gitop
