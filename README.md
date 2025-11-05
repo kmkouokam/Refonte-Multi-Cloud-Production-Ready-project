@@ -47,3 +47,46 @@ This branch (`gitop`) contains the Kubernetes manifests and GitOps configuration
 
 - **Do not commit secrets manually.** Secrets are updated automatically via GitHub Actions from Terraform outputs.
 - Only Kubernetes manifests and configuration files should reside here.
+
+## Visual Flow od my CI/CD + GitOps pipeline for the Flask app:
+
+                ┌──────────────────────┐
+                │    Terraform Apply    │
+                │   (master branch)     │
+                │ - Create EKS/GKE      │
+                │ - Create DBs          │
+                │ - IAM roles & SSM     │
+                └─────────┬────────────┘
+                          │
+          Outputs (DB URLs, creds) exported
+                          │
+                          ▼
+                ┌──────────────────────┐
+                │ GitHub Actions        │
+                │ (flask-app branch)    │
+                │ - Build Docker image  │
+                │ - Push to AWS ECR     │
+                │ - Push to GCP Registry│
+                │ - Update gitop branch │
+                │   manifests w/ new    │
+                │   image & DB URLs     │
+                └─────────┬────────────┘
+                          │
+            Changes pushed to gitop branch (k8s/)
+                          │
+                          ▼
+                ┌──────────────────────┐
+                │      ArgoCD           │
+                │ (gitop branch / k8s/) │
+                │ - Watches gitop       │
+                │ - Auto-sync enabled   │
+                │ - Deploys to EKS/GKE │
+                │ - Blue/Green strategy │
+                └─────────┬────────────┘
+                          │
+                          ▼
+                ┌──────────────────────┐
+                │ Flask App Running     │
+                │ on AWS EKS & GKE     │
+                │ with proper DB creds │
+                └──────────────────────┘
