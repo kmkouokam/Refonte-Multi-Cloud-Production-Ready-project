@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+  labels:
+    app: flask-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+        - name: flask-app
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:abcd1234
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: AWS_DB_HOST
+              value: "aws-db-host-value"
+            - name: AWS_DB_NAME
+              value: "aws-db-name"
+            - name: AWS_DB_USERNAME
+              value: "aws-user"
+            - name: AWS_DB_PASSWORD
+              value: "aws-password"
+            - name: GCP_DB_HOST
+              value: "gcp-db-host-value"
+            - name: GCP_DB_NAME
+              value: "gcp-db-name"
+            - name: GCP_DB_USERNAME
+              value: "gcp-user"
+            - name: GCP_DB_PASSWORD
+              value: "gcp-password"
+            - name: SECRET_KEY
+              value: "supersecret"
+            - name: DB_PROVIDER
+              value: "AWS"
+            - name: FLASK_ENV
+              value: "production"
+          resources:   # ✅ Move resources inside the container
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+ 

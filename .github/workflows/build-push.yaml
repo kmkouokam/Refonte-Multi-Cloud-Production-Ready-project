@@ -9,19 +9,35 @@ permissions:
      id-token: write
 
 env:
-     AWS_REGION: ${ secrets.AWS_REGION }
-     AWS_ACCOUNT_ID: ${ secrets.AWS_ACCOUNT_ID }
-     GCP_PROJECT_ID: ${ secrets.GCP_PROJECT_ID }
+     AWS_REGION: ${{ secrets.AWS_REGION }}
+     AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+     GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
      IMAGE_NAME: flask-app
 
 jobs:
      build-and-push:
           runs-on: ubuntu-latest
           steps:
+               # ---------------------------
+               # Checkout repository
+               # ---------------------------
                - name: Checkout Code
                  uses: actions/checkout@v4
 
-               # ----- AWS ECR Login -----
+               # ---------------------------
+               # Get Terraform outputs
+               # ---------------------------
+               - name: Get Terraform outputs
+                 id: tf
+                 run: |
+                      echo "AWS_DB_URL=$(terraform output -raw aws_db_url)" >> $GITHUB_ENV
+                      echo "AWS_DB_NAME=$(terraform output -raw aws_db_name)" >> $GITHUB_ENV
+                      echo "GCP_DB_URL=$(terraform output -raw gcp_db_url)" >> $GITHUB_ENV
+                      echo "GCP_DB_NAME=$(terraform output -raw gcp_db_name)" >> $GITHUB_ENV
+
+               # ---------------------------
+               # AWS ECR Login
+               # ---------------------------
                - name: Configure AWS Credentials
                  uses: aws-actions/configure-aws-credentials@v2
                  with:
@@ -32,7 +48,9 @@ jobs:
                  run: |
                       aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-               # ----- GCP Login -----
+               # ---------------------------
+               # GCP Login
+               # ---------------------------
                - name: Authenticate to GCP
                  uses: google-github-actions/auth@v1
                  with:
@@ -42,21 +60,27 @@ jobs:
                - name: Configure Docker for Artifact Registry
                  run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-               # ----- Build Docker Image -----
+               # ---------------------------
+               # Build Docker Images
+               # ---------------------------
                - name: Build Image
                  run: |
                       docker build -t $IMAGE_NAME .
                       docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
                       docker tag $IMAGE_NAME:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${{ github.sha }}
 
-               # ----- Push Images -----
+               # ---------------------------
+               # Push Docker Images
+               # ---------------------------
                - name: Push Images
                  run: |
                       docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}
                       docker push us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${{ github.sha }}
 
-               # ----- Update GitOps Helm Values in gitop -----
-               - name:  Update gitop branch with new image tag
+               # ---------------------------
+               # Update GitOps Deployments in gitop
+               # ---------------------------
+               - name: Update gitop branch with new image tag and DB values
                  run: |
                       git config user.name "GitHub Actions"
                       git config user.email "actions@github.com"
@@ -64,15 +88,31 @@ jobs:
                       git fetch origin gitop
                       git checkout gitop
 
-                      # Clone gitop branch
-                      git clone --branch gitop https://github.com/${{ github.repository }} gitop
-                      cd gitop/flask_app/helm/flask-app
+                      # Navigate to gitop manifests
+                      cd gitop/k8s/flask-app
 
-                         # Update Helm values with new image
-                      sed -i "s|image:.*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }}|" k8s/deployment.yaml
-                      sed -i "s|tag:.*|tag: $GITHUB_SHA|" values.yaml
+                      # Replace Docker images
+                      sed -i "s|{{ .Values.image.repository }}:{{ .Values.image.tag }}|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" deployment-aws.yaml
+                      sed -i "s|{{ .Values.image.repository }}:{{ .Values.image.tag }}|us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" deployment-gcp.yaml
 
-                        # Commit and push changes
-                      git add k8s/deployment.yaml
-                      git commit -m "Update image to ${{ github.sha }}"
+                      # Replace AWS DB values
+                      sed -i "s|{{ .Values.db.awsHost }}|$AWS_DB_URL|" deployment-aws.yaml
+                      sed -i "s|{{ .Values.db.awsName }}|$AWS_DB_NAME|" deployment-aws.yaml
+                      sed -i "s|{{ .Values.db.awsUsername }}|$AWS_DB_USERNAME|" deployment-aws.yaml
+                      sed -i "s|{{ .Values.db.awsPassword }}|$AWS_DB_PASSWORD|" deployment-aws.yaml
+
+                      # Replace GCP DB values
+                      sed -i "s|{{ .Values.db.gcpHost }}|$GCP_DB_URL|" deployment-gcp.yaml
+                      sed -i "s|{{ .Values.db.gcpName }}|$GCP_DB_NAME|" deployment-gcp.yaml
+                      sed -i "s|{{ .Values.db.gcpUsername }}|$GCP_DB_USERNAME|" deployment-gcp.yaml
+                      sed -i "s|{{ .Values.db.gcpPassword }}|$GCP_DB_PASSWORD|" deployment-gcp.yaml
+
+                      #Update AWS Secret Key
+                      sed -i "s|aws-database-url|$AWS_DB_URL|" k8s/secret-aws.yaml
+                      #Update GCP Secret Key
+                      sed -i "s|postgresql://gcp-db-host:5432/mydb|$GCP_DB_URL|" k8s/secret-gcp.yaml
+
+                      # Commit & push updated deployments
+                      git add deployment-aws.yaml deployment-gcp.yaml k8s/secret-aws.yaml k8s/secret-gcp.yaml
+                      git commit -m "Update AWS & GCP images, DB URLs, and secrets for $GITHUB_SHA"
                       git push origin gitop

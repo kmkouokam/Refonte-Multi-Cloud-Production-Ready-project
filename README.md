@@ -1,273 +1,139 @@
-# 🌩️ Multicloud Flask App Deployment (AWS & GCP)
+Multi-Cloud Production-Ready Flask App CI/CD Pipeline
 
-This project demonstrates a **multicloud deployment pipeline** using **Terraform**, **Helm**, **Docker**, and **Kubernetes (EKS & GKE)**.  
-It provisions cloud infrastructure, builds and pushes a Flask application container, and deploys it automatically using Helm.
+This repository demonstrates a multi-cloud CI/CD pipeline for deploying a Flask application to AWS EKS and GCP GKE using GitHub Actions, Terraform, and ArgoCD.
 
----
-### 1️⃣ Prerequisites
+It is designed to automate infrastructure provisioning, Docker image builds, secret injection, and deployment, while supporting multi-cloud best practices.
 
-Ensure you have:
-- AWS CLI & GCP SDK configured
-- Docker Desktop running
-- kubectl and Helm installed
-- Terraform initialized in the `master` branch
+Branch Structure
+Branch	Purpose
+master	Terraform infrastructure (VPC, EKS/GKE clusters, DBs, IAM roles, ECR/Artifact Registry)
+flask-app	CI workflow: build & push Docker images, fetch Terraform outputs, update GitOps manifests
+gitOp	GitOps branch: Kubernetes manifests (k8s/) applied by ArgoCD
+1️⃣ Infrastructure Provisioning (master branch)
 
+Push changes to master.
 
-## 🏗️ Branch Overview
+Terraform provisions infrastructure:
 
-- **`master` branch (infra)** → Contains Terraform code for provisioning infrastructure:
-  - AWS: VPC, EKS Cluster, IAM roles, networking, etc.
-  - GCP: VPC, GKE Cluster, IAM configuration, etc.
-  - Common monitoring & security modules (CloudWatch, GCP Logging, WAF, etc.)
-
-- **`flask-app` branch** → Contains:
-  - Flask web application source code
-  - `Dockerfile` for image build
-  - Helm chart for Kubernetes deployment
-  - `deploy.sh` automation script
-
----
-
-## 🚀 Deployment Workflow
-
-1️⃣ Apply Terraform
-
-Deploy your infrastructure (VPC, RDS, etc.) for AWS and GCP:
-
-cd /c/refonte-training/infra
 terraform init
-terraform apply
+terraform plan
+terraform apply -auto-approve
 
 
-This will create all cloud resources.
+Provisioned resources:
 
-2️⃣ Export Terraform outputs
+AWS: VPC, EKS cluster, RDS, IAM roles, ECR repository
 
-Save Terraform outputs to a JSON file (optional, for reference or debugging):
+GCP: VPC, GKE cluster, Cloud SQL, Artifact Registry
 
-terraform output -json > outputs.json
+Terraform outputs required by the app:
 
+aws_db_url
 
-You can inspect this file to see DB endpoints, replica counts, etc.
+gcp_db_url
 
-Example keys: aws_db_host, aws_flask_replicas, gcp_db_host, etc.
+These outputs are used later by the CI/CD workflow to inject database credentials into Kubernetes secrets.
 
-3️⃣ Edit .env
+2️⃣ CI Workflow (flask-app branch)
 
-Update the .env file with your dynamic values:
+Trigger: push to flask-app branch
 
-DB_PROVIDER=BOTH
+Workflow Steps:
 
-# -----------------------
-# AWS Configuration
-# -----------------------
-aws_db_host=""
-aws_db_name=postgresdb
-aws_db_username=postgres
-aws_db_password=""
-aws_ingress_host=""
-aws_db_secret_name=flask-app-db-secret-aws
-aws_flask_replicas=2
+Checkout repository
 
-# -----------------------
-# GCP Configuration
-# -----------------------
-gcp_db_host=""
-gcp_db_name=postgresdb
-gcp_db_username=postgres
-gcp_db_password=""
-gcp_ingress_host=""
-gcp_db_secret_name=flask-app-db-secret-gcp
-gcp_flask_replicas=2
+Fetch Terraform outputs (DB URLs)
+Example:
 
-# -----------------------
-# Flask App Secret
-# -----------------------
-secret_key=myflasksecret
+run: |
+  echo "aws_db_url=$(terraform output -raw aws_db_url)" >> $GITHUB_ENV
+  echo "gcp_db_url=$(terraform output -raw gcp_db_url)" >> $GITHUB_ENV
 
 
+Authenticate to AWS & GCP
 
-4️⃣ Run deploy script
+AWS: OIDC role assumption → login to ECR
 
-Finally, deploy your Flask app to the target cloud(s):
+GCP: Workload identity → login to Artifact Registry
 
-cd /c/refonte-training/flask_app/helm/flask-app
-./deploy.sh
+Build Docker image
 
-### 🧭 Helm Chart Repository
-### Install Helm charts
-helm repo add refonte https://kmkouokam.github.io/Refonte-Multi-Cloud-Production-Ready-project/
-helm repo update
- 
+docker build -t flask-app .
+docker tag flask-app:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/flask-app:${GITHUB_SHA}
+docker tag flask-app:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/flask-app:${GITHUB_SHA}
 
 
-# 1️⃣ Go to your chart directory
-cd flask_app/helm/
+Push Docker images
 
-# 2️⃣ Package the chart
-helm package flask-app
-# => Output: flask-app-0.1.0.tgz
+Update GitOps branch (gitOp)
 
-# 3️⃣ Move the packaged chart to the root of your project
-mv flask-app-0.1.0.tgz ../../
+Update deployment manifests (k8s/deployment.yaml) with new image tag
 
-# 4️⃣ Go to your project root
-cd ../../
+Update secrets (k8s/aws-secret.yaml & k8s/gcp-secret.yaml) with DB URLs
 
-# 5️⃣ Move the package into your GitHub Pages docs folder
-mv flask-app-0.1.0.tgz Refonte-Multi-Cloud-Production-Ready-project/docs/
+Commit and push to gitOp branch
 
-# 6️⃣ Go into the docs directory
-cd Refonte-Multi-Cloud-Production-Ready-project/docs/
+3️⃣ GitOps Deployment (gitOp branch)
 
-# 7️⃣ Generate or update Helm index.yaml
-helm repo index . --url https://kmkouokam.github.io/Refonte-Multi-Cloud-Production-Ready-project/
+ArgoCD Application (flask-app-prod.yaml):
 
-
-### 🗂️ Branch master Structure
-
-Refonte-Multi-Cloud-Production-Ready-project/
-├── README.md
-├── aws_deletion_script/
-│   └── delete_vpc.sh
-├── gcp_delete_script/
-│   └── delete_gcp_vpc.sh
-├── environments/
-│   ├── aws/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── providers.tf
-│   │   ├── terraform.tf
-│   │   ├── terraform-rbac.tf
-│   │   └── outputs.tf
-│   └── gcp/
-│       ├── main.tf
-│       ├── variables.tf
-│       ├── providers.tf
-│       ├── terraform.tf
-│       ├── terraform-rbac.tf
-│       └── outputs.tf
-├── modules/
-│   ├── vpc/
-│   ├── db/
-│   ├── security/
-│   ├── kubernetes/
-│   ├── multi_cloud_vpn/
-│   └── helm/
-├── terraform.tf
-├── outputs.tf
-├── variables.tf
-├── providers.tf
-├── terraform_multicloud_full_guide.md
-└── state-backup.json
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flask-app-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "<your-repo>"
+    targetRevision: gitOp
+    path: k8s/
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
 
 
+ArgoCD watches the gitOp branch.
 
-### 🗂️ Branch flask-app Structure
- Refonte-Multi-Cloud-Production-Ready-project/
-├── README.md
-├── docs/
-│   ├── flask-app-0.1.0.tgz
-│   └── index.yaml
-├── flask_app/
-│   ├── Dockerfile
-│   ├── LICENSE
-│   ├── Procfile
-│   ├── README.md
-│   ├── create_db.py
-│   ├── db.py
-│   ├── flaskr-app.png
-│   ├── helm/
-│   │   ├── external-dns/
-│   │   │   └── external-dns-values.yaml
-│   │   └── flask-app/
-│   │       ├── Chart.yaml
-│   │       ├── deploy.sh
-│   │       ├── templates/
-│   │       │   ├── _helpers.tpl
-│   │       │   ├── deployment.yaml
-│   │       │   ├── ingress.yaml
-│   │       │   ├── secret.yaml
-│   │       │   └── service.yaml
-│   │       ├── values.yaml
-│   │       ├── values-aws.yaml
-│   │       └── values-gcp.yaml
-│   ├── k8s/
-│   │   └── aws-auth.yaml
-│   ├── project/
-│   │   ├── app.py
-│   │   ├── models.py
-│   │   ├── static/
-│   │   └── templates/
-│   ├── requirements.txt
-│   ├── runtime.txt
-│   ├── schema.sql
-│   └── tests/
-│       └── app_test.py
-├── image.png
-├── mygcp-creds.json
-├── terraform.tfstate
-└── tfplan
+Automatically applies updated deployment and secrets.
+
+Prunes removed resources and self-heals any drift.
+
+4️⃣ Multi-Cloud Deployment
+
+AWS EKS and GCP GKE deploy the Flask app.
+
+Environment-specific secrets are injected automatically.
+
+Docker images are consistent across both clouds.
+
+ArgoCD ensures clusters remain in sync with the GitOps branch.
+
+5️⃣ Optional: Blue-Green Deployment
+
+Maintain two deployments: deployment-blue.yaml & deployment-green.yaml.
+
+Workflow switches active deployment by updating the manifests.
+
+ArgoCD auto-sync deploys the new active version without downtime.
+
+6️⃣ Pipeline Overview
+GitHub Actions (flask-app branch)
+ ├─ Build Docker images → Push to AWS ECR & GCP Artifact Registry
+ ├─ Fetch Terraform outputs → Update k8s/aws-secret.yaml & k8s/gcp-secret.yaml
+ └─ Commit updated manifests → gitOp branch
+
+gitOp branch (GitOps)
+ └─ ArgoCD auto-sync → EKS & GKE clusters
+      ├─ Apply deployment.yaml
+      ├─ Apply secrets
+      └─ Self-heal & prune resources
 
 
-
-| Cloud Provider | Infra Tool | Database Service | Kubernetes | Ingress Controller           | Monitoring  |
-| -------------- | ---------- | ---------------- | ---------- | ---------------------------- | ----------- |
-| **AWS**        | Terraform  | Amazon RDS       | EKS        | AWS Load Balancer Controller | CloudWatch  |
-| **GCP**        | Terraform  | Cloud SQL        | GKE        | GCP Ingress                  | Stackdriver |
-
-### 🧠 Notes & Best Practices
-
-Each Helm chart is versioned via Chart.yaml
-
-Terraform outputs feed directly into .env for dynamic configuration
-
-Compatible with CI/CD pipelines (GitHub Actions, Jenkins, GitLab CI)
-
-Hosted Helm repo powered by GitHub Pages
-
-Supports multi-environment (dev, prod) deployments
-
- 
-
- 
-
- 
-
-![Flowchart](https://files.oaiusercontent.com/file-000000002ea4620986dce9dfa1606681/A_flowchart_in_the_digital_image_illustrates_a_mul.png)
-
----
-
-## ✅ Cleanup
-
-To delete the Helm app and free resources:
-
-```bash
-helm uninstall flask-app-default -n default
-```
-
-Then destroy the infrastructure (from `master` branch):
-
-```bash
-terraform destroy -auto-approve
-```
-
----
-
-## 🧩 Tech Stack
-
-- **Terraform** — Infrastructure as Code (IaC)
-- **AWS EKS / GCP GKE** — Kubernetes clusters
-- **Docker** — Containerization
-- **Helm** — App deployment and configuration
-- **Flask** — Python web application
-- **CloudWatch / GCP Logging** — Monitoring and observability
-
----
-
-## 👩🏽‍💻 Author
-
-**Ernestine Désirée Motouom**  
-[LinkedIn Profile](https://www.linkedin.com/in/ernestine-desiree-motouom-601716269/)
-
----
+This README shows the full end-to-end CI/CD flow for deploying a Flask application in a multi-cloud production-ready environment. 

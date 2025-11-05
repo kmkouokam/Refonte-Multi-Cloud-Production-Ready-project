@@ -8,10 +8,7 @@ spec:
   source:
     repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
     targetRevision: gitop
-    path: flask_app/helm/flask-app
-    helm:
-      valueFiles:
-        - values.yaml
+    path: k8s/
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -19,3 +16,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
+  syncOptions:
+      - CreateNamespace=true    
