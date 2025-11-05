@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:abcd1234
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:${GITHUB_SHA}
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image:  image: us-central1-docker.pkg.dev/<PROJECT_ID>/my-repo/flask-app:abcd1234
+          image: us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/flask-app:${GITHUB_SHA}
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

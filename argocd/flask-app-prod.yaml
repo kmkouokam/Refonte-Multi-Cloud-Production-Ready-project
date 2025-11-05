@@ -1,20 +1,54 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: Rollout
 metadata:
-  name: flask-app-prod
-  namespace: argocd
+  name: flask-app
 spec:
-  project: default
-  source:
-    repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
-    targetRevision: gitop
-    path: k8s/
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: default
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-  syncOptions:
-      - CreateNamespace=true    
+  replicas: 2
+  strategy:
+    blueGreen:
+      activeService: flask-app-active
+      previewService: flask-app-preview
+      autoPromotionEnabled: true
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+        # AWS container
+        - name: flask-app
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:abcd1234
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: flask-app-env-aws
+
+        # GCP container
+        - name: flask-app-gcp
+          image: us-central1-docker.pkg.dev/my-gcp-project/my-repo/flask-app:abcd1234
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: flask-app-env-gcp
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: flask-app-prod
+#   namespace: argocd
+# spec:
+#   project: default
+#   source:
+#     repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
+#     targetRevision: gitop
+#     path: k8s/
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: default
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#   syncOptions:
+#       - CreateNamespace=true
