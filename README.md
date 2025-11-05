@@ -48,7 +48,7 @@ This branch (`gitop`) contains the Kubernetes manifests and GitOps configuration
 - **Do not commit secrets manually.** Secrets are updated automatically via GitHub Actions from Terraform outputs.
 - Only Kubernetes manifests and configuration files should reside here.
 
-## Visual Flow od my CI/CD + GitOps pipeline for the Flask app:
+## Visual Flow of my CI/CD + GitOps pipeline for the Flask app:
 
                 ┌──────────────────────┐
                 │    Terraform Apply    │
