@@ -1,139 +1,49 @@
-Multi-Cloud Production-Ready Flask App CI/CD Pipeline
+# GitOps Deployment - Flask App
 
-This repository demonstrates a multi-cloud CI/CD pipeline for deploying a Flask application to AWS EKS and GCP GKE using GitHub Actions, Terraform, and ArgoCD.
+This branch (`gitop`) contains the Kubernetes manifests and GitOps configuration for deploying the Flask application to **AWS EKS** and **GCP GKE** using **ArgoCD**.
 
-It is designed to automate infrastructure provisioning, Docker image builds, secret injection, and deployment, while supporting multi-cloud best practices.
+## Overview
 
-Branch Structure
-Branch	Purpose
-master	Terraform infrastructure (VPC, EKS/GKE clusters, DBs, IAM roles, ECR/Artifact Registry)
-flask-app	CI workflow: build & push Docker images, fetch Terraform outputs, update GitOps manifests
-gitOp	GitOps branch: Kubernetes manifests (k8s/) applied by ArgoCD
-1️⃣ Infrastructure Provisioning (master branch)
+- **Branch purpose:**  
+  The `gitop` branch is solely responsible for **deployment manifests and environment configuration**. It is updated automatically by GitHub Actions whenever a new Docker image is built or environment variables (like DB URLs) change.
 
-Push changes to master.
+- **Deployment strategy:**  
+  - AWS and GCP have separate deployment manifests: `deployment-aws.yaml` and `deployment-gcp.yaml`.
+  - Secrets are managed separately: `secret-aws.yaml` and `secret-gcp.yaml`.
+  - ArgoCD watches this branch and automatically syncs updates to the clusters.
 
-Terraform provisions infrastructure:
+- **Docker images:**  
+  - AWS ECR: `123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:<git-sha>`  
+  - GCP Artifact Registry: `us-central1-docker.pkg.dev/<GCP_PROJECT_ID>/my-repo/flask-app:<git-sha>`
 
-terraform init
-terraform plan
-terraform apply -auto-approve
+## Folder Structure
 
+ 
+- **`deployment-aws.yaml`**: Deployment manifest for AWS EKS  
+- **`deployment-gcp.yaml`**: Deployment manifest for GCP GKE  
+- **`secret-aws.yaml`**: Secrets for AWS RDS  
+- **`secret-gcp.yaml`**: Secrets for GCP Cloud SQL  
 
-Provisioned resources:
+## How It Works
 
-AWS: VPC, EKS cluster, RDS, IAM roles, ECR repository
+1. **CI/CD pipeline** (GitHub Actions on `flask-app` branch):
+   - Builds Docker images for AWS and GCP.
+   - Pushes images to AWS ECR and GCP Artifact Registry.
+   - Updates this `gitop` branch with new image tags and DB URLs.
 
-GCP: VPC, GKE cluster, Cloud SQL, Artifact Registry
+2. **ArgoCD**:
+   - Watches the `gitop` branch.
+   - Automatically deploys or updates the Flask app in the respective clusters.
+   - Handles blue-green deployments and self-healing.
 
-Terraform outputs required by the app:
+## Useful Links
 
-aws_db_url
+- [GitHub Repository](https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project/tree/gitop)  
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/en/stable/)  
+- [AWS ECR Documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html)  
+- [GCP Artifact Registry](https://cloud.google.com/artifact-registry/docs)
 
-gcp_db_url
+## Notes
 
-These outputs are used later by the CI/CD workflow to inject database credentials into Kubernetes secrets.
-
-2️⃣ CI Workflow (flask-app branch)
-
-Trigger: push to flask-app branch
-
-Workflow Steps:
-
-Checkout repository
-
-Fetch Terraform outputs (DB URLs)
-Example:
-
-run: |
-  echo "aws_db_url=$(terraform output -raw aws_db_url)" >> $GITHUB_ENV
-  echo "gcp_db_url=$(terraform output -raw gcp_db_url)" >> $GITHUB_ENV
-
-
-Authenticate to AWS & GCP
-
-AWS: OIDC role assumption → login to ECR
-
-GCP: Workload identity → login to Artifact Registry
-
-Build Docker image
-
-docker build -t flask-app .
-docker tag flask-app:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/flask-app:${GITHUB_SHA}
-docker tag flask-app:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/flask-app:${GITHUB_SHA}
-
-
-Push Docker images
-
-Update GitOps branch (gitOp)
-
-Update deployment manifests (k8s/deployment.yaml) with new image tag
-
-Update secrets (k8s/aws-secret.yaml & k8s/gcp-secret.yaml) with DB URLs
-
-Commit and push to gitOp branch
-
-3️⃣ GitOps Deployment (gitOp branch)
-
-ArgoCD Application (flask-app-prod.yaml):
-
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: flask-app-prod
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: "<your-repo>"
-    targetRevision: gitOp
-    path: k8s/
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: default
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-
-
-ArgoCD watches the gitOp branch.
-
-Automatically applies updated deployment and secrets.
-
-Prunes removed resources and self-heals any drift.
-
-4️⃣ Multi-Cloud Deployment
-
-AWS EKS and GCP GKE deploy the Flask app.
-
-Environment-specific secrets are injected automatically.
-
-Docker images are consistent across both clouds.
-
-ArgoCD ensures clusters remain in sync with the GitOps branch.
-
-5️⃣ Optional: Blue-Green Deployment
-
-Maintain two deployments: deployment-blue.yaml & deployment-green.yaml.
-
-Workflow switches active deployment by updating the manifests.
-
-ArgoCD auto-sync deploys the new active version without downtime.
-
-6️⃣ Pipeline Overview
-GitHub Actions (flask-app branch)
- ├─ Build Docker images → Push to AWS ECR & GCP Artifact Registry
- ├─ Fetch Terraform outputs → Update k8s/aws-secret.yaml & k8s/gcp-secret.yaml
- └─ Commit updated manifests → gitOp branch
-
-gitOp branch (GitOps)
- └─ ArgoCD auto-sync → EKS & GKE clusters
-      ├─ Apply deployment.yaml
-      ├─ Apply secrets
-      └─ Self-heal & prune resources
-
-
-This README shows the full end-to-end CI/CD flow for deploying a Flask application in a multi-cloud production-ready environment. 
+- **Do not commit secrets manually.** Secrets are updated automatically via GitHub Actions from Terraform outputs.
+- Only Kubernetes manifests and configuration files should reside here.
