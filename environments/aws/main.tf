@@ -9,6 +9,37 @@ locals {
   db_name     = var.db_name != "" ? var.db_name : "flaskdb"
 }
 
+
+resource "aws_iam_role" "github_actions_role" {
+  name = "GitHubActionsRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = "arn:aws:iam::435329769674:oidc-provider/token.actions.githubusercontent.com"
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:kmkouokam/Refonte-Multi-Cloud-Production-Ready-project:*"
+          }
+           StringEquals = {
+            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecr_push_policy" {
+  role       = aws_iam_role.github_actions_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+}
+
+
 # Lookup the Flask app service created by Helm on AWS
 # data "kubernetes_service" "flask_app_aws" {
 #   provider = kubernetes.aws
