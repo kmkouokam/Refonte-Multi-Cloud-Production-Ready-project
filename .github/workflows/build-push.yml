@@ -1,99 +1,79 @@
 name: Build and Push Flask App Image
 
 on:
-     push:
-          branches: ["flask-app"]
+  push:
+    branches: ["flask-app"]
 
 permissions:
-     contents: write
-     id-token: write
+  contents: write
+  id-token: write
 
 env:
-     AWS_REGION: ${{ secrets.AWS_REGION }}
-     AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-     GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-     IMAGE_NAME: flask-app
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  IMAGE_NAME: flask-app
 
 jobs:
-     build-and-push:
-          runs-on: ubuntu-latest
-          steps:
-               # 1️⃣ Checkout code
-               - name: Checkout Code
-                 uses: actions/checkout@v4
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-               # 2️⃣ Get Terraform outputs for DB URLs
-               - name: Get Terraform outputs
-                 id: tf
-                 run: |
-                      echo "AWS_DB_URL=$(terraform output -raw aws_db_url)" >> $GITHUB_ENV
-                      echo "AWS_DB_NAME=$(terraform output -raw aws_db_name)" >> $GITHUB_ENV
-                      echo "GCP_DB_URL=$(terraform output -raw gcp_db_url)" >> $GITHUB_ENV
-                      echo "GCP_DB_NAME=$(terraform output -raw gcp_db_name)" >> $GITHUB_ENV
+      # 2️⃣ AWS ECR login
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubOIDCRole
+          aws-region: ${{ env.AWS_REGION }}
 
-               # 3️⃣ AWS ECR login
-               - name: Configure AWS Credentials
-                 uses: aws-actions/configure-aws-credentials@v2
-                 with:
-                      role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubOIDCRole
-                      aws-region: ${{ env.AWS_REGION }}
+      - name: Login to AWS ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-               - name: Login to AWS ECR
-                 run: |
-                      aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      # 3️⃣ GCP login
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/GITHUB/providers/gh"
+          service_account: "github-deployer@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
 
-               # 4️⃣ GCP login
-               - name: Authenticate to GCP
-                 uses: google-github-actions/auth@v1
-                 with:
-                      workload_identity_provider: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/GITHUB/providers/gh"
-                      service_account: "github-deployer@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-               - name: Configure Docker for Artifact Registry
-                 run: gcloud auth configure-docker us-central1-docker.pkg.dev
+      # 4️⃣ Build Docker images
+      - name: Build Docker Images
+        run: |
+          docker build -t $IMAGE_NAME .
+          docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
+          docker tag $IMAGE_NAME:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
-               # 5️⃣ Build and tag Docker images
-               - name: Build Docker Image
-                 run: |
-                      docker build -t $IMAGE_NAME .
-                      docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
-                      docker tag $IMAGE_NAME:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
+      # 5️⃣ Push Docker images
+      - name: Push Docker Images
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
+          docker push us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
-               # 6️⃣ Push Docker images
-               - name: Push Docker Images
-                 run: |
-                      docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
-                      docker push us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
+      # 6️⃣ Update Rollout manifests in gitop branch
+      - name: Update gitop branch with new images
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
 
-               # 7️⃣ Update gitop branch deployments
-               - name: Update gitop branch with new images and DB URLs
-                 run: |
-                      git config user.name "GitHub Actions"
-                      git config user.email "actions@github.com"
+          # Clone gitop branch
+          git clone --branch gitop https://github.com/${{ github.repository }} gitop
+          cd gitop/k8s/flask-app
 
-                      # Clone gitop branch
-                      git clone --branch gitop https://github.com/${{ github.repository }} gitop
-                      cd gitop/k8s/flask-app
+          # Update AWS Rollout image
+          sed -i "s|image: .*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-aws-rollout.yaml
 
-                      # Replace Docker image for AWS
-                      sed -i "s|{{ .Values.image.repository }}:{{ .Values.image.tag }}|$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" deployment-aws.yaml
+          # Update GCP Rollout image
+          sed -i "s|image: .*|image: us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
 
-                      # Replace AWS DB values
-                      sed -i "s|{{ .Values.db.awsHost }}|$AWS_DB_URL|" deployment-aws.yaml
-                      sed -i "s|{{ .Values.db.awsName }}|$AWS_DB_NAME|" deployment-aws.yaml
-                      sed -i "s|{{ .Values.db.awsUsername }}|$AWS_DB_USERNAME|" deployment-aws.yaml
-                      sed -i "s|{{ .Values.db.awsPassword }}|$AWS_DB_PASSWORD|" deployment-aws.yaml
-
-                      # Replace Docker image for GCP
-                      sed -i "s|{{ .Values.image.repository }}:{{ .Values.image.tag }}|us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" deployment-gcp.yaml
-
-                      # Replace GCP DB values
-                      sed -i "s|{{ .Values.db.gcpHost }}|$GCP_DB_URL|" deployment-gcp.yaml
-                      sed -i "s|{{ .Values.db.gcpName }}|$GCP_DB_NAME|" deployment-gcp.yaml
-                      sed -i "s|{{ .Values.db.gcpUsername }}|$GCP_DB_USERNAME|" deployment-gcp.yaml
-                      sed -i "s|{{ .Values.db.gcpPassword }}|$GCP_DB_PASSWORD|" deployment-gcp.yaml
-
-                      # Commit & push updates
-                      git add deployment-aws.yaml deployment-gcp.yaml
-                      git commit -m "Update AWS & GCP images and DB values for $GITHUB_SHA"
-                      git push origin gitop
+          # Commit & push changes
+          git add flask-app-aws-rollout.yaml flask-app-gcp-rollout.yaml
+          git commit -m "Update Rollout images for $GITHUB_SHA"
+          git push origin gitop
+ 
