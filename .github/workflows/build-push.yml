@@ -76,4 +76,5 @@ jobs:
           git add flask-app-aws-rollout.yaml flask-app-gcp-rollout.yaml
           git commit -m "Update Rollout images for $GITHUB_SHA"
           git push origin gitop
- 
+
+           ####
