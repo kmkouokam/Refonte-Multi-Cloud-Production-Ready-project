@@ -1,21 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
-  name: flask-app-prod
+  name: flask-app-multicluster
   namespace: argocd
 spec:
-  project: default
-  source:
-    repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
-    targetRevision: gitop
-    path: k8s/
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: default
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-  syncOptions:
-    - CreateNamespace=true
- --
+  generators:
+    - clusters: {}
+  template:
+    metadata:
+      name: flask-app-{{name}}
+    spec:
+      project: default
+      source:
+        repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
+        targetRevision: gitop
+        path: k8s/
+      destination:
+        server: "{{server}}"
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+ 
