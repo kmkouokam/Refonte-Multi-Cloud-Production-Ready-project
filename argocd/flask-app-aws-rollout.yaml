@@ -1,23 +1,26 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  name: flask-app
-  labels:
-    app: flask-app
+  name: flask-app-aws
+  namespace: default
 spec:
   replicas: 2
+  strategy:
+    blueGreen:
+      activeService: flask-app-aws-active
+      previewService: flask-app-aws-preview
+      autoPromotionEnabled: true
   selector:
     matchLabels:
-      app: flask-app
+      app: flask-app-aws
   template:
     metadata:
       labels:
-        app: flask-app
+        app: flask-app-aws
     spec:
       containers:
         - name: flask-app
           image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:${GITHUB_SHA}
-          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
@@ -30,4 +33,3 @@ spec:
             limits:
               cpu: 500m
               memory: 1Gi
- 

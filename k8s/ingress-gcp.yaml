@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flask-app-ingress-gcp
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "flask-app-ip"
+spec:
+  ingressClassName: gce
+  rules:
+    - host: gcp.flask-app.devopsguru.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flask-app-gcp-active
+                port:
+                  number: 80
