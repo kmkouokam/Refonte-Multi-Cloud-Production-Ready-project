@@ -1,0 +1,52 @@
+{
+  "aws_db_host": {
+    "sensitive": false,
+    "type": "string",
+    "value": "terraform-20251030125050781500000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com"
+  },
+  "aws_db_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "postgresdb"
+  },
+  "aws_db_password": {
+    "sensitive": true,
+    "type": "string",
+    "value": "0IE!6xPq\u0026?OnkP6v"
+  },
+  "aws_db_username": {
+    "sensitive": true,
+    "type": "string",
+    "value": "postgres"
+  },
+  "aws_flask_replicas": {
+    "sensitive": false,
+    "type": "number",
+    "value": 2
+  },
+  "gcp_db_host": {
+    "sensitive": false,
+    "type": "string",
+    "value": "173.255.117.26"
+  },
+  "gcp_db_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "postgresdb"
+  },
+  "gcp_db_password": {
+    "sensitive": true,
+    "type": "string",
+    "value": "bXrMw+Bqt*S6FdGM"
+  },
+  "gcp_db_username": {
+    "sensitive": true,
+    "type": "string",
+    "value": "postgres"
+  },
+  "gcp_flask_replicas": {
+    "sensitive": false,
+    "type": "number",
+    "value": 2
+  }
+}
