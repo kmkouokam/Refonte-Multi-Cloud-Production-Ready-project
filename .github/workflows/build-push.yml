@@ -17,23 +17,25 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2️⃣ AWS ECR login
+      # 2️⃣ Configure AWS credentials and login to ECR
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubOIDCRole
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to AWS ECR
         run: |
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-      # 3️⃣ GCP login
+      # 3️⃣ Authenticate to GCP
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
         with:
@@ -77,4 +79,28 @@ jobs:
           git commit -m "Update Rollout images for $GITHUB_SHA"
           git push origin gitop
 
-           ####
+      # 7️⃣ Notify on completion
+      - name: Notify on workflow completion
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ job.status }}"
+          COMMIT=$GITHUB_SHA
+          REPO=$GITHUB_REPOSITORY
+
+          # 1️⃣ Console log
+          if [ "$STATUS" == "success" ]; then
+            echo "✅ Build & push succeeded for $COMMIT"
+          else
+            echo "❌ Build & push failed for $COMMIT"
+          fi
+
+          # 2️⃣ Slack notification
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"Build & push workflow completed: *$STATUS* for commit $COMMIT in repo $REPO\"}" \
+            $SLACK_WEBHOOK_URL
+
+          # 3️⃣ Email notification (if SMTP configured)
+          echo -e "Subject: Build & Push Status - $STATUS\n\nThe workflow for commit $COMMIT in repo $REPO has finished with status: $STATUS." \
+            | sendmail -v team@example.com
