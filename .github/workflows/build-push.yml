@@ -101,6 +101,6 @@ jobs:
             --data "{\"text\":\"Build & push workflow completed: *$STATUS* for commit $COMMIT in repo $REPO\"}" \
             $SLACK_WEBHOOK_URL
 
-          # 3️⃣ Email notification (if SMTP configured)
-          echo -e "Subject: Build & Push Status - $STATUS\n\nThe workflow for commit $COMMIT in repo $REPO has finished with status: $STATUS." \
-            | sendmail -v team@example.com
+          # # 3️⃣ Email notification (if SMTP configured)
+          # echo -e "Subject: Build & Push Status - $STATUS\n\nThe workflow for commit $COMMIT in repo $REPO has finished with status: $STATUS." \
+          #   | sendmail -v team@example.com
