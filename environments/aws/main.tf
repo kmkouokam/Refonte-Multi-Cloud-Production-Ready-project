@@ -26,13 +26,15 @@ resource "aws_iam_role" "github_actions_role" {
           StringLike = {
             "token.actions.githubusercontent.com:sub" = "repo:kmkouokam/Refonte-Multi-Cloud-Production-Ready-project:*"
           }
-           StringEquals = {
-            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
         }
       }
     ]
   })
 }
+ 
 
 resource "aws_iam_role_policy_attachment" "ecr_push_policy" {
   role       = aws_iam_role.github_actions_role.name
