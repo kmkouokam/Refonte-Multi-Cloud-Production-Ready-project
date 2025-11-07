@@ -18,15 +18,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY flask_app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir gunicorn==21.2.0
 
 # Copy all project files
-COPY . .
+COPY flask_app/ .
 
 # Expose port
-EXPOSE ${PORT}
+EXPOSE 8080
 
  
  
