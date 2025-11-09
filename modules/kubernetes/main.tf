@@ -187,11 +187,15 @@ resource "aws_eks_node_group" "aws_node_group" {
 ###############
 #GCP GKE Setup
 ###############
+ # Generate a short random suffix (4 hex chars)
+ 
+
+ 
 
 
 resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
-  account_id   = "${var.cluster_name}-gke-sa"
+  account_id   = "${replace(var.cluster_name, "_", "-")}-gke-sa-${random_id.suffix.hex}"
   display_name = "GKE Service Account"
 
 }

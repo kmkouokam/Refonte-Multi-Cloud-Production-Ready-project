@@ -4,6 +4,17 @@ variable "gcp_region" {
   default     = "us-central1"
 }
 
+variable "gcp_service_account_email" {
+  description = "The email of the GKE service account from the Kubernetes module"
+  type        = string
+}
+
+variable "gcp_service_account_name" {
+  description = "The name of the GKE service account from the Kubernetes module"
+  type        = string
+}
+
+
 variable "availability_zones" {
   description = "List of availability zones for AWS"
   type        = list(string)
@@ -76,11 +87,11 @@ variable "kms_key_name" {
   default     = "refonte-multicloud-kms-key"
 }
 
-variable "gcp_service_account_email" {
-  description = "GCP service account email for IAM bindings"
-  type        = string
-  default     = "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
-}
+# variable "gcp_service_account_email" {
+#   description = "GCP service account email for IAM bindings"
+#   type        = string
+#   default     = "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
+# }
 
 
 variable "db_name" {

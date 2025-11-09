@@ -41,6 +41,18 @@ variable "vpn_shared_secret" {
 
 }
 
+variable "cluster_name" {
+  description = "Kubernetes cluster name"
+  type        = string
+  default     = "multi-cloud-cluster"
+}
+
+variable "cloud_provider" {
+  description = "Cloud provider to use (aws or gcp)"
+  type        = string
+  default     = "gcp"
+}
+
 variable "gcp_network_name" {
   description = "GCP VPC Network name (only for GCP)"
   type        = string

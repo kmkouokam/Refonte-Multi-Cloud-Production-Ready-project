@@ -11,6 +11,17 @@ output "gke_ca_certificate" {
   value       = local.is_gcp ? google_container_cluster.gcp_cluster[0].master_auth[0].cluster_ca_certificate : null
 }
 
+output "gcp_service_account_email" {
+  value       = length(google_service_account.gke_sa) > 0 ? google_service_account.gke_sa[0].email : null
+  description = "The email of the GKE service account for IAM bindings"
+}
+
+output "gke_service_account_name" {
+  value       = length(google_service_account.gke_sa) > 0 ? google_service_account.gke_sa[0].name : null
+  description = "The full name of the GKE service account"
+}
+
+
 # -------------------------
 # AWS outputs
 # -------------------------

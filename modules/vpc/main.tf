@@ -246,6 +246,11 @@ resource "google_compute_router" "main" {
   network    = google_compute_network.vpc_network[0].name
   depends_on = [google_compute_network.vpc_network]
 
+  timeouts {
+    update = "5m"
+    delete = "5m"  # Wait for vpn to deleted
+  }
+
 }
 
 resource "google_compute_address" "nat_ip" {

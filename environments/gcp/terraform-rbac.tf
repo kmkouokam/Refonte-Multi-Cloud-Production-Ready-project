@@ -3,22 +3,22 @@
 ###############################################
 
 # Service Account for Terraform
-resource "google_service_account" "terraform" {
-  account_id   = "${var.project}-${var.env}-tf-sa"
-  display_name = "Terraform GKE admin SA"
-}
+# resource "google_service_account" "terraform" {
+#   account_id   = "${var.project}-${var.env}-tf-sa"
+#   display_name = "Terraform GKE admin SA"
+# }
 
 # Assign IAM roles (minimum: container.admin, adjust as needed)
 resource "google_project_iam_member" "sa_container_admin" {
   project = var.gcp_project_id
   role    = "roles/container.admin"
-  member  = "serviceAccount:${google_service_account.terraform.email}"
+  member  = "serviceAccount:${var.gcp_service_account_email}"
 }
 
 resource "google_project_iam_member" "sa_storage_admin" {
   project = var.gcp_project_id
   role    = "roles/storage.admin"
-  member  = "serviceAccount:${google_service_account.terraform.email}"
+  member  = "serviceAccount:${var.gcp_service_account_email}"
 }
 
 
@@ -40,7 +40,7 @@ resource "kubernetes_cluster_role_binding" "terraform_admin" {
 
   subject {
     kind      = "User"
-    name      = google_service_account.terraform.email
+    name      = var.gcp_service_account_email
     api_group = "rbac.authorization.k8s.io"
   }
 

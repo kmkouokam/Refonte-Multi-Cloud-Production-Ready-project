@@ -1,4 +1,16 @@
 
+locals {
+  is_gcp = var.cloud_provider == "gcp"
+}
+
+module "k8s" {
+  count              = local.is_gcp ? 1 : 0
+  source = "./modules/kubernetes"
+  cloud_provider = "gcp"
+  cluster_name   = var.cluster_name
+  gcp_region     = var.gcp_region
+  gcp_project_id = var.gcp_project_id
+}
 
 
 module "gcp_env" {
@@ -11,6 +23,8 @@ module "gcp_env" {
   gcp_region           = var.gcp_region
   gcp_project_id       = var.gcp_project_id
   gcp_credentials_file = var.gcp_credentials_file
+  gcp_service_account_email =  module.k8s[0].gcp_service_account_email
+  gcp_service_account_name = module.k8s[0].gke_service_account_name
 
 
 }
