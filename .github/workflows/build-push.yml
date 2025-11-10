@@ -73,7 +73,7 @@ jobs:
           sed -i "s|image: .*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-aws-rollout.yaml
 
           # Update GCP Rollout image
-          sed -i "s|image: .*|image: us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
+          sed -i "s|image: .*|image: europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
 
           # Commit & push changes
           git add flask-app-aws-rollout.yaml flask-app-gcp-rollout.yaml
