@@ -13,6 +13,7 @@ env:
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   IMAGE_NAME: flask-app
+  GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
 
 jobs:
   build-and-push:
@@ -39,7 +40,7 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
         with:
-          workload_identity_provider: "projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/GITHUB/providers/gh"
+          workload_identity_provider: "projects/${{ env.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/GITHUB/providers/gh"
           service_account: "github-deployer@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
 
       - name: Configure Docker for Artifact Registry
