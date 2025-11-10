@@ -44,14 +44,14 @@ jobs:
           service_account: "github-deployer@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
 
       # 4️⃣ Build Docker images
       - name: Build Docker Images
         run: |
           docker build -t $IMAGE_NAME  -f flask_app/Dockerfile .
           docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
-          docker tag $IMAGE_NAME:latest us-central1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
+          docker tag $IMAGE_NAME:latest europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
       # 5️⃣ Push Docker images
       - name: Push Docker Images
