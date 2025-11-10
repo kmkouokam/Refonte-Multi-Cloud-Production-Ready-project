@@ -40,7 +40,7 @@ variable "name_suffix" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west1"
 
 }
 
@@ -70,7 +70,7 @@ variable "db_endpoint" {
   default     = null
 }
 
- 
+
 
 
 variable "aws_region" {

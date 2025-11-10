@@ -26,7 +26,7 @@ variable "availability_zones" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west1"
 
 }
 
