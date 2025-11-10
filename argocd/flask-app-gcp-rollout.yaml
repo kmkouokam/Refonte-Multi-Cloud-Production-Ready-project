@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: us-central1-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/flask-app:${GITHUB_SHA}
+          image: europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/flask-app:${GITHUB_SHA}
           ports:
             - containerPort: 8080
           envFrom:
