@@ -104,3 +104,8 @@ jobs:
           # # 3️⃣ Email notification (if SMTP configured)
           # echo -e "Subject: Build & Push Status - $STATUS\n\nThe workflow for commit $COMMIT in repo $REPO has finished with status: $STATUS." \
           #   | sendmail -v team@example.com
+
+
+
+
+          # End of file .github/workflows/build-push.yml
