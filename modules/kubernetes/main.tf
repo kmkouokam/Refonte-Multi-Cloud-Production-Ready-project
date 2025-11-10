@@ -6,7 +6,7 @@ locals {
 }
 
 resource "random_id" "suffix" {
-  byte_length = 2
+  byte_length = 6
 }
 
 ################
@@ -187,15 +187,15 @@ resource "aws_eks_node_group" "aws_node_group" {
 ###############
 #GCP GKE Setup
 ###############
- # Generate a short random suffix (4 hex chars)
- 
+# Generate a short random suffix (4 hex chars)
 
- 
+
+
 
 
 resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
-  account_id   = "${replace(var.cluster_name, "_", "-")}-gke-sa-${random_id.suffix.hex}"
+  account_id   = substr("${replace(var.cluster_name, "_", "-")}-gke-sa-${random_id.suffix.hex}", 0, 30)
   display_name = "GKE Service Account"
 
 }
@@ -220,7 +220,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
 
 resource "google_container_cluster" "gcp_cluster" {
   count      = local.is_gcp ? 1 : 0
-  name       = var.cluster_name
+  name       = substr("${replace(var.cluster_name, "_", "-")}-${random_id.suffix.hex}", 0, 30)
   location   = var.gcp_region
   network    = var.gcp_network
   subnetwork = var.gcp_subnetwork
@@ -244,32 +244,6 @@ resource "google_container_cluster" "gcp_cluster" {
 
   ip_allocation_policy {}
 
-
-
-  # ip_allocation_policy {
-  #   # Auto IPAM mode 
-  #   cluster_secondary_range_name  = null
-  #   services_secondary_range_name = null
-  #   auto_ipam_config {
-  #     enabled = true
-  #   }
-  #   additional_ip_ranges_config {
-  #     subnetwork           = var.gcp_private_subnet_name
-  #     pod_ipv4_range_names = ["pods"]
-
-
-  #   }
-  #   additional_pod_ranges_config {
-  #     pod_range_names = ["pods"]
-  #   }
-  # }
-
-  # master_auth {
-  #   client_certificate_config {
-  #     issue_client_certificate = false
-  #   }
-  # }
-
   private_cluster_config {
     enable_private_nodes    = true
     master_ipv4_cidr_block  = "172.16.0.0/28"
@@ -285,7 +259,7 @@ resource "google_container_cluster" "gcp_cluster" {
 
 resource "google_container_node_pool" "primary_nodes" {
   count    = local.is_gcp ? 1 : 0
-  name     = "${var.cluster_name}${random_id.suffix.hex}-node-pool"
+  name     = substr("${replace(var.cluster_name, "_", "-")}-${random_id.suffix.hex}-np", 0, 39)
   cluster  = google_container_cluster.gcp_cluster[0].name
   location = var.gcp_region
 
@@ -316,36 +290,4 @@ resource "google_container_node_pool" "primary_nodes" {
 
 
 
-# # -------------------------
-# # Helm Release for AWS
-# # -------------------------
-# resource "helm_release" "flask_app_aws" {
-#   provider = helm.aws
-#   count    = local.is_aws ? 1 : 0
-
-#   name      = "flask-app"
-#   chart     = "${path.module}/../../flask_app/helm/flask-app"
-#   namespace = "default"
-#   values    = [file(var.helm_values_file)]
-
-#   depends_on = [kubernetes_secret.flask_db_aws]
-# }
-
-# # -------------------------
-# # Helm Release for GCP
-# # -------------------------
-# resource "helm_release" "flask_app_gcp" {
-#   provider = helm.gcp
-#   count    = local.is_gcp ? 1 : 0
-
-#   name      = "flask-app"
-#   chart     = "${path.module}/../../flask_app/helm/flask-app"
-#   namespace = "default"
-#   values    = [file(var.helm_values_file)]
-
-#   depends_on = [kubernetes_secret.flask_db_gcp]
-# }
-
-
-
-
+ 
