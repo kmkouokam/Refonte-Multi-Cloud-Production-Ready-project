@@ -55,8 +55,8 @@ jobs:
       - name: Fallback Docker login (only if needed)
         if: failure()
         run: |
-          ACCESS_TOKEN=$(gcloud auth print-access-token)
-          echo "$ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev
+         gcloud auth print-access-token | \
+         docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev 
 
 
       # 4️⃣ Build Docker images
