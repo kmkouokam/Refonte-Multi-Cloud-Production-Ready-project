@@ -265,9 +265,9 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_config {
     service_account = google_service_account.gke_sa[0].email
-    machine_type    = "e2-medium"
-    disk_size_gb    = 20
-    disk_type = "pd-standard"
+    machine_type    = "n1-standard-2"
+    disk_size_gb    = 100
+    disk_type       = "pd-balanced"
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
