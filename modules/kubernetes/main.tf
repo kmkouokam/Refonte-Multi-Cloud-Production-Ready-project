@@ -265,7 +265,7 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_config {
     service_account = google_service_account.gke_sa[0].email
-    machine_type    = "n1-standard-2"
+    machine_type    = "n2-standard-2"
     disk_size_gb    = 100
     disk_type       = "pd-balanced"
 
