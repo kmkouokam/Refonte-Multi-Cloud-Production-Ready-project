@@ -38,13 +38,26 @@ jobs:
 
       # 3️⃣ Authenticate to GCP
       - name: Authenticate to GCP
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: "projects/928778349956/locations/global/workloadIdentityPools/github-pool/providers/gh"
           service_account: "github-deployer@prod-251618-359501.iam.gserviceaccount.com"
 
+      # 4️⃣ Clean and reconfigure Docker auth for Artifact Registry
+      - name: Clean old Docker logins (optional safeguard)
+        run: |
+          docker logout https://europe-west1-docker.pkg.dev || true
+
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+       # ✅ (Optional fallback: Manual login if gcloud helper fails)
+      - name: Fallback Docker login (only if needed)
+        if: failure()
+        run: |
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          echo "$ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev
+
 
       # 4️⃣ Build Docker images
       - name: Build Docker Images
@@ -108,5 +121,5 @@ jobs:
 
 
 
-
+#
            
