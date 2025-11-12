@@ -21,75 +21,99 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        provider-cluster:
-          - provider: aws
-            cluster_name: multi-cloud-cluster
-          - provider: gcp
-            cluster_name: my-gcp-cluster-83011b709937
-
+        cluster: ['multi-cloud-cluster-81f8fa6eeb', ' my-gcp-cluster-83011b709937'] 
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2️⃣ Configure AWS credentials if provider is AWS
+      # 2️⃣ Configure AWS credentials and login to ECR
       - name: Configure AWS Credentials
-        if: matrix.provider-cluster.provider == 'aws'
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Create AWS ECR repository if not exists
-        if: matrix.provider-cluster.provider == 'aws'
-        run: |
-         aws ecr describe-repositories --repository-names $IMAGE_NAME || \
-         aws ecr create-repository --repository-name $IMAGE_NAME
-
+          cluster-name: multi-cloud-cluster
 
       - name: Login to AWS ECR
-        if: matrix.provider-cluster.provider == 'aws'
         run: |
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-      # 3️⃣ Authenticate to GCP if provider is GCP
+      # 3️⃣ Authenticate to GCP
       - name: Authenticate to GCP
-        if: matrix.provider-cluster.provider == 'gcp'
         uses: google-github-actions/auth@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
-
+      # 4️⃣ Get GKE credentials for current cluster
       - name: Get GKE credentials
-        if: matrix.provider-cluster.provider == 'gcp'
         uses: google-github-actions/get-gke-credentials@v3
         with:
-          cluster_name: ${{ matrix.provider-cluster.cluster_name }}
+          cluster_name: ${{ matrix.cluster }}
           location: 'europe-west1'
-          project_id: ${{ env.GCP_PROJECT_ID }}
+          project_id: ${{ env.GCP_PROJECT_ID }}   
 
-      # 4️⃣ Configure Docker for Artifact Registry
+      # 5️⃣ Clean and reconfigure Docker auth for Artifact Registry
+      - name: Clean old Docker logins (optional safeguard)
+        run: |
+          docker logout https://europe-west1-docker.pkg.dev || true
+
       - name: Configure Docker for Artifact Registry
-        if: matrix.provider-cluster.provider == 'gcp'
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
-      # 5️⃣ Build Docker images
+       # ✅ (Optional fallback: Manual login if gcloud helper fails)
+      - name: Fallback Docker login (only if needed)
+        if: failure()
+        run: |
+         gcloud auth print-access-token | \
+         docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev 
+
+
+      # 6️⃣ Build Docker images
       - name: Build Docker Images
         run: |
-          docker build -t $IMAGE_NAME -f flask_app/Dockerfile .
+          docker build -t $IMAGE_NAME  -f flask_app/Dockerfile .
           docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
           docker tag $IMAGE_NAME:latest europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
-      # 6️⃣ Push Docker images
+      # 7️⃣ Push Docker images
       - name: Push Docker Images
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
           docker push europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
+  
+  
+          ##### if step 8 is used, skeep step 9 and vice versa #####
+       # 8️⃣ Deploy to GKE
+      # - name: Deploy to GKE
+      #   run: |
+      #     git fetch origin gitop
+      #     git checkout gitop
+      #     kubectl apply -f k8s/flask-app/deployment-gcp.yaml
+            # kubectl apply -f k8s/service.yaml
+            # kubectl apply -f k8s/ingress-gcp.yaml
+            # kubectl apply -f k8s/secret-gcp.yaml
 
-      # 7️⃣ Update ArgoCD rollout manifests
-      - name: Update ArgoCD rollout manifests
+      # # Deploy to AWS Eks
+      # - name: Deploy to AWS EKS
+      #   env:
+      #     AWS_REGION: ${{ env.AWS_REGION }}
+      #     CLUSTER_NAME:  multi-cloud-cluster # replace with your EKS cluster name
+      #   run: |
+      #     # Update kubeconfig for EKS
+      #      git fetch origin gitop
+      #      git checkout gitop
+      #      aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+      #      kubectl apply -f k8s/flask-app/deployment-aws.yaml
+           # kubectl apply -f k8s/service.yaml
+           # kubectl apply -f k8s/ingress-aws.yaml
+           # kubectl apply -f k8s/secret-aws.yaml
+             
+
+      # 9️⃣ Update Rollout manifests in gitop branch
+      - name: Update gitop branch with new images
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -98,19 +122,18 @@ jobs:
           git clone --branch gitop https://github.com/${{ github.repository }} gitop
           cd gitop/argocd
 
-          if [ "${{ matrix.provider-cluster.provider }}" == "aws" ]; then
-            sed -i "s|image: .*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-aws-rollout.yaml
-            git add flask-app-aws-rollout.yaml
-          else
-            sed -i "s|image: .*|image: europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
-            git add flask-app-gcp-rollout.yaml
-          fi
+          # Update AWS Rollout image
+          sed -i "s|image: .*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-aws-rollout.yaml
+
+          # Update GCP Rollout image
+          sed -i "s|image: .*|image: europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
 
           # Commit & push changes
-          git commit -m "Update Rollout images for $GITHUB_SHA (${{ matrix.provider-cluster.provider }})"
+          git add flask-app-aws-rollout.yaml flask-app-gcp-rollout.yaml
+          git commit -m "Update Rollout images for $GITHUB_SHA"
           git push origin gitop
 
-      # 8️⃣ Notify on workflow completion
+      # 7️⃣ Notify on completion
       - name: Notify on workflow completion
         if: always()
         env:
@@ -120,15 +143,160 @@ jobs:
           COMMIT=$GITHUB_SHA
           REPO=$GITHUB_REPOSITORY
 
+          # 1️⃣ Console log
           if [ "$STATUS" == "success" ]; then
             echo "✅ Build & push succeeded for $COMMIT"
           else
             echo "❌ Build & push failed for $COMMIT"
           fi
 
+          # 2️⃣ Slack notification
           curl -X POST -H 'Content-type: application/json' \
             --data "{\"text\":\"Build & push workflow completed: *$STATUS* for commit $COMMIT in repo $REPO\"}" \
             $SLACK_WEBHOOK_URL
+
+          # # 3️⃣ Email notification (if SMTP configured)
+          # echo -e "Subject: Build & Push Status - $STATUS\n\nThe workflow for commit $COMMIT in repo $REPO has finished with status: $STATUS." \
+          #   | sendmail -v team@example.com
+
+
+
+
+
+
+
+
+
+# name: Build and Push Flask App Image
+
+# on:
+#   push:
+#     branches: ["flask-app"]
+
+# permissions:
+#   contents: write
+#   id-token: write
+
+# env:
+#   AWS_REGION: ${{ secrets.AWS_REGION }}
+#   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+#   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+#   IMAGE_NAME: flask-app
+#   GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
+
+# jobs:
+#   build-and-push:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         provider-cluster:
+#           - provider: aws
+#             cluster_name: multi-cloud-cluster
+#           - provider: gcp
+#             cluster_name: my-gcp-cluster-83011b709937
+
+#     steps:
+#       # 1️⃣ Checkout code
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       # 2️⃣ Configure AWS credentials if provider is AWS
+#       - name: Configure AWS Credentials
+#         if: matrix.provider-cluster.provider == 'aws'
+#         uses: aws-actions/configure-aws-credentials@v2
+#         with:
+#           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+#           aws-region: ${{ env.AWS_REGION }}
+
+#       - name: Create AWS ECR repository if not exists
+#         if: matrix.provider-cluster.provider == 'aws'
+#         run: |
+#          aws ecr describe-repositories --repository-names $IMAGE_NAME || \
+#          aws ecr create-repository --repository-name $IMAGE_NAME
+
+
+#       - name: Login to AWS ECR
+#         if: matrix.provider-cluster.provider == 'aws'
+#         run: |
+#           aws ecr get-login-password --region $AWS_REGION | \
+#           docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+#       # 3️⃣ Authenticate to GCP if provider is GCP
+#       - name: Authenticate to GCP
+#         if: matrix.provider-cluster.provider == 'gcp'
+#         uses: google-github-actions/auth@v3
+#         with:
+#           project_id: ${{ env.GCP_PROJECT_ID }}
+#           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+#           service_account: "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
+
+#       - name: Get GKE credentials
+#         if: matrix.provider-cluster.provider == 'gcp'
+#         uses: google-github-actions/get-gke-credentials@v3
+#         with:
+#           cluster_name: ${{ matrix.provider-cluster.cluster_name }}
+#           location: 'europe-west1'
+#           project_id: ${{ env.GCP_PROJECT_ID }}
+
+#       # 4️⃣ Configure Docker for Artifact Registry
+#       - name: Configure Docker for Artifact Registry
+#         if: matrix.provider-cluster.provider == 'gcp'
+#         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+#       # 5️⃣ Build Docker images
+#       - name: Build Docker Images
+#         run: |
+#           docker build -t $IMAGE_NAME -f flask_app/Dockerfile .
+#           docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
+#           docker tag $IMAGE_NAME:latest europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
+
+#       # 6️⃣ Push Docker images
+#       - name: Push Docker Images
+#         run: |
+#           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
+#           docker push europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
+
+#       # 7️⃣ Update ArgoCD rollout manifests
+#       - name: Update ArgoCD rollout manifests
+#         run: |
+#           git config user.name "GitHub Actions"
+#           git config user.email "actions@github.com"
+
+#           # Clone gitop branch
+#           git clone --branch gitop https://github.com/${{ github.repository }} gitop
+#           cd gitop/argocd
+
+#           if [ "${{ matrix.provider-cluster.provider }}" == "aws" ]; then
+#             sed -i "s|image: .*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-aws-rollout.yaml
+#             git add flask-app-aws-rollout.yaml
+#           else
+#             sed -i "s|image: .*|image: europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
+#             git add flask-app-gcp-rollout.yaml
+#           fi
+
+#           # Commit & push changes
+#           git commit -m "Update Rollout images for $GITHUB_SHA (${{ matrix.provider-cluster.provider }})"
+#           git push origin gitop
+
+#       # 8️⃣ Notify on workflow completion
+#       - name: Notify on workflow completion
+#         if: always()
+#         env:
+#           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#         run: |
+#           STATUS="${{ job.status }}"
+#           COMMIT=$GITHUB_SHA
+#           REPO=$GITHUB_REPOSITORY
+
+#           if [ "$STATUS" == "success" ]; then
+#             echo "✅ Build & push succeeded for $COMMIT"
+#           else
+#             echo "❌ Build & push failed for $COMMIT"
+#           fi
+
+#           curl -X POST -H 'Content-type: application/json' \
+#             --data "{\"text\":\"Build & push workflow completed: *$STATUS* for commit $COMMIT in repo $REPO\"}" \
+#             $SLACK_WEBHOOK_URL
 
 
 
@@ -281,156 +449,6 @@ jobs:
 
 
 
-
-# name: Build and Push Flask App Image
-
-# on:
-#   push:
-#     branches: ["flask-app"]
-
-# permissions:
-#   contents: write
-#   id-token: write
-
-# env:
-#   AWS_REGION: ${{ secrets.AWS_REGION }}
-#   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-#   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-#   IMAGE_NAME: flask-app
-#   GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
-
-# jobs:
-#   build-and-push:
-#     runs-on: ubuntu-latest
-#     strategy:
-#       matrix:
-#         cluster: ['multi-cloud-cluster-81f8fa6eeb', ' my-gcp-cluster-83011b709937'] 
-#     steps:
-#       # 1️⃣ Checkout code
-#       - name: Checkout Code
-#         uses: actions/checkout@v4
-
-#       # 2️⃣ Configure AWS credentials and login to ECR
-#       - name: Configure AWS Credentials
-#         uses: aws-actions/configure-aws-credentials@v2
-#         with:
-#           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
-#           aws-region: ${{ env.AWS_REGION }}
-
-#       - name: Login to AWS ECR
-#         run: |
-#           aws ecr get-login-password --region $AWS_REGION | \
-#           docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-
-#       # 3️⃣ Authenticate to GCP
-#       - name: Authenticate to GCP
-#         uses: google-github-actions/auth@v3
-#         with:
-#           project_id: ${{ env.GCP_PROJECT_ID }}
-#           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-#           service_account: "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
-#       # 4️⃣ Get GKE credentials for current cluster
-#       - name: Get GKE credentials
-#         uses: google-github-actions/get-gke-credentials@v3
-#         with:
-#           cluster_name: ${{ matrix.cluster }}
-#           location: 'europe-west1'
-#           project_id: ${{ env.GCP_PROJECT_ID }}   
-
-#       # 5️⃣ Clean and reconfigure Docker auth for Artifact Registry
-#       - name: Clean old Docker logins (optional safeguard)
-#         run: |
-#           docker logout https://europe-west1-docker.pkg.dev || true
-
-#       - name: Configure Docker for Artifact Registry
-#         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-
-#        # ✅ (Optional fallback: Manual login if gcloud helper fails)
-#       - name: Fallback Docker login (only if needed)
-#         if: failure()
-#         run: |
-#          gcloud auth print-access-token | \
-#          docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev 
-
-
-#       # 6️⃣ Build Docker images
-#       - name: Build Docker Images
-#         run: |
-#           docker build -t $IMAGE_NAME  -f flask_app/Dockerfile .
-#           docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
-#           docker tag $IMAGE_NAME:latest europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
-
-#       # 7️⃣ Push Docker images
-#       - name: Push Docker Images
-#         run: |
-#           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
-#           docker push europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
-
-#        # 8️⃣ Deploy to GKE
-#       - name: Deploy to GKE
-#         run: |
-#           kubectl apply -f k8s/${{ matrix.cluster }}/
-
-#       # Deploy to AWS Eks
-#       - name: Deploy to AWS EKS
-#         env:
-#           AWS_REGION: ${{ env.AWS_REGION }}
-#           CLUSTER_NAME:  multi-cloud-cluster # replace with your EKS cluster name
-#         run: |
-#           # Update kubeconfig for EKS
-#            aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
-
-#           # Apply manifests for this cluster
-#            kubectl apply -f k8s/aws/${CLUSTER_NAME}/    
-
-#       # 9️⃣ Update Rollout manifests in gitop branch
-#       - name: Update gitop branch with new images
-#         run: |
-#           git config user.name "GitHub Actions"
-#           git config user.email "actions@github.com"
-
-#           # Clone gitop branch
-#           git clone --branch gitop https://github.com/${{ github.repository }} gitop
-#           cd gitop/k8s/flask-app
-
-#           # Update AWS Rollout image
-#           sed -i "s|image: .*|image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-aws-rollout.yaml
-
-#           # Update GCP Rollout image
-#           sed -i "s|image: .*|image: europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
-
-#           # Commit & push changes
-#           git add flask-app-aws-rollout.yaml flask-app-gcp-rollout.yaml
-#           git commit -m "Update Rollout images for $GITHUB_SHA"
-#           git push origin gitop
-
-#       # 7️⃣ Notify on completion
-#       - name: Notify on workflow completion
-#         if: always()
-#         env:
-#           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-#         run: |
-#           STATUS="${{ job.status }}"
-#           COMMIT=$GITHUB_SHA
-#           REPO=$GITHUB_REPOSITORY
-
-#           # 1️⃣ Console log
-#           if [ "$STATUS" == "success" ]; then
-#             echo "✅ Build & push succeeded for $COMMIT"
-#           else
-#             echo "❌ Build & push failed for $COMMIT"
-#           fi
-
-#           # 2️⃣ Slack notification
-#           curl -X POST -H 'Content-type: application/json' \
-#             --data "{\"text\":\"Build & push workflow completed: *$STATUS* for commit $COMMIT in repo $REPO\"}" \
-#             $SLACK_WEBHOOK_URL
-
-#           # # 3️⃣ Email notification (if SMTP configured)
-#           # echo -e "Subject: Build & Push Status - $STATUS\n\nThe workflow for commit $COMMIT in repo $REPO has finished with status: $STATUS." \
-#           #   | sendmail -v team@example.com
-
-
-# #
+ 
 
            
