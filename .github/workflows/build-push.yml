@@ -40,6 +40,7 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
           service_account: "github-deployer@prod-251618-359501.iam.gserviceaccount.com"
 
