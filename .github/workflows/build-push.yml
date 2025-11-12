@@ -18,7 +18,9 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        cluster: ['multi-cloud-cluster-81f8fa6eeb', ' my-gcp-cluster-83011b709937'] 
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Code
@@ -42,9 +44,16 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
-          service_account: "github-deployer@prod-251618-359501.iam.gserviceaccount.com"
+          service_account: "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
+      # 4️⃣ Get GKE credentials for current cluster
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ matrix.cluster }}
+          location: 'europe-west1'
+          project_id: ${{ env.GCP_PROJECT_ID }}   
 
-      # 4️⃣ Clean and reconfigure Docker auth for Artifact Registry
+      # 5️⃣ Clean and reconfigure Docker auth for Artifact Registry
       - name: Clean old Docker logins (optional safeguard)
         run: |
           docker logout https://europe-west1-docker.pkg.dev || true
@@ -60,20 +69,37 @@ jobs:
          docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev 
 
 
-      # 4️⃣ Build Docker images
+      # 6️⃣ Build Docker images
       - name: Build Docker Images
         run: |
           docker build -t $IMAGE_NAME  -f flask_app/Dockerfile .
           docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
           docker tag $IMAGE_NAME:latest europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
-      # 5️⃣ Push Docker images
+      # 7️⃣ Push Docker images
       - name: Push Docker Images
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
           docker push europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
-      # 6️⃣ Update Rollout manifests in gitop branch
+       # 8️⃣ Deploy to GKE
+      - name: Deploy to GKE
+        run: |
+          kubectl apply -f k8s/${{ matrix.cluster }}/
+
+      # Deploy to AWS Eks
+      - name: Deploy to AWS EKS
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          CLUSTER_NAME:  multi-cloud-cluster # replace with your EKS cluster name
+        run: |
+          # Update kubeconfig for EKS
+           aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+
+          # Apply manifests for this cluster
+           kubectl apply -f k8s/aws/${CLUSTER_NAME}/    
+
+      # 9️⃣ Update Rollout manifests in gitop branch
       - name: Update gitop branch with new images
         run: |
           git config user.name "GitHub Actions"
