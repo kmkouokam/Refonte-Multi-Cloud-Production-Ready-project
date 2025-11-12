@@ -40,6 +40,13 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Create AWS ECR repository if not exists
+        if: matrix.provider-cluster.provider == 'aws'
+        run: |
+         aws ecr describe-repositories --repository-names $IMAGE_NAME || \
+         aws ecr create-repository --repository-name $IMAGE_NAME
+
+
       - name: Login to AWS ECR
         if: matrix.provider-cluster.provider == 'aws'
         run: |
