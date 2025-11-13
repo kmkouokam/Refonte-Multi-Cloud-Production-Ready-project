@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:${GITHUB_SHA}
+          image: 435329769674.dkr.ecr.us-east-1.amazonaws.com/flask-app:8274ac098aa23b62f81b91ca5434c54cf1afcaff
           ports:
             - containerPort: 8080
           envFrom:
