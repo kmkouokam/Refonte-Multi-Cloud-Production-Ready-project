@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/flask-app:${GITHUB_SHA}
+          image: europe-west1-docker.pkg.dev/prod-251618-359501/my-repo/flask-app:e32b799e7b8db5a50d9109cbcc542ada4d839d3b
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
