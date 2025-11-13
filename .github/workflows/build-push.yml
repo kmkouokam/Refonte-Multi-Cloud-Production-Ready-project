@@ -130,9 +130,13 @@ jobs:
           sed -i "s|image: .*|image: europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}|" flask-app-gcp-rollout.yaml
 
           # Commit & push changes
+          if ! git diff --quiet; then  
           git add flask-app-aws-rollout.yaml flask-app-gcp-rollout.yaml
           git commit -m "Update Rollout images for $GITHUB_SHA"
           git push origin gitop
+          else
+          echo "No changes to commit"
+          fi  
 
       # 7️⃣ Notify on completion
       - name: Notify on workflow completion
