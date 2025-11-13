@@ -83,7 +83,39 @@ jobs:
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${GITHUB_SHA}
           docker push europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
-  
+
+
+      # --- Deploy to clusters via ArgoCD ---
+
+        
+      # --- Set kubectl context for GKE ---
+      - name: Set kubectl context for GKE
+        run: |
+         gcloud container clusters get-credentials multi-cloud-cluster-416c74798c \
+          --region europe-west1 \
+          --project ${{ env.GCP_PROJECT_ID }}
+
+      - name: Install ArgoCD and Argo Rollouts on GKE
+        run: |
+          kubectl create namespace argocd || true
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+           kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s    
+
+      # --- Set kubectl context for AWS EKS ---
+      - name: Set kubectl context for AWS EKS
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          CLUSTER_NAME: multi-cloud-cluster
+        run: |
+            aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+    
+      - name: Install ArgoCD and Argo Rollouts
+        run: |
+          kubectl create namespace argocd || true
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+          kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+          kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s      
   
           ##### if step 8 is used, skeep step 9 and vice versa #####
        # 8️⃣ Deploy to GKE
