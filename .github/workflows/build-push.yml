@@ -87,13 +87,20 @@ jobs:
 
       # --- Deploy to clusters via ArgoCD ---
 
-        
+
       # --- Set kubectl context for GKE ---
       - name: Set kubectl context for GKE
         run: |
          gcloud container clusters get-credentials multi-cloud-cluster-416c74798c \
           --region europe-west1 \
           --project ${{ env.GCP_PROJECT_ID }}
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+         curl -Lo gke-gcloud-auth-plugin https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/gke-gcloud-auth-plugin
+         chmod +x gke-gcloud-auth-plugin
+         sudo mv gke-gcloud-auth-plugin /usr/local/bin/
+    
 
       - name: Install ArgoCD and Argo Rollouts on GKE
         run: |
