@@ -20,7 +20,8 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: 435329769674.dkr.ecr.us-east-1.amazonaws.com/flask-app:9672f814e23bbbf676132c1046c2a0e1f5d0ebcd
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/flask-app:${GITHUB_SHA}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
@@ -33,3 +34,4 @@ spec:
             limits:
               cpu: 500m
               memory: 1Gi
+ 
