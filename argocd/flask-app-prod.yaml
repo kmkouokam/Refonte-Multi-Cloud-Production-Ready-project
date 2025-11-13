@@ -14,7 +14,7 @@ spec:
       source:
         repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
         targetRevision: gitop
-        path: k8s/
+        path: argocd/
       destination:
         server: "{{server}}"
         namespace: default
