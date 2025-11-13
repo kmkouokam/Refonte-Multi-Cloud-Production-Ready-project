@@ -115,8 +115,8 @@ jobs:
       # 9️⃣ Update Rollout manifests in gitop branch
       - name: Update gitop branch with new images
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
           # Clone gitop branch
           git clone --branch gitop https://github.com/${{ github.repository }} gitop
