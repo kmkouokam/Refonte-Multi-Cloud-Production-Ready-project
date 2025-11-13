@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: europe-west1-docker.pkg.dev/prod-251618-359501/my-repo/flask-app:8274ac098aa23b62f81b91ca5434c54cf1afcaff
+          image: europe-west1-docker.pkg.dev/prod-251618-359501/my-repo/flask-app:9672f814e23bbbf676132c1046c2a0e1f5d0ebcd
           ports:
             - containerPort: 8080
           envFrom:
