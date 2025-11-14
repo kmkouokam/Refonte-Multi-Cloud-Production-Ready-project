@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cluster: ['multi-cloud-cluster-416c74798c','my-gcp-cluster-3d6b09ea7160'] 
+        cluster: ['multi-cloud-cluster-997cbdf5e8','my-gcp-cluster-765e16dbbaa5'] # edit this list with your GKE cluster names
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Code
