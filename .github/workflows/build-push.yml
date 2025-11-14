@@ -83,7 +83,7 @@ jobs:
              echo "${{ secrets.GCP_SA_KEY_B64 }}" | base64 --decode > gcp-key.json
            gcloud auth activate-service-account --key-file=gcp-key.json   
   
-  
+  #
   
      #  Get GKE credentials for current cluster
       - name: Get GKE credentials
