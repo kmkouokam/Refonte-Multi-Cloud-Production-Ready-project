@@ -27,6 +27,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+        ## First configure AWS EKS ##
+
       #  Configure AWS credentials and login to ECR
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -36,6 +38,15 @@ jobs:
           cluster-name: multi-cloud-cluster
 
       
+       
+      #   Docker login
+      - name: Login to AWS ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com   
+    
+
+      ## Then configure GCP GKE ##
 
       #  Authenticate to GCP
       - name: Authenticate to GCP
@@ -54,11 +65,21 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
 
+
+       #  Get GKE credentials for current cluster
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ matrix.cluster }}
+          location: 'europe-west1'
+          project_id: ${{ env.GCP_PROJECT_ID }}  
+          
       - name: Set kubectl context for GKE
         run: |
          gcloud container clusters get-credentials ${{ matrix.cluster }} \
           --region europe-west1 \
-          --project ${{ env.GCP_PROJECT_ID }}    
+          --project ${{ env.GCP_PROJECT_ID }}      
+      
 
          #  Install gcloud & gke-gcloud-auth-plugin    
       - name: Install gke-gcloud-auth-plugin
@@ -83,30 +104,7 @@ jobs:
              echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > gcp-key.json
            gcloud auth activate-service-account --key-file=gcp-key.json   
   
-  #
-  
-     #  Get GKE credentials for current cluster
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v3
-        with:
-          cluster_name: ${{ matrix.cluster }}
-          location: 'europe-west1'
-          project_id: ${{ env.GCP_PROJECT_ID }}   
-
-      
-
-
-       # 6️⃣ Set kubectl context for AWS EKS
-      - name: Set kubectl context for AWS EKS
-        run: |
-          aws eks update-kubeconfig --name multi-cloud-cluster --region ${{ env.AWS_REGION }}   
-
-       #   Docker login
-      - name: Login to AWS ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-          docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com   
-
+       
       #  Clean and reconfigure Docker auth for Artifact Registry
       - name: Clean old Docker logins (optional safeguard)
         run: |
@@ -140,15 +138,18 @@ jobs:
           docker push europe-west1-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:${GITHUB_SHA}
 
 
-      # --- Set kubectl context for AWS EKS ---
+
+       # 6️⃣ Set kubectl context for AWS EKS
       - name: Set kubectl context for AWS EKS
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           CLUSTER_NAME: multi-cloud-cluster
         run: |
-            aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION    
+          aws eks update-kubeconfig --name multi-cloud-cluster --region ${{ env.AWS_REGION }}    
 
-            # --- Deploy to clusters via ArgoCD ---
+
+
+          # --- Deploy to clusters via ArgoCD ---
   
 
       - name: Install ArgoCD and Argo Rollouts on GKE
