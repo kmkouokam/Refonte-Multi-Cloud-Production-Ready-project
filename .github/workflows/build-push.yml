@@ -107,19 +107,17 @@ jobs:
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com   
 
-
+      #  Clean and reconfigure Docker auth for Artifact Registry
+      - name: Clean old Docker logins (optional safeguard)
+        run: |
+          docker logout https://europe-west1-docker.pkg.dev || true   
+          
+     
       - name: Docker login to GCP Artifact Registry
         run: |
           docker logout https://europe-west1-docker.pkg.dev || true
-          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet    
-
-      # 6️⃣ Clean and reconfigure Docker auth for Artifact Registry
-      - name: Clean old Docker logins (optional safeguard)
-        run: |
-          docker logout https://europe-west1-docker.pkg.dev || true
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet      
+      
 
        # ✅ (Optional fallback: Manual login if gcloud helper fails)
       - name: Fallback Docker login (only if needed)
