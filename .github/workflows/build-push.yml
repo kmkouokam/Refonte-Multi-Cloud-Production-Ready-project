@@ -80,7 +80,7 @@ jobs:
            gcloud components install gke-gcloud-auth-plugin --quiet
 
            # Authenticate to GCP
-            printf "%s" "${{ secrets.GCP_SA_KEY }}" > gcp-key.json
+             echo "${{ secrets.GCP_SA_KEY_B64 }}" | base64 --decode > gcp-key.js
            gcloud auth activate-service-account --key-file=gcp-key.json   
   
   
