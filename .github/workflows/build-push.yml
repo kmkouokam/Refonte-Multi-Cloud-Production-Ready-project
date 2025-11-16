@@ -113,7 +113,7 @@ jobs:
               \"text\": \"*$JOB* finished with status: *$STATUS*\nRepo: $REPO\nCommit: $COMMIT\"
             }" \
             $SLACK_WEBHOOK_URL    
-           
+    #       
 
   # ----------------------------------------
   # 2️⃣ GCP JOB
