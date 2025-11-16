@@ -123,7 +123,7 @@ jobs:
     # needs: aws-build-push   # wait for AWS job to finish before starting GCP job
     strategy:
       matrix:
-        cluster: ['my-gcp-cluster-765e16dbbaa5', ''] # edit this list with your GKE cluster names
+        cluster: ['multi-cloud-cluster-cbd5a22291','my-gcp-cluster-254f3996a459'] # edit this list with your GKE cluster names
 
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
