@@ -64,92 +64,9 @@ resource "random_password" "db_password" {
   override_special = "!#$%&*()-_+{}<>?"
 }
 
-# # -------------------------
-# # AWS Kubernetes Secret
-# # -------------------------
-# resource "kubernetes_secret" "flask_db_aws" {
-#   provider = kubernetes.aws
-#   count    = local.is_aws ? 1 : 0
-
-#   metadata {
-#     name      = "flask-app-db-secret"
-#     namespace = "default"
-#   }
-
-#   data = {
-#     DB_HOST     = module.aws_db[0].db_endpoint
-#     DB_PORT     = "5432"
-#     DB_NAME     = var.db_name
-#     DB_USER     = var.db_username
-#     DB_PASSWORD = random_password.db_password.result
-#     # DB_PASSWORD = jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string).password
-#   }
-
-#   type = "Opaque"
-#   depends_on = [module.aws_db,
-#   kubernetes_config_map_v1_data.aws_auth_patch]
-# }
 
 
-# resource "helm_release" "flask_app_aws" {
-#   provider  = helm.aws
-#   count     = local.is_aws ? 1 : 0
-#   name      = local.flask_release
-#   chart     = "${path.module}/../../flask_app/helm/flask-app-0.1.0.tgz"
-#   namespace = local.flask_namespace
 
-#   values = [
-#     templatefile("${path.module}/../../flask_app/helm/flask-app/values-aws.yaml", {
-#       DB_HOST = module.aws_db[0].db_endpoint
-#     }),
-#     yamlencode({
-#       replicaCount = 2
-#       service = {
-#         type = "LoadBalancer"
-#       }
-#       resources = {
-#         requests = {
-#           cpu    = "500m"
-#           memory = "512Mi"
-#         }
-#         limits = {
-#           cpu    = "1"
-#           memory = "1Gi"
-#         }
-#       }
-#       ingress = {
-#         enabled = true
-#         host    = "refonte-flask-app.devopsguru.today"
-#         annotations = {
-#           "kubernetes.io/ingress.class"      = "alb"
-#           "alb.ingress.kubernetes.io/scheme" = "internet-facing"
-#         }
-#       }
-#       # db = {
-#       #   host     = module.aws_db[0].db_endpoint
-#       #   port     = "5432"
-#       #   name     = local.db_name
-#       #   user     = local.db_username
-#       #   password = random_password.db_password.result
-#       # }
-#     })
-#   ]
-
-
-#   depends_on = [module.aws_db,
-#     kubernetes_secret.flask_db_aws,
-#     kubernetes_config_map_v1_data.aws_auth_patch,
-#     module.aws_security
-#   ]
-
-#   set_sensitive = [
-#     {
-#       name  = "env.DATABASE_URL"
-#       value = "postgresql://flask_user:${random_password.db_password.result}@terraform-20251009130709020200000006.cjjbcu9s6nug.us-east-1.rds.amazonaws.com:5432/flaskdb"
-#     }
-#   ]
-
-# }
 
 module "vpc" {
   count              = local.is_aws ? 1 : 0
@@ -165,6 +82,13 @@ module "vpc" {
   gcp_project_id     = var.gcp_project_id
 
 
+}
+
+module "actiontunner" {
+  source = "../../modules/ActionRunner"
+  vpc_id = var.name_prefix.id
+
+  depends_on = [ module.vpc ]
 }
 
 
