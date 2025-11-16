@@ -43,3 +43,4 @@ ehthumbs.db
 # Windows PowerShell history file
 ConsoleHost_history.txt
 bootstrap
+bootstrap/aws-auth.yaml
