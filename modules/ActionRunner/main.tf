@@ -1,5 +1,5 @@
  
-
+ 
 # ------------------------------
 # IAM Role for EC2 to access EKS
 # ------------------------------
@@ -91,10 +91,34 @@ resource "aws_instance" "github_runner" {
   user_data = <<-EOF
               #!/bin/bash
               yum update -y
-              yum install -y git docker unzip jq curl
+              yum install -y git docker unzip jq curl icu
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ec2-user
+
+              #Docker installation
+              sudo dnf remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+
+              # set repo 
+              sudo dnf -y install dnf-plugins-core
+              sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo  
+
+              #Install Docker
+                sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+                sudo systemctl enable --now docker
+                sudo systemctl start docker
+
+
+
+
 
               # Install AWS CLI v2
               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -114,15 +138,40 @@ resource "aws_instance" "github_runner" {
               mkdir /home/ec2-user/actions-runner && cd /home/ec2-user/actions-runner
               curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
               echo "194f1e1e4bd02f80b7e9633fc546084d8d4e19f3928a324d512ea53430102e1d  actions-runner-linux-x64-2.329.0.tar.gz" | shasum -a 256 -c
+
+
               # Extract the installer
               tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
+               sudo chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
+               sudo chmod -R u+rwx /home/ec2-user/actions-runner
 
-              # Create the runner and start the configuration experience
-              # TODO: replace with your repo URL and token
+               # Register runner non-interactively
+               sudo -u ec2-user ./config.sh --unattended \
+               --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
+               --token ${var.github_runner_token} \
+               --labels self-hosted,linux,vpc-runner \
+              --name github-runner-1 \
+               --work _work
 
-              sudo -u ec2-user ./config.sh --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project --token AWPCBF7HIBVNRSWMXBGSNY3JDNQ3I
-              sudo -u ec2-user ./svc.sh install
-              sudo -u ec2-user ./svc.sh start
+
+              # Create systemd service to run the runner continuously
+              cat <<EOL | sudo tee /etc/systemd/system/github-runner.service
+[Unit]
+Description=GitHub Actions Runner
+After=network.target
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/actions-runner
+ExecStart=/home/ec2-user/actions-runner/run.sh
+Restart=always
+[Install]
+WantedBy=multi-user.target
+EOL
+
+              sudo systemctl daemon-reload
+              sudo systemctl enable github-runner
+              sudo systemctl start github-runner
               EOF
 
   tags = {

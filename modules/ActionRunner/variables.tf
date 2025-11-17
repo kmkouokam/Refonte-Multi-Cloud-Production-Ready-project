@@ -9,6 +9,12 @@ variable "ssh_key" {
   default = "virg.keypair"
 }
 
+variable "github_runner_token" {
+  default = "AWPCBF7HIBVNRSWMXBGSNY3JDNQ3I"
+  description = "github token"
+}
+
+
 variable "aws_region" {
   description = "The AWS region to deploy resources"
   type        = string
