@@ -124,8 +124,8 @@ jobs:
     strategy:
       matrix:
         cluster: [
-            "multi-cloud-cluster-cbd5a22291",
-            "my-gcp-cluster-254f3996a459",
+            "multi-cloud-cluster-48ed3035dd",
+            "my-gcp-cluster-d3f8ebaa9154",
           ] # edit this list with your GKE cluster names
 
     env:
