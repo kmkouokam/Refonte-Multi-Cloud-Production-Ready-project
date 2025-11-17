@@ -86,10 +86,9 @@ module "vpc" {
 
 module "actiontunner" {
   source = "../../modules/ActionRunner"
-  vpc_id = var.name_prefix.id
+  vpc_id = module.vpc.aws_vpc_id
 
-  depends_on = [ module.vpc ]
-}
+   }
 
 
 # Security module
