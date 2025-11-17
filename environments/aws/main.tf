@@ -140,29 +140,6 @@ module "aws_security" {
 }
 
 
-# Fetch GCP firewall rule AFTER GCP is deployed
-# data "google_compute_firewall" "gcp_db_fw" {
-#   name    = var.gcp_db_fw_name
-#   project = var.gcp_project_id
-# }
-
-# data "google_compute_network" "gcp_network" {
-#   name    = var.gcp_network_name
-#   project = var.gcp_project_id
-
-# }
-
-# data "google_compute_subnetwork" "gcp_private_subnet_name" {
-#   name    = var.gcp_private_subnet_name
-#   project = var.gcp_project_id
-#   region  = var.gcp_region
-# }
-
-
-
-
-
-
 module "aws_db" {
   count          = local.is_aws ? 1 : 0
   source         = "../../modules/db"
