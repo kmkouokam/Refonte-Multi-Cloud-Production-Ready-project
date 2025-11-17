@@ -133,25 +133,7 @@ module "k8s" {
 
 }
 
-
-# module "helm" {
-#   count          = local.is_gcp ? 1 : 0
-#   source         = "../../modules/helm"
-#   cloud_provider = var.cloud_provider
-#   db_endpoint    = module.gcp_db.db_endpoint
-
-#   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-gcp.yaml"
-#   depends_on       = [kubernetes_secret.flask_db_gcp]
-#   flask_namespace  = local.flask_namespace
-#   flask_release    = local.flask_release
-#   providers = {
-#     helm.gcp = helm.gcp
-#     helm     = helm.gcp
-#     helm.aws = helm.aws
-
-
-#   }
-# }
+ 
 
 
 

@@ -111,7 +111,11 @@ module "vpc" {
 
 module "actiontunner" {
   source = "../../modules/ActionRunner"
-
+  aws_vpc_id = module.vpc[0].aws_vpc_id
+  aws_public_subnet_ids = module.vpc[0].aws_public_subnet_ids
+  aws_region = var.aws_region
+  eks_cluster_name = var.cluster_name
+  ssh_key = var.ssh_key
    }
 
 
@@ -186,22 +190,6 @@ module "k8s" {
 
 }
 
-# module "helm" {
-#   count          = local.is_aws ? 1 : 0
-#   source         = "../../modules/helm"
-#   cloud_provider = var.cloud_provider
-#   db_endpoint    = module.aws_db.db_endpoint
-
-#   helm_values_file = "${path.module}/../../flask_app/helm/flask-app/values-aws.yaml"
-#   depends_on       = [kubernetes_secret.flask_db_aws]
-#   flask_namespace  = local.flask_namespace
-#   flask_release    = local.flask_release
-#   providers = {
-#     helm     = helm.aws
-#     helm.gcp = helm.gcp
-#     helm.aws = helm.aws
-
-#   }
-# }
+ 
 
 

@@ -1,6 +1,4 @@
-provider "aws" {
-  region = "us-east-1"
-}
+ 
 
 # ------------------------------
 # IAM Role for EC2 to access EKS
@@ -30,9 +28,9 @@ resource "aws_iam_role_policy_attachment" "eks_cni" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
-resource "aws_iam_role_policy_attachment" "read_only" {
+resource "aws_iam_role_policy_attachment" "eks_full" {
   role       = aws_iam_role.github_runner_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSReadOnlyAccess"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
 resource "aws_iam_instance_profile" "runner_instance_profile" {
@@ -46,7 +44,7 @@ resource "aws_iam_instance_profile" "runner_instance_profile" {
 resource "aws_security_group" "runner_sg" {
   name        = "github-runner-sg"
   description = "Allow outbound traffic to EKS cluster"
-  vpc_id      = var.vpc_id
+  vpc_id      = var.aws_vpc_id
 
   egress {
     from_port   = 0
@@ -59,7 +57,7 @@ resource "aws_security_group" "runner_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["<YOUR_IP>/32"] # must be edited to your IP
+    cidr_blocks = ["0.0.0.0/0"] # must be edited to your IP
   }
 }
 
@@ -85,9 +83,9 @@ data "aws_ami" "amazon_linux" {
 resource "aws_instance" "github_runner" {
   ami                  = data.aws_ami.amazon_linux.id # e.g., Amazon Linux 2023
   instance_type        = "t3.medium"
-  subnet_id            = "<YOUR_SUBNET_ID>"
+  subnet_id            = var.aws_public_subnet_ids[0]
   iam_instance_profile = aws_iam_instance_profile.runner_instance_profile.name
-  security_groups      = [aws_security_group.runner_sg.name]
+  vpc_security_group_ids     = [aws_security_group.runner_sg.id]
   key_name             = var.ssh_key # optional, for SSH
 
   user_data = <<-EOF
@@ -122,7 +120,7 @@ resource "aws_instance" "github_runner" {
               # Create the runner and start the configuration experience
               # TODO: replace with your repo URL and token
 
-              sudo -u ec2-user ./config.sh --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project --token AWPCBFYQNQCISN3UGJKFT4LJDJRS6
+              sudo -u ec2-user ./config.sh --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project --token AWPCBF7HIBVNRSWMXBGSNY3JDNQ3I
               sudo -u ec2-user ./svc.sh install
               sudo -u ec2-user ./svc.sh start
               EOF

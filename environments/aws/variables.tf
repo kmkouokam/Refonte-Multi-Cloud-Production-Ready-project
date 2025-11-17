@@ -90,6 +90,12 @@ variable "cluster_name" {
   default     = "multi-cloud-cluster"
 }
 
+variable "ssh_key" {
+  description = "The SSH key name to access the GitHub Actions runner EC2 instance"
+  type        = string
+  default = "virg.keypair"
+}
+
 # ASN (Autonomous System Number) to use in Border Gateway Protocol (BGP)
 variable "aws_amazon_side_asn" {
   type    = number
