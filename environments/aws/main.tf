@@ -36,26 +36,51 @@ resource "aws_iam_role" "github_actions_role" {
 }
  
 
+ resource "aws_iam_role_policy" "github_actions_policy" {
+  name = "GitHubActionsCombinedPolicy"
+  role = aws_iam_role.github_actions_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ECRAccess"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:ListImages"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "EKSAccess"
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:DescribeNodegroup",
+          "eks:ListClusters",
+          "eks:ListNodegroups",
+          "eks:AccessKubernetesApi",
+          "sts:GetCallerIdentity"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+
 resource "aws_iam_role_policy_attachment" "ecr_push_policy" {
   role       = aws_iam_role.github_actions_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
 }
-
-
-# Lookup the Flask app service created by Helm on AWS
-# data "kubernetes_service" "flask_app_aws" {
-#   provider = kubernetes.aws
-
-
-#   metadata {
-#     name      = local.flask_release # dynamic from locals
-#     namespace = local.flask_namespace
-#   }
-#   depends_on = [helm_release.flask_app_aws,
-#     module.k8s,
-#     kubernetes_secret.flask_db_aws
-#   ]
-# }
 
 
 resource "random_password" "db_password" {
@@ -86,7 +111,6 @@ module "vpc" {
 
 module "actiontunner" {
   source = "../../modules/ActionRunner"
-  vpc_id = module.vpc.aws_vpc_id
 
    }
 
