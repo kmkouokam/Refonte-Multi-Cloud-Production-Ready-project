@@ -104,7 +104,7 @@ resource "aws_instance" "github_runner" {
               #Install Docker
                 dnf install -y docker docker-buildx-plugin docker-compose-plugin
 
-                sudo systemctl enable --now docker
+                sudo systemctl enable  docker
                 sudo systemctl start docker
                 usermod -aG docker ec2-user
 

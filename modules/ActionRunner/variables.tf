@@ -10,7 +10,7 @@ variable "ssh_key" {
 }
 
 variable "github_runner_token" {
-  default = "AWPCBF754LN6GGU4DXQH2ZDJDSIJ2"
+  default = "AWPCBFYNM2V7AG4FE3XITPDJDSTEM"
   description = "github token"
 }
 
