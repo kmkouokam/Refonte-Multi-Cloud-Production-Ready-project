@@ -90,8 +90,11 @@ resource "aws_instance" "github_runner" {
 
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y git docker unzip jq curl icu
+              set -e
+              dnf update -y
+
+              #Install required tools 
+              dnf install -y git unzip jq curl icu tar
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ec2-user
@@ -115,6 +118,7 @@ resource "aws_instance" "github_runner" {
 
                 sudo systemctl enable --now docker
                 sudo systemctl start docker
+                usermod -aG docker ec2-user
 
 
 
@@ -136,6 +140,7 @@ resource "aws_instance" "github_runner" {
 
               # Install GitHub Actions Runner
               mkdir /home/ec2-user/actions-runner && cd /home/ec2-user/actions-runner
+              
               curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
               echo "194f1e1e4bd02f80b7e9633fc546084d8d4e19f3928a324d512ea53430102e1d  actions-runner-linux-x64-2.329.0.tar.gz" | shasum -a 256 -c
 
