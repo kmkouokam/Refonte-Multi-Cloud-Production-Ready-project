@@ -98,7 +98,7 @@ resource "aws_instance" "github_runner" {
                              
 
   #Install Docker
-  dnf install -y docker docker-buildx-plugin docker-compose-plugin
+  dnf install -y docker 
 
   sudo systemctl enable  docker
   sudo systemctl start docker
@@ -121,7 +121,7 @@ resource "aws_instance" "github_runner" {
   # ------------------------------
   # Install GitHub Actions Runner
   # ------------------------------
-  mkdir -p /home/ec2-user/actions-runner
+  mkdir -p /home/ec2-user/actions-runner && cd /home/ec2-user/actions-runner
 
   curl -o /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz \
     -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
@@ -138,6 +138,10 @@ resource "aws_instance" "github_runner" {
   # ------------------------------
   # Register runner
   # ------------------------------
+
+  # Navigate to the runner folder
+  
+
   sudo -u ec2-user /home/ec2-user/actions-runner/config.sh --unattended \
     --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
     --token ${var.github_runner_token} \
