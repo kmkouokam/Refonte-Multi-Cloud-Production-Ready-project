@@ -121,53 +121,52 @@ resource "aws_instance" "github_runner" {
   # ------------------------------
   # Install GitHub Actions Runner
   # ------------------------------
-  mkdir -p /home/ec2-user/actions-runner && cd /home/ec2-user/actions-runner
+  mkdir -p /home/ec2-user/actions-runner
+  cd /home/ec2-user/actions-runner
 
-  curl -o /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz \
-    -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
+  # Download the runner
+  curl -o actions-runner-linux-x64-2.329.0.tar.gz -L \
+  https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
 
-  echo "194f1e1e4bd02f80b7e9633fc546084d8d4e19f3928a324d512ea53430102e1d  /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz" | sha256sum --check
+  # Extract it
+  tar xzf actions-runner-linux-x64-2.329.0.tar.gz
 
+  # Set permissions
+  chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
+  chmod -R u+rwx /home/ec2-user/actions-runner
 
-  # Extract the installer
-  tar xzf /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz -C /home/ec2-user/actions-runner
-  sudo chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
-  sudo chmod -R u+rwx /home/ec2-user/actions-runner
+  # Register the runner (replace <YOUR_TOKEN> with a valid GitHub runner token)
+  sudo -u ec2-user ./config.sh --unattended \
+  --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
+  --token <YOUR_TOKEN> \
+  --labels self-hosted,linux,vpc-runner \
+  --name github-runner-1 \
+  --work _work
 
-               
-  # ------------------------------
-  # Register runner
-  # ------------------------------
-
-  # Navigate to the runner folder
-  
-
-  sudo -u ec2-user /home/ec2-user/actions-runner/config.sh --unattended \
-    --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
-    --token ${var.github_runner_token} \
-    --labels self-hosted,linux,vpc-runner \
-    --name github-runner-1 \
-    --work _work
-
-
-  # Create systemd service to run the runner continuously
-  cat <<EOL | sudo tee /etc/systemd/system/github-runner.service
+  # Create systemd service
+  cat <<EOL >/etc/systemd/system/github-runner.service
   [Unit]
   Description=GitHub Actions Runner
   After=network.target
+
   [Service]
   Type=simple
   User=ec2-user
   WorkingDirectory=/home/ec2-user/actions-runner
   ExecStart=/home/ec2-user/actions-runner/run.sh
   Restart=always
+
   [Install]
   WantedBy=multi-user.target
   EOL
 
+  # Start the service
   sudo systemctl daemon-reload
   sudo systemctl enable github-runner
   sudo systemctl start github-runner
+
+  # Verify
+  sudo systemctl status github-runner
   EOF
 
   tags = {
