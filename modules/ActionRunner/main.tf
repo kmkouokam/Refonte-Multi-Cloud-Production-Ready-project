@@ -93,38 +93,38 @@ resource "aws_instance" "github_runner" {
   set -e
 
   # Update system
-  dnf update -y
+  sudo dnf update -y
 
   # Install required tools
-  dnf install -y git unzip jq curl icu tar docker
+  sudo dnf install -y git unzip jq curl icu tar docker libicu
 
   # Start Docker
-  systemctl enable docker
-  systemctl start docker
-  usermod -aG docker ec2-user
+  sudo systemctl enable docker
+  sudo systemctl start docker
+  sudo usermod -aG docker ec2-user
 
   # Install AWS CLI v2
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
   unzip awscliv2.zip
   ./aws/install
 
   # Install kubectl
-  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-  chmod +x kubectl
-  mv kubectl /usr/local/bin/
+  sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  sudo chmod +x kubectl
+  sudo mv kubectl /usr/local/bin/
 
   # Configure kubeconfig for EKS
-  aws eks update-kubeconfig --name ${var.eks_cluster_name} --region ${var.aws_region}
+  sudo aws eks update-kubeconfig --name ${var.eks_cluster_name} --region ${var.aws_region}
 
   # Install GitHub Actions Runner
-  mkdir -p /home/ec2-user/actions-runner
-  cd /home/ec2-user/actions-runner
+  sudo mkdir -p /home/ec2-user/actions-runner
+  sudo cd /home/ec2-user/actions-runner
 
-  curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
-  tar xzf actions-runner-linux-x64-2.329.0.tar.gz
+  sudo curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
+  sudo tar xzf actions-runner-linux-x64-2.329.0.tar.gz
 
-  chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
-  chmod -R u+rwx /home/ec2-user/actions-runner
+  sudo chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
+  sudo chmod -R u+rwx /home/ec2-user/actions-runner
 
   # Register runner (replace with actual token)
   sudo -u ec2-user ./config.sh --unattended \
@@ -152,9 +152,9 @@ resource "aws_instance" "github_runner" {
   EOL
 
   # Start the service
-  systemctl daemon-reload
-  systemctl enable github-runner
-  systemctl start github-runner
+  sudo systemctl daemon-reload
+  sudo systemctl enable github-runner
+  sudo systemctl start github-runner
   EOF
 
     tags = {
