@@ -134,7 +134,7 @@ resource "aws_instance" "github_runner" {
     --name github-runner-1 \
     --work _work
 
-  
+  # sudo ./run.sh
 
   # Create systemd service
   cat <<EOL >/etc/systemd/system/github-runner.service
@@ -145,8 +145,8 @@ resource "aws_instance" "github_runner" {
   [Service]
   Type=simple
   User=ec2-user
-  WorkingDirectory=$(pwd)/actions-runner
-  ExecStart=$(pwd)/actions-runner/run.sh
+  WorkingDirectory=%h/actions-runner
+  ExecStart=./run.sh
   Restart=always
 
   [Install]
