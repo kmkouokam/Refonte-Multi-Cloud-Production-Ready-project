@@ -91,10 +91,10 @@ resource "aws_instance" "github_runner" {
   user_data = <<-EOF
               #!/bin/bash
               set -e
-              dnf update -y
+              yum update -y
 
               #Install required tools 
-              dnf install -y git unzip jq curl icu tar
+              yum install -y git unzip jq curl icu tar
                
 
               
@@ -102,7 +102,7 @@ resource "aws_instance" "github_runner" {
                
 
               #Install Docker
-                dnf install -y docker docker-buildx-plugin docker-compose-plugin
+                yum install -y docker docker-buildx-plugin docker-compose-plugin
 
                 sudo systemctl enable  docker
                 sudo systemctl start docker
