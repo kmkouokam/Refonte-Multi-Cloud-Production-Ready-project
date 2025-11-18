@@ -105,8 +105,8 @@ resource "aws_instance" "github_runner" {
 
   # Install AWS CLI v2
   sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip awscliv2.zip
-  ./aws/install
+  sudo unzip awscliv2.zip
+  sudo ./aws/install
 
   # Install kubectl
   sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -117,22 +117,24 @@ resource "aws_instance" "github_runner" {
   sudo aws eks update-kubeconfig --name ${var.eks_cluster_name} --region ${var.aws_region}
 
   # Install GitHub Actions Runner
-  sudo mkdir -p /home/ec2-user/actions-runner
-  sudo cd /home/ec2-user/actions-runner
+  sudo mkdir actions-runner
+  sudo cd actions-runner
 
   sudo curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
-  sudo tar xzf actions-runner-linux-x64-2.329.0.tar.gz
+  sudo tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
 
-  sudo chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
-  sudo chmod -R u+rwx /home/ec2-user/actions-runner
+  sudo chown -R ec2-user:ec2-user actions-runner
+  sudo chmod -R u+rwx actions-runner
 
   # Register runner (replace with actual token)
-  sudo -u ec2-user ./config.sh --unattended \
+  sudo  ./config.sh --unattended \
     --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
     --token ${var.github_runner_token} \
     --labels self-hosted,linux,vpc-runner \
     --name github-runner-1 \
     --work _work
+
+  
 
   # Create systemd service
   cat <<EOL >/etc/systemd/system/github-runner.service
@@ -143,8 +145,8 @@ resource "aws_instance" "github_runner" {
   [Service]
   Type=simple
   User=ec2-user
-  WorkingDirectory=/home/ec2-user/actions-runner
-  ExecStart=/home/ec2-user/actions-runner/run.sh
+  WorkingDirectory=$(pwd)/actions-runner
+  ExecStart=$(pwd)/actions-runner/run.sh
   Restart=always
 
   [Install]
