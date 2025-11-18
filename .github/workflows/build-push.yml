@@ -1,4 +1,4 @@
-name: Build and Push Flask App Image
+name: Build and Push Flask App Image  #
 
 on:
   push:
