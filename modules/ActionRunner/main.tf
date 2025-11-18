@@ -91,26 +91,18 @@ resource "aws_instance" "github_runner" {
   user_data = <<-EOF
               #!/bin/bash
               set -e
-              yum update -y
+              dnf update -y
 
               #Install required tools 
-              yum install -y git unzip jq curl icu tar
-               
-
-              
-
-               
+              dnf install -y git unzip jq curl icu tar
+                             
 
               #Install Docker
-                yum install -y docker docker-buildx-plugin docker-compose-plugin
+                dnf install -y docker docker-buildx-plugin docker-compose-plugin
 
                 sudo systemctl enable  docker
                 sudo systemctl start docker
                 usermod -aG docker ec2-user
-
-
-
-
 
               # Install AWS CLI v2
               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -126,41 +118,48 @@ resource "aws_instance" "github_runner" {
               # Configure kubeconfig for EKS
               aws eks update-kubeconfig --name ${var.eks_cluster_name} --region ${var.aws_region}
 
+              # ------------------------------
               # Install GitHub Actions Runner
-              mkdir /home/ec2-user/actions-runner && cd /home/ec2-user/actions-runner
+              # ------------------------------
+              mkdir -p /home/ec2-user/actions-runner
 
-              curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
-              echo "194f1e1e4bd02f80b7e9633fc546084d8d4e19f3928a324d512ea53430102e1d  actions-runner-linux-x64-2.329.0.tar.gz" | shasum -a 256 -c
+              curl -o /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz \
+              -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
+
+              echo "194f1e1e4bd02f80b7e9633fc546084d8d4e19f3928a324d512ea53430102e1d  /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz" | sha256sum --check
 
 
               # Extract the installer
-              tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
+              tar xzf /home/ec2-user/actions-runner/actions-runner-linux-x64-2.329.0.tar.gz -C /home/ec2-user/actions-runner
                sudo chown -R ec2-user:ec2-user /home/ec2-user/actions-runner
                sudo chmod -R u+rwx /home/ec2-user/actions-runner
 
-               # Register runner non-interactively
-               sudo -u ec2-user ./config.sh --unattended \
-               --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
-               --token ${var.github_runner_token} \
-               --labels self-hosted,linux,vpc-runner \
+               
+              # ------------------------------
+              # Register runner
+              # ------------------------------
+              sudo -u ec2-user /home/ec2-user/actions-runner/config.sh --unattended \
+              --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
+              --token ${var.github_runner_token} \
+              --labels self-hosted,linux,vpc-runner \
               --name github-runner-1 \
-               --work _work
+              --work _work
 
 
               # Create systemd service to run the runner continuously
               cat <<EOL | sudo tee /etc/systemd/system/github-runner.service
-[Unit]
-Description=GitHub Actions Runner
-After=network.target
-[Service]
-Type=simple
-User=ec2-user
-WorkingDirectory=/home/ec2-user/actions-runner
-ExecStart=/home/ec2-user/actions-runner/run.sh
-Restart=always
-[Install]
-WantedBy=multi-user.target
-EOL
+              [Unit]
+              Description=GitHub Actions Runner
+              After=network.target
+              [Service]
+              Type=simple
+              User=ec2-user
+              WorkingDirectory=/home/ec2-user/actions-runner
+              ExecStart=/home/ec2-user/actions-runner/run.sh
+              Restart=always
+              [Install]
+              WantedBy=multi-user.target
+              EOL
 
               sudo systemctl daemon-reload
               sudo systemctl enable github-runner
