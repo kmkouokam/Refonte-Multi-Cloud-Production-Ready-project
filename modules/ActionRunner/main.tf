@@ -18,6 +18,34 @@ resource "aws_iam_role" "github_runner_role" {
   })
 }
 
+
+resource "aws_iam_role_policy" "github_runner_ecr_policy" {
+  name = "github-runner-ecr-policy"
+  role = aws_iam_role.github_runner_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+
+
 resource "aws_iam_role_policy_attachment" "eks_access" {
   role       = aws_iam_role.github_runner_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
@@ -116,7 +144,27 @@ resource "aws_instance" "github_runner" {
   sudo mv kubectl /usr/local/bin/
 
   # Configure kubeconfig for EKS
-  sudo aws eks update-kubeconfig --name ${var.eks_cluster_name} --region ${var.aws_region}
+   aws eks update-kubeconfig --name ${var.eks_cluster_name} --region ${var.aws_region}
+   sudo yum install -y amazon-ecr-credential-helper
+   sudo mkdir -p /home/ec2-user/.docker
+   sudo chown -R ec2-user:ec2-user /home/ec2-user/.docker
+   sudo chmod 700 /home/ec2-user/.docker
+   cat > /home/ec2-user/.docker/config.json <<JSON
+   {
+    "credsStore": "ecr-login"
+   }
+   JSON
+   
+
+
+  sudo  mkdir -p /home/ec2-user/.ecr
+  sudo chown -R ec2-user:ec2-user /home/ec2-user/.ecr
+  sudo chmod 700 /home/ec2-user/.ecr
+
+
+  aws ecr get-login-password --region $AWS_REGION | \
+  docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
 
   # Install GitHub Actions Runner
   sudo mkdir actions-runner
@@ -130,7 +178,7 @@ resource "aws_instance" "github_runner" {
   sudo chmod -R u+rwx ../actions-runner
 
   # Register runner (replace with actual token)
-   ./config.sh --unattended \
+  ./config.sh --unattended \
     --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
     --token ${var.github_runner_token} \
     --labels self-hosted,linux,vpc-runner \
