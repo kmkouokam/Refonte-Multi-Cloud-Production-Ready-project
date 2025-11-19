@@ -96,7 +96,9 @@ resource "aws_instance" "github_runner" {
   sudo dnf update -y
 
   # Install required tools
-  sudo dnf install -y git unzip jq curl icu tar docker libicu
+  sudo dnf install -y git unzip jq curl tar docker  
+  sudo dnf install -y libicu libicu-devel
+  sudo dnf install -y icu
 
   # Start Docker
   sudo systemctl enable docker
@@ -123,11 +125,12 @@ resource "aws_instance" "github_runner" {
   sudo curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
   sudo tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
 
-  sudo chown -R ec2-user:ec2-user actions-runner
-  sudo chmod -R u+rwx actions-runner
+  sudo chown -R ec2-user:ec2-user .
+
+  sudo chmod -R u+rwx ../actions-runner
 
   # Register runner (replace with actual token)
-  sudo  ./config.sh --unattended \
+   ./config.sh --unattended \
     --url https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project \
     --token ${var.github_runner_token} \
     --labels self-hosted,linux,vpc-runner \
@@ -147,6 +150,7 @@ resource "aws_instance" "github_runner" {
   User=ec2-user
   WorkingDirectory=%h/actions-runner
   ExecStart=./run.sh
+  Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
   Restart=always
 
   [Install]
