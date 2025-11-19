@@ -287,3 +287,4 @@ jobs:
 # kubectl apply -f k8s/secret-aws.yaml
 
 ##### end of alternative steps #####
+#
