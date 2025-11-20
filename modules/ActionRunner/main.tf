@@ -124,7 +124,7 @@ resource "aws_instance" "github_runner" {
   sudo dnf update -y
 
   # Install required tools
-  sudo dnf install -y git unzip jq curl tar docker  
+  sudo dnf install -y git unzip jq curl tar docker --allowerasing 
   sudo dnf install -y libicu libicu-devel
   sudo dnf install -y icu
 
@@ -151,7 +151,7 @@ resource "aws_instance" "github_runner" {
    sudo chmod 700 /home/ec2-user/.docker
    cat > /home/ec2-user/.docker/config.json <<JSON
    {
-    "credsStore": "ecr-login"
+     "auths": {}
    }
    JSON
    
@@ -162,8 +162,8 @@ resource "aws_instance" "github_runner" {
   sudo chmod 700 /home/ec2-user/.ecr
 
 
-  aws ecr get-login-password --region $AWS_REGION | \
-  docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+  aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin 435329769674.dkr.ecr.us-east-1.amazonaws.com
 
 
   # Install GitHub Actions Runner
@@ -173,9 +173,32 @@ resource "aws_instance" "github_runner" {
   sudo curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
   sudo tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
 
-  sudo chown -R ec2-user:ec2-user .
+   sudo chown -R ec2-user:ec2-user ./actions-runner
+    
+  sudo chmod -R u+rwx ./actions-runner
+   
+   # to set _diag folder
+   sudo mkdir -p /home/ec2-user/_diag
+   sudo chown -R ec2-user:ec2-user ./_diag
+   sudo  chmod -R u+rwx ./_diag
+   # Make sure ec2-user owns all runner files
+    sudo chown -R ec2-user:ec2-user .
+    # Make runner binaries executable
+    chmod +x ./bin/*
 
-  sudo chmod -R u+rwx ../actions-runner
+
+   #to set _work folder 
+   sudo mkdir -p ./actions-runner/_work
+   sudo chown -R ec2-user:ec2-user ./actions-runner/_work
+   sudo chmod -R u+rwx ./actions-runner/_work
+
+   # Ensure runner binaries are executable
+   sudo chmod +x ./actions-runner
+
+  #Ensure ec2-user can write to its home
+  sudo chown -R ec2-user:ec2-user /home/ec2-user
+  chmod -R u+rwX /home/ec2-user
+
 
   # Register runner (replace with actual token)
   ./config.sh --unattended \
@@ -185,7 +208,9 @@ resource "aws_instance" "github_runner" {
     --name github-runner-1 \
     --work _work
 
-  # sudo ./run.sh
+  #
+   nohup ./run.sh > runner.log 2>&1 &
+
 
   # Create systemd service
   cat <<EOL >/etc/systemd/system/github-runner.service
