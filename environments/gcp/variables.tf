@@ -1,7 +1,7 @@
 variable "gcp_region" {
   description = "The region to deploy resources in"
   type        = string
-  default     = "europe-west1"
+  default     = "us-east4"
 }
 
 variable "gcp_service_account_email" {

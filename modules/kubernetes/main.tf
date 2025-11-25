@@ -121,21 +121,7 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
   ]
 }
 
-# resource "kubernetes_config_map" "aws_auth_patch" {
-#   depends_on = [module.k8s] # wait for cluster to exist
-#   metadata {
-#     name      = "aws-auth"
-#     namespace = "kube-system"
-#   }
-
-#   data = {
-#     mapRoles = jsonencode([{
-#       rolearn  = module.kubernetes.node_role_arn
-#       username = "system:node:{{EC2PrivateDNSName}}"
-#       groups   = ["system:bootstrappers", "system:nodes"]
-#     }])
-#   }
-# }
+ 
 
 
 resource "aws_eks_cluster" "aws_eks_cluster" {
@@ -236,11 +222,11 @@ resource "google_container_cluster" "gcp_cluster" {
     channel = "REGULAR"
   }
 
-  #  ip_allocation_policy {
-  #   auto_create_subnetworks = true   # enable GKE IPAM
-  #   cluster_secondary_range_name  = null
-  #   services_secondary_range_name = null
-  # }
+   timeouts {
+     create = "30m"
+    update = "30m"
+    delete = "20m"
+   }
 
   ip_allocation_policy {}
 
@@ -266,7 +252,7 @@ resource "google_container_node_pool" "primary_nodes" {
   node_config {
     service_account = google_service_account.gke_sa[0].email
     machine_type    = "n2-standard-2"
-    disk_size_gb    = 14
+    disk_size_gb    = 11
     disk_type       = "pd-balanced"
 
     oauth_scopes = [
@@ -283,6 +269,12 @@ resource "google_container_node_pool" "primary_nodes" {
   management {
     auto_repair  = true
     auto_upgrade = true
+  }
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "40m"
   }
 
   depends_on = [google_container_cluster.gcp_cluster, google_service_account.gke_sa]

@@ -19,6 +19,9 @@ provider "kubernetes" {
     command     = "aws"
     args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
   }
+
+     
+   
 }
 
 # ----------------

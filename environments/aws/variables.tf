@@ -110,7 +110,7 @@ variable "gcp_project_id" {
 variable "gcp_region" {
   description = "The region to deploy resources in"
   type        = string
-  default     = "europe-west1"
+  default     = "us-east4"
 }
 
 
@@ -145,17 +145,13 @@ variable "gcp_web_fw_name" {
 
 }
 
-# variable "terraform_assume_role_arn" {
-#   description = "ARN of the IAM role to assume for Terraform operations"
-#   type        = string
-#   default     = "arn:aws:iam::435329769674:role/TerraformRole"
+variable "github_runner_token" {
+  default     = "AWPCBFZU4XG543HYDUODU2TJECTAQ"
+  description = "github token"
+} 
 
-# }
-
-
-
-# variable "aws_db_endpoint" {
-#   type = string
-# }
-
-
+variable "extra_role_arns" { 
+  type = list(string) 
+default = [] 
+description = "List of extra IAM role ARNs to attach to the GitHub Actions runner."
+}

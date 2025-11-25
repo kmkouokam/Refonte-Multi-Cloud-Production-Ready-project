@@ -10,7 +10,7 @@ variable "gcp_project_id" {
 
 variable "gcp_region" {
   type    = string
-  default = "europe-west1"
+  default = "us-east4"
 }
 
 variable "gcp_network_self_link" {

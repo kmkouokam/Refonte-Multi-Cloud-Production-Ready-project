@@ -65,7 +65,7 @@ variable "aws_region" {
 variable "gcp_region" {
   description = "Region for GCP resources"
   type        = string
-  default     = "europe-west1"
+  default     = "us-east4"
 }
 
 variable "gcp_vpc_self_link" {

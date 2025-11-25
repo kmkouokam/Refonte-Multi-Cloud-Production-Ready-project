@@ -1,16 +1,18 @@
- variable "aws_vpc_id" {
-   description = "value of aws vpc id"
-   type = string
- }
+variable "aws_vpc_id" {
+  description = "value of aws vpc id"
+  type        = string
+}
+
+ 
 
 variable "ssh_key" {
   description = "The SSH key name to access the GitHub Actions runner EC2 instance"
   type        = string
-  default = "virg.keypair"
+  default     = "virg.keypair"
 }
 
 variable "github_runner_token" {
-  default = "AWPCBF36SYJFZPBS32Q2JYDJD4WKW"
+  type = string
   description = "github token"
 }
 
@@ -23,13 +25,28 @@ variable "aws_region" {
 
 variable "eks_cluster_name" {
   description = "cluster name"
-  default = "multi-cloud-cluster"
-} 
+  default     = "multi-cloud-cluster"
+}
 
 variable "aws_public_subnet_ids" {
   description = "CIDR blocks for AWS public subnets"
-  type = list(string)
+  type        = list(string)
 }
 
-     
+variable "aws_db_password_arn" {
+  description = "ARN of the database password secret from Security module"
+  type        = string
+}
+
+variable "extra_role_arns" {
+  description = "List of extra IAM role ARNs to attach to the GitHub Actions runner."
+  type        = list(string)
+  default     = []
+}
+
+variable "eks_node_role_arn" {
+  description = "The ARN of the EKS node IAM role."
+  type        = string
+}
+
 

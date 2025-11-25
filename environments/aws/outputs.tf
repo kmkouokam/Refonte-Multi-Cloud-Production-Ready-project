@@ -59,45 +59,10 @@ output "aws_web_sg_id" {
   value = module.vpc[0].aws_web_sg_id
 }
 
-# output "db_endpoint" {
-#   value = module.aws_db[0].db_endpoint
-# }
-
-# -------------------------
-# AWS Helm Outputs
-# -------------------------
-
-# output "flask_app_release_name_aws" {
-#   value       = helm_release.flask_app_aws[0].name
-#   description = "Helm release name for the Flask app on AWS"
-# }
-
-# output "flask_app_namespace_aws" {
-#   value       = helm_release.flask_app_aws[0].namespace
-#   description = "Kubernetes namespace for the Flask app on AWS"
-# }
-
-# output "flask_app_status_aws" {
-#   value       = helm_release.flask_app_aws[0].status
-#   description = "Status of the Flask app Helm release on AWS"
-# }
-
-
-# output "flask_app_url_aws" {
-#   description = "Public URL of the Flask app on AWS"
-#   value = try(
-#     "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}",
-#     null
-#   )
-#   depends_on = [data.kubernetes_service.flask_app_aws]
-# }
-
-
-# Flask App Service LoadBalancer Hostname (AWS EKS)
-# output "flask_app_url_aws" {
-#   description = "Public URL of the Flask app on AWS"
-#   value       = "http://${data.kubernetes_service.flask_app_aws.status[0].load_balancer[0].ingress[0].hostname}"
-# }
+output "github_runner_role_arn" {
+  description = "The ARN of the IAM role for the GitHub Actions runner."
+  value       = module.actionrunner.runner_role_arn
+}
 
 # Output the IAM role ARN
 output "terraform_iam_role_arn" {

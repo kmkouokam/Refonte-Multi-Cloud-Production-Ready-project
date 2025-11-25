@@ -40,7 +40,7 @@ variable "name_suffix" {
 variable "gcp_region" {
   description = "GCP region to deploy resources"
   type        = string
-  default     = "europe-west1"
+  default     = "us-east4"
 
 }
 

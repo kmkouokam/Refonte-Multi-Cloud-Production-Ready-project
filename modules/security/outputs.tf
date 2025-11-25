@@ -29,6 +29,11 @@ output "aws_db_password" {
   sensitive = true
 }
 
+output "aws_db_password_arn" {
+   value = local.is_aws && length(aws_secretsmanager_secret.db_password) > 0 ? aws_secretsmanager_secret.db_password[0].arn : null
+  description = "ARN of the database password secret"
+}
+
 # GCP
 # output "gcp_db_password" {
 #   description = "GCP Secret Manager DB password (decoded)"

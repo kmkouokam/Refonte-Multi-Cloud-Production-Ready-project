@@ -13,7 +13,7 @@ variable "db_host" {
 variable "gcp_region" {
   description = "The GCP region to deploy resources in"
   type        = string
-  default     = "europe-west1"
+  default     = "us-east4"
 }
 variable "gcp_credentials_file" {
   description = "Path to the GCP credentials file"

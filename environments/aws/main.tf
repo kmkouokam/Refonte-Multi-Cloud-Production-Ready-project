@@ -109,14 +109,6 @@ module "vpc" {
 
 }
 
-module "actiontunner" {
-  source = "../../modules/ActionRunner"
-  aws_vpc_id = module.vpc[0].aws_vpc_id
-  aws_public_subnet_ids = module.vpc[0].aws_public_subnet_ids
-  aws_region = var.aws_region
-  eks_cluster_name = var.cluster_name
-  ssh_key = var.ssh_key
-   }
 
 
 # Security module
@@ -181,14 +173,53 @@ module "k8s" {
   cloud_provider = var.cloud_provider
   cluster_name   = var.cluster_name
   aws_region     = var.aws_region
-
+    
   public_subnet_ids = module.vpc[0].aws_private_subnet_ids
   gcp_project_id    = var.gcp_project_id
-
+   
   depends_on = [module.vpc]
 
 
 }
+
+
+module "bootstrap" {
+  source         = "../../bootstrap"
+  cluster_name  = var.cluster_name
+  eks_endpoint = module.k8s[0].eks_endpoint
+  eks_ca_certificate = module.k8s[0].eks_ca_certificate
+  runner_role_arn = module.actionrunner.runner_role_arn
+  eks_node_role_arn = module.k8s[0].eksnode_role_arn
+   extra_role_arns = [ 
+    
+    aws_iam_role.github_actions_role.arn,
+    module.k8s[0].node_role_arn
+        
+    ]
+
+
+  depends_on = [module.k8s,
+   module.aws_db, 
+   module.aws_security
+   ]
+}
+
+
+
+module "actionrunner" {
+  source = "../../modules/ActionRunner"
+  aws_vpc_id = module.vpc[0].aws_vpc_id
+  aws_public_subnet_ids = module.vpc[0].aws_public_subnet_ids
+  aws_region = var.aws_region
+  eks_cluster_name = var.cluster_name
+  ssh_key = var.ssh_key
+  aws_db_password_arn = module.aws_security[0].aws_db_password_arn
+   eks_node_role_arn = module.k8s[0].eksnode_role_arn
+  github_runner_token = var.github_runner_token 
+  # depends_on = [ module.k8s,
+  # module.bootstrap
+  #  ]
+   }
 
  
 
