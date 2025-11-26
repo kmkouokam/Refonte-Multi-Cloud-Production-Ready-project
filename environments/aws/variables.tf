@@ -146,7 +146,7 @@ variable "gcp_web_fw_name" {
 }
 
 variable "github_runner_token" {
-  default     = "AWPCBFZU4XG543HYDUODU2TJECTAQ"
+  default     = "AWPCBF7K4ZRXNOGV53XICLDJE4WY6"
   description = "github token"
 } 
 

@@ -14,6 +14,13 @@ variable "ssh_key" {
 variable "github_runner_token" {
   type = string
   description = "github token"
+  
+}
+
+variable "runner_instance_type" {
+  description = "The instance type for the GitHub Actions runner EC2 instance"
+  type        = string
+  default     = "t3.medium"
 }
 
 

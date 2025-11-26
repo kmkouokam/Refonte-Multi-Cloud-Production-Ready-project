@@ -134,6 +134,14 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
     subnet_ids = var.public_subnet_ids
   }
 
+  enabled_cluster_log_types = [
+    "api",
+    "audit",
+    "authenticator",
+    "controllerManager",
+    "scheduler"
+  ]
+
   depends_on = [aws_iam_role.eks_cluster_role, aws_iam_role.eks_node_role]
 
 }
@@ -252,7 +260,7 @@ resource "google_container_node_pool" "primary_nodes" {
   node_config {
     service_account = google_service_account.gke_sa[0].email
     machine_type    = "n2-standard-2"
-    disk_size_gb    = 11
+    disk_size_gb    = 19
     disk_type       = "pd-balanced"
 
     oauth_scopes = [

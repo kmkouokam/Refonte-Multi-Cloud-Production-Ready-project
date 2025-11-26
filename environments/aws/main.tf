@@ -188,12 +188,13 @@ module "bootstrap" {
   cluster_name  = var.cluster_name
   eks_endpoint = module.k8s[0].eks_endpoint
   eks_ca_certificate = module.k8s[0].eks_ca_certificate
-  runner_role_arn = module.actionrunner.runner_role_arn
-  eks_node_role_arn = module.k8s[0].eksnode_role_arn
+  github_runner_role_arn = module.actionrunner.github_runner_role_arn
+  eks_node_role_arn = module.k8s[0].eks_node_role_arn
+  eks_token = data.aws_eks_cluster_auth.eks.token
    extra_role_arns = [ 
     
     aws_iam_role.github_actions_role.arn,
-    module.k8s[0].node_role_arn
+    module.k8s[0].eks_node_role_arn
         
     ]
 
@@ -214,11 +215,9 @@ module "actionrunner" {
   eks_cluster_name = var.cluster_name
   ssh_key = var.ssh_key
   aws_db_password_arn = module.aws_security[0].aws_db_password_arn
-   eks_node_role_arn = module.k8s[0].eksnode_role_arn
+   eks_node_role_arn = module.k8s[0].eks_node_role_arn
   github_runner_token = var.github_runner_token 
-  # depends_on = [ module.k8s,
-  # module.bootstrap
-  #  ]
+   depends_on = [ module.k8s, module.vpc, module.aws_security, module.aws_db ]
    }
 
  

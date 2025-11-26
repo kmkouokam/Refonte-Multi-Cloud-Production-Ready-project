@@ -28,6 +28,11 @@ resource "aws_iam_role_policy_attachment" "terraform_admin" {
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
+
+###############################################
+# Read Cluster
+###############################################
+
 data "aws_eks_cluster" "eks" {
   name       = var.cluster_name
   depends_on = [module.k8s]
@@ -40,7 +45,16 @@ provider "kubernetes" {
   alias                  = "bootstrap"
   host                   = data.aws_eks_cluster.eks.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.eks.token
+  # token                  = data.aws_eks_cluster_auth.eks.token
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args = [
+      "eks", "get-token",
+      "--cluster-name", var.cluster_name,
+      "--region", var.aws_region
+    ]
+  }
 
 }
 
@@ -59,7 +73,7 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
   data = {
     mapRoles = yamlencode([
       {
-        rolearn  = module.k8s[0].node_role_arn
+        rolearn  = module.k8s[0].eks_node_role_arn
         username = "system:node:{{EC2PrivateDNSName}}"
         groups   = ["system:bootstrappers", "system:nodes"]
       },

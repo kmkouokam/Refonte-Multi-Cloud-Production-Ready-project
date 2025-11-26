@@ -2,7 +2,7 @@ terraform {
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.11.0"
+      version = "~> 2.21.0"
       # configuration_aliases = [kubernetes.aws]
     }
     helm = {

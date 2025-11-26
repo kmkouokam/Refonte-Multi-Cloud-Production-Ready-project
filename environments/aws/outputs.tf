@@ -61,7 +61,7 @@ output "aws_web_sg_id" {
 
 output "github_runner_role_arn" {
   description = "The ARN of the IAM role for the GitHub Actions runner."
-  value       = module.actionrunner.runner_role_arn
+  value       = module.actionrunner.github_runner_role_arn
 }
 
 # Output the IAM role ARN
@@ -69,5 +69,10 @@ output "terraform_iam_role_arn" {
   value = aws_iam_role.terraform.arn
 }
 
+output "eks_token" {
+  value = data.aws_eks_cluster_auth.eks.token
+}
+
+ 
 
 
