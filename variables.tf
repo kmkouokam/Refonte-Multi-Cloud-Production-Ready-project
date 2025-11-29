@@ -4,6 +4,19 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "github_runner_role_arn" {
+  description = "The ARN of the IAM role for the GitHub Actions runner."
+  type        = string
+  default = null
+  
+}
+
+variable "eks_node_role_arn" {
+  description = "The ARN of the IAM role for the EKS node group."
+  type        = string
+  default     = null
+}
+
 
 variable "db_host" {
   type    = string

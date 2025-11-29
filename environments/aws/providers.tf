@@ -20,10 +20,7 @@ provider "kubernetes" {
     args        = ["eks", "get-token", "--cluster-name", var.cluster_name,
       "--region", var.aws_region
     ]
-  }
-
-   
-   
+  }  
 }
 
 # ----------------

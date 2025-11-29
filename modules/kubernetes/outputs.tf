@@ -49,3 +49,8 @@ output "eks_node_role_arn" {
   description = "ARN of the EKS node IAM role (AWS only)"
 }
 
+output "aws_eks_cluster_id" {
+  value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].id : null
+  description = "ID of the EKS cluster (AWS only)"
+}
+

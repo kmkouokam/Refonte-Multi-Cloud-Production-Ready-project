@@ -1,16 +1,5 @@
 
-locals {
-  is_gcp = var.cloud_provider == "gcp"
-}
-
-module "k8s" {
-  count              = local.is_gcp ? 1 : 0
-  source = "./modules/kubernetes"
-  cloud_provider = "gcp"
-  cluster_name   = var.cluster_name
-  gcp_region     = var.gcp_region
-  gcp_project_id = var.gcp_project_id
-}
+ 
 
 
 module "gcp_env" {
@@ -23,8 +12,8 @@ module "gcp_env" {
   gcp_region           = var.gcp_region
   gcp_project_id       = var.gcp_project_id
   gcp_credentials_file = var.gcp_credentials_file
-  gcp_service_account_email =  module.k8s[0].gcp_service_account_email
-  gcp_service_account_name = module.k8s[0].gke_service_account_name
+  gcp_service_account_email =  module.gcp_env.gcp_service_account_email
+  gcp_service_account_name = module.gcp_env.gke_service_account_name
 
 
 }
@@ -34,8 +23,15 @@ module "aws_env" {
   source            = "./environments/aws"
   gcp_vpc_self_link = module.gcp_env.gcp_vpc_self_link
   aws_region        = var.aws_region
+  github_runner_role_arn = var.github_runner_role_arn
+  eks_node_role_arn = var.eks_node_role_arn
+ 
 
 
+ providers = {
+   kubernetes = kubernetes
+   helm = helm
+ }
 
 
 }

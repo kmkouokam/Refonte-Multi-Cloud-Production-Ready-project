@@ -183,27 +183,34 @@ module "k8s" {
 }
 
 
-module "bootstrap" {
-  source         = "../../bootstrap"
-  cluster_name  = var.cluster_name
-  eks_endpoint = module.k8s[0].eks_endpoint
-  eks_ca_certificate = module.k8s[0].eks_ca_certificate
-  github_runner_role_arn = module.actionrunner.github_runner_role_arn
-  eks_node_role_arn = module.k8s[0].eks_node_role_arn
-  eks_token = data.aws_eks_cluster_auth.eks.token
-   extra_role_arns = [ 
+ 
+# module "bootstrap" {
+#   source         = "../../bootstrap"
+#   cluster_name  = var.cluster_name
+#   eks_endpoint = module.k8s[0].eks_endpoint
+#   eks_ca_certificate = module.k8s[0].eks_ca_certificate
+#   github_runner_role_arn = module.actionrunner.github_runner_role_arn
+#   eks_node_role_arn = module.k8s[0].eks_node_role_arn
+#   eks_token = data.aws_eks_cluster_auth.eks.token
+#   eks_module_dependency = module.k8s[0].aws_eks_cluster_id
+
+#    extra_role_arns = [ 
     
-    aws_iam_role.github_actions_role.arn,
-    module.k8s[0].eks_node_role_arn
+#     aws_iam_role.github_actions_role.arn,
+#     module.k8s[0].eks_node_role_arn
         
-    ]
+#     ]
+#    providers = {
+#     kubernetes = kubernetes
+#     helm       = helm
+#   }
 
-
-  depends_on = [module.k8s,
-   module.aws_db, 
-   module.aws_security
-   ]
-}
+#   depends_on = [module.k8s,
+#    module.aws_db, 
+#    module.aws_security,
+#    null_resource.wait_for_eks
+#    ]
+# }
 
 
 

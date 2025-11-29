@@ -155,3 +155,14 @@ variable "extra_role_arns" {
 default = [] 
 description = "List of extra IAM role ARNs to attach to the GitHub Actions runner."
 }
+
+
+variable "eks_node_role_arn" {
+  description = "ARN of the EKS node IAM role"
+  type        = string
+}
+
+variable "github_runner_role_arn" {
+  description = "The ARN of the IAM role for the GitHub Actions runner."
+  type        = string
+}

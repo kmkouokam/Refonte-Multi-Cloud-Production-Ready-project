@@ -202,5 +202,12 @@ resource "aws_instance" "github_runner" {
     AWS_REGION           = var.aws_region
     ACCOUNT_ID           = data.aws_caller_identity.current.account_id
     GITHUB_RUNNER_TOKEN  = var.github_runner_token
+    EC2_HOME            = "/home/ec2-user" 
+    RUNNER_DIR          = "/home/ec2-user/actions-runner"
+    DIAG_DIR            = "/home/ec2-user/actions-runner/_diag" 
+    DOCKER_HOME = "/home/ec2-user/.docker"
+    RUNNER_VERSION = "2.329.0" 
+    RUNNER_WORK_DIR = "/home/ec2-user/actions-runner/_work"
+    RUNNER_LOG = "/home/ec2-user/actions-runner/_diag/runner.log"
   })
 }

@@ -37,7 +37,7 @@ chmod +x "${RUNNER_DIR}/bin/*"
 # -------------------------------
 # Prepare _diag folder
 # -------------------------------
-DIAG_DIR="/home/ec2-user/_diag"
+DIAG_DIR="/home/ec2-user/actions-runner/_diag"
 sudo mkdir -p "${DIAG_DIR}"
 sudo chown -R ec2-user:ec2-user "${DIAG_DIR}"
 sudo chmod -R u+rwx "${DIAG_DIR}"
@@ -47,7 +47,7 @@ echo "${GITHUB_RUNNER_TOKEN}" > /tmp/runner_token
 chmod 600 /tmp/runner_token
 
 # Basic updates & tools
-yum update -y
+sudo yum update -y
 sudo yum install -y git unzip jq curl tar docker --allowerasing 
 sudo yum install -y libicu libicu-devel
 sudo yum install -y icu
@@ -67,7 +67,7 @@ rm -rf awscliv2.zip aws
 
 # Install kubectl (stable)
 sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
+sudo chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 
 # Install eksctl
@@ -83,10 +83,10 @@ sudo chmod 700 "${DOCKER_HOME}"
 # Login to ECR only if IAM role works
 if aws sts get-caller-identity >/dev/null 2>&1; then
   echo "IAM role detected — logging in to ECR..."
-  aws ecr get-login-password --region "${REGION}" \
+  aws ecr get-login-password --region "${AWS_REGION}" \
     | docker login \
         --username AWS \
-        --password-stdin "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+        --password-stdin "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 else
   echo "Warning: IAM role not available — ECR login skipped."
 fi

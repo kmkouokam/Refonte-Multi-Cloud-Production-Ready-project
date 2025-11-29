@@ -61,13 +61,13 @@ output "gcp_db_host" {
   )
 }
 
-output "gcp_service_account_email" {
-  value = length(module.k8s) > 0 ? module.k8s[0].gcp_service_account_email : null
-}
+# output "gcp_service_account_email" {
+#   value = length(module.k8s) > 0 ? module.k8s[0].gcp_service_account_email : null
+# }
 
-output "gcp_service_account_name" {
-  value = length(module.k8s) > 0 ? module.k8s[0].gke_service_account_name : null
-}
+# output "gcp_service_account_name" {
+#   value = length(module.k8s) > 0 ? module.k8s[0].gke_service_account_name : null
+# }
 
 output "aws_flask_replicas" {
   value       = 2
