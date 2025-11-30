@@ -184,6 +184,16 @@ jobs:
         run: |
           docker logout https://${{ env.GCP_REGION }}-docker.pkg.dev || true
 
+      - name: Ensure Artifact Registry repo exists
+        run: |
+         if ! gcloud artifacts repositories describe my-repo --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+         gcloud artifacts repositories create my-repo \
+         --repository-format=docker \
+         --location=${{ env.GCP_REGION }} \
+         --description="Docker repo for my project"
+         fi
+    
+
       - name: Docker login to GCP Artifact Registry
         run: |
           docker logout https://${{ env.GCP_REGION }}-docker.pkg.dev || true
