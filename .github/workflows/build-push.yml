@@ -117,7 +117,7 @@ jobs:
               \"text\": \"*$JOB* finished with status: *$STATUS*\nRepo: $REPO\nCommit: $COMMIT\"
             }" \
             $SLACK_WEBHOOK_URL
-    #
+    
 
   # ----------------------------------------
   # 2️⃣ GCP JOB
@@ -130,7 +130,7 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
       IMAGE_NAME: flask-app
-      GCP_REGION: us-east4
+      GCP_REGION: ${{ secrets.GCP_REGION }}
 
     steps:
       - name: Checkout code
@@ -154,8 +154,8 @@ jobs:
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v3
         with:
-          cluster_name: my-gcp-cluster-b5dbba4ed347
-          location: europe-west1
+          cluster_name: my-gcp-cluster-e652ce565926
+          location: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Install gke auth plugin
