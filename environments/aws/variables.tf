@@ -165,4 +165,5 @@ variable "eks_node_role_arn" {
 variable "github_runner_role_arn" {
   description = "The ARN of the IAM role for the GitHub Actions runner."
   type        = string
+  
 }

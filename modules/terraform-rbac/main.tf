@@ -35,7 +35,7 @@ resource "aws_iam_role_policy_attachment" "terraform_admin" {
 
 data "aws_eks_cluster" "eks" {
   name       = var.cluster_name
-  depends_on = [module.k8s]
+  depends_on = [var.wait_for_k8s]
 }
 
 # ----------------------------------------
@@ -85,7 +85,7 @@ resource "null_resource" "wait_for_eks" {
   provisioner "local-exec" {
     command = "echo 'Waiting for EKS endpoint...' && sleep 30"
   }
-  depends_on = [module.k8s]
+  depends_on = [var.wait_for_k8s]
 }
 
 # ----------------------------------------
@@ -104,7 +104,7 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
       concat(
         [
           {
-            rolearn  = module.k8s[0].eks_node_role_arn
+            rolearn  = var.eks_node_role_arn
             username = "system:node:{{EC2PrivateDNSName}}"
             groups   = ["system:bootstrappers", "system:nodes"]
           },
@@ -131,7 +131,7 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
   depends_on = [
     aws_iam_role.terraform,
     aws_iam_role_policy_attachment.terraform_admin,
-    module.k8s,
+    var.wait_for_k8s,
     null_resource.wait_for_eks
   ]
 

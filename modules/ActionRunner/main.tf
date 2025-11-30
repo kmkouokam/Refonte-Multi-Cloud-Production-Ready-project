@@ -51,9 +51,9 @@ resource "aws_iam_role_policy" "github_runner_ecr_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid = "ECRAccess"
-        Effect = "Allow"
-        Action = [
+        Sid: "ECRAccess",
+        Effect: "Allow",
+        Action: [
           "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
@@ -63,33 +63,55 @@ resource "aws_iam_role_policy" "github_runner_ecr_policy" {
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload",
           "ecr:ListImages"
-        ]
-        Resource = "*"
+        ],
+        Resource: "*"
       },
       {
-        Sid = "EKSDescribeAndList"
-        Effect = "Allow"
-        Action = [
+        Sid: "EKSDescribe",
+        Effect: "Allow",
+        Action: [
           "eks:DescribeCluster",
-          "eks:DescribeNodegroup",
           "eks:ListClusters",
-          "eks:ListNodegroups",
-          "eks:AccessKubernetesApi"
-        ]
-        Resource = "*"
+          "eks:AccessKubernetesApi",
+          "eks:DescribeClusterVersions",
+          "eks:DescribeNodegroup",
+          "eks:ListNodegroups"
+
+        ],
+        Resource: "*"
       },
       {
-        Sid = "STSGetCaller"
-        Effect = "Allow"
-        Action = [
+        Sid: "STSAssume",
+        Effect: "Allow",
+        Action: [
+          "sts:AssumeRole",
+          "sts:AssumeRoleWithWebIdentity"
+        ],
+        Resource: "*"
+      },
+      {
+        Sid: "STSCaller",
+        Effect: "Allow",
+        Action: [
           "sts:GetCallerIdentity"
-        ]
-        Resource = "*"
+        ],
+        Resource: "*"
+      },
+      {
+        Sid: "EC2Ops",
+        Effect: "Allow",
+        Action: [
+          "ec2:AssociateIamInstanceProfile",
+          "ec2:DescribeInstances",
+          "iam:PassRole"
+        ],
+        Resource: "*"
       }
     ]
   })
 }
 
+ 
 
 # ------------------------------
 # Policy to allow runner role to assume the cluster role

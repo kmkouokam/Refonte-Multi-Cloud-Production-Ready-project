@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+
 
 # Injected from Terraform
 export REGION="${AWS_REGION}"
@@ -32,7 +32,7 @@ sudo chmod -R u+rwx "${RUNNER_DIR}"
 # -------------------------------
 # Make runner binaries executable
 # -------------------------------
-chmod +x "${RUNNER_DIR}/bin/*"
+sudo chmod +x "${RUNNER_DIR}/bin/*"
 
 # -------------------------------
 # Prepare _diag folder
@@ -43,8 +43,8 @@ sudo chown -R ec2-user:ec2-user "${DIAG_DIR}"
 sudo chmod -R u+rwx "${DIAG_DIR}"
 
 # Write GitHub runner token securely
-echo "${GITHUB_RUNNER_TOKEN}" > /tmp/runner_token
-chmod 600 /tmp/runner_token
+sudo echo "${GITHUB_RUNNER_TOKEN}" > /tmp/runner_token
+sudo chmod 600 /tmp/runner_token
 
 # Basic updates & tools
 sudo yum update -y
@@ -59,11 +59,11 @@ sudo usermod -aG docker ec2-user
 
 # Install AWS CLI v2
 sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
+sudo unzip awscliv2.zip
+sudo ./aws/install
 
 # Clean up AWS CLI installer
-rm -rf awscliv2.zip aws
+sudo rm -rf awscliv2.zip aws
 
 # Install kubectl (stable)
 sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -93,7 +93,7 @@ fi
 
 # Install GitHub Actions Runner
 sudo -u ec2-user mkdir -p "${RUNNER_DIR}"
-cd "${RUNNER_DIR}"
+sudo -u ec2-user bash -c "cd ${RUNNER_DIR}"
 
 # -------------------------------
 # Install GitHub Actions Runner
@@ -106,10 +106,10 @@ sudo -u ec2-user tar xzf "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSIO
 
 # Make runner binaries executable
 sudo chown -R ec2-user:ec2-user "${RUNNER_DIR}"
-chmod +x "${RUNNER_DIR}/bin/*"
+sudo chmod +x "${RUNNER_DIR}/bin/*"
 
 #Clean up tar file
-rm -f "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
+sudo rm -f "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
 
 
  

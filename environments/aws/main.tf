@@ -226,7 +226,23 @@ module "actionrunner" {
   github_runner_token = var.github_runner_token 
    depends_on = [ module.k8s, module.vpc, module.aws_security, module.aws_db ]
    }
+ 
 
+module "terraform_rbac" {
+  source = "../../modules/terraform-rbac"
+  project = var.project
+  cluster_name = var.cluster_name 
+  aws_region   = var.aws_region
+  env = var.env
+  eks_node_role_arn = module.k8s[0].eks_node_role_arn
+  github_runner_role_arn = module.actionrunner.github_runner_role_arn
+    wait_for_k8s = module.k8s[0].eks_endpoint
+  extra_role_arns = [ 
+    aws_iam_role.github_actions_role.arn
+  ]
+
+}
+ 
  
 
 
