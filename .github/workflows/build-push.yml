@@ -191,6 +191,8 @@ jobs:
          --repository-format=docker \
          --location=${{ env.GCP_REGION }} \
          --description="Docker repo for my project"
+         echo "Waiting for repo to be ready..."
+         sleep 15
          fi
     
 
