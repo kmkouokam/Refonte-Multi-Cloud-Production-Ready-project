@@ -70,6 +70,23 @@ sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/
 sudo chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 
+# -------------------------------
+# Install ArgoCD (latest stable)
+# -------------------------------
+sudo kubectl create namespace argocd || true
+
+sudo kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Install Argo Rollouts CRDs
+sudo kubectl apply \
+  -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+
+# Wait until ArgoCD pods are ready
+echo "Waiting for ArgoCD pods to be ready..."
+sudo kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
+
+
 # Install eksctl
 sudo curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
