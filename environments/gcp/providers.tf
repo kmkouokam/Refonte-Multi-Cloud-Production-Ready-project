@@ -21,7 +21,7 @@ provider "google" {
   credentials = file("${path.module}/${var.gcp_credentials_file}")
   
 
-  request_timeout = "30m"
+  request_timeout = "120s"
 
   
 }

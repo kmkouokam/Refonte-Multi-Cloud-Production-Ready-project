@@ -2,6 +2,64 @@
 # Terraform Role Based Access Control (RBAC) for AWS / EKS
 ###############################################
 
+#------------------------------
+#  k8s service account for GitHub Runner IAM Role
+#------------------------------
+resource "kubernetes_service_account" "github_runner" {
+  metadata {
+    name      = "github-actions-runner"
+    namespace = "default"
+  }
+}
+
+#------------------------------
+# Cluster Role for Argo Rollouts
+#------------------------------
+
+resource "kubernetes_cluster_role" "argo_rollouts" {
+  metadata {
+    name = "argo-rollouts-role"
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["configmaps", "services", "endpoints", "pods"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+
+  rule {
+    api_groups = ["argoproj.io"]
+    resources  = ["rollouts"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+}
+
+#------------------------------
+# Cluster Role Binding for Argo Rollouts to GitHub Runner Service Account
+#------------------------------
+
+
+resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
+  metadata {
+    name = "argo-rollouts-runner-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.argo_rollouts.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.github_runner.metadata[0].name
+    namespace = kubernetes_service_account.github_runner.metadata[0].namespace
+  }
+}
+
+
+
+
 # ----------------------------------------
 # IAM Role Terraform will use inside EKS
 # ----------------------------------------

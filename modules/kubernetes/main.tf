@@ -232,7 +232,7 @@ resource "google_container_cluster" "gcp_cluster" {
 
    timeouts {
      create = "30m"
-    update = "30m"
+    update = "40m"
     delete = "20m"
    }
 

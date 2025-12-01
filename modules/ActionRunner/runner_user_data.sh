@@ -15,7 +15,7 @@ sudo chmod -R u+rwX "${EC2_HOME}"
 
 
 # GitHub runner token (from Terraform variable)
-GITHUB_RUNNER_TOKEN="${GITHUB_RUNNER_TOKEN}"
+ GITHUB_RUNNER_TOKEN="${GITHUB_RUNNER_TOKEN}"
 RUNNER_DIR="${EC2_HOME}/actions-runner"
 RUNNER_WORK_DIR="${RUNNER_DIR}/_work"
 RUNNER_LOG="${RUNNER_DIR}/runner.log"
@@ -43,7 +43,7 @@ sudo chown -R ec2-user:ec2-user "${DIAG_DIR}"
 sudo chmod -R u+rwx "${DIAG_DIR}"
 
 # Write GitHub runner token securely
-sudo echo "${GITHUB_RUNNER_TOKEN}" > /tmp/runner_token
+sudo echo "${GITHUB_RUNNER_TOKEN}" | sudo tee /tmp/runner_token >/dev/null
 sudo chmod 600 /tmp/runner_token
 
 # Basic updates & tools
@@ -93,7 +93,7 @@ fi
 
 # Install GitHub Actions Runner
 sudo -u ec2-user mkdir -p "${RUNNER_DIR}"
-sudo -u ec2-user bash -c "cd ${RUNNER_DIR}"
+sudo cd "${RUNNER_DIR}"
 
 # -------------------------------
 # Install GitHub Actions Runner
@@ -120,7 +120,7 @@ sudo rm -f "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
 # -------------------------------
 sudo -u ec2-user mkdir -p "${RUNNER_WORK_DIR}"
 sudo chown -R ec2-user:ec2-user "${RUNNER_WORK_DIR}"
-sudo chmod -R u+rwx "${RUNNER_WORK_DIR}"
+sudo chmod -R u+rwx ${RUNNER_WORK_DIR}
 
 
 # Register runner (requires token stored in environment or a secure mechanism).
@@ -128,8 +128,8 @@ sudo chmod -R u+rwx "${RUNNER_WORK_DIR}"
 # Example below expects /tmp/runner_token to be written at deploy time (replace with your secure approach)
 
 if [ -f /tmp/runner_token ]; then
-  RUNNER_TOKEN="$(cat /tmp/runner_token)"
-  rm -f /tmp/runner_token
+  GITHUB_RUNNER_TOKEN="$(cat /tmp/runner_token)"
+  sudo rm -f /tmp/runner_token
 
   # Configure runner as ec2-user
   sudo -u ec2-user "${RUNNER_DIR}/config.sh" --unattended \
