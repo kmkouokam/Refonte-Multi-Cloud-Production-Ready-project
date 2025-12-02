@@ -6,6 +6,7 @@
 #  k8s service account for GitHub Runner IAM Role
 #------------------------------
 resource "kubernetes_service_account" "github_runner" {
+  provider = kubernetes.bootstrap
   metadata {
     name      = "github-actions-runner"
     namespace = "default"
@@ -17,6 +18,7 @@ resource "kubernetes_service_account" "github_runner" {
 #------------------------------
 
 resource "kubernetes_cluster_role" "argo_rollouts" {
+  provider = kubernetes.bootstrap
   metadata {
     name = "argo-rollouts-role"
   }
@@ -40,6 +42,7 @@ resource "kubernetes_cluster_role" "argo_rollouts" {
 
 
 resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
+  provider = kubernetes.bootstrap
   metadata {
     name = "argo-rollouts-runner-binding"
   }

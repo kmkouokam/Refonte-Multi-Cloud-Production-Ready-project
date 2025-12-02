@@ -14,7 +14,7 @@ variable "ssh_key" {
 variable "github_runner_token" {
   type = string
   description = "github token"
-  default = "AWPCBFZCEB3ACD2OUPLHME3JFW4HS"
+  default = "AWPCBFY3WBQ6OI3MPDH5XGDJF4FNK"
 }
 
 variable "runner_instance_type" {

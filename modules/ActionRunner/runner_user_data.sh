@@ -149,7 +149,7 @@ if [ -f /tmp/runner_token ]; then
   sudo rm -f /tmp/runner_token
 
   # Configure runner as ec2-user
-  sudo -u ec2-user "${RUNNER_DIR}/config.sh" --unattended \
+  sudo -u ec2-user "${RUNNER_DIR}/config.sh --unattended \
     --url "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project" \
     --token "${GITHUB_RUNNER_TOKEN}" \
     --labels "self-hosted,linux,vpc-runner" \
