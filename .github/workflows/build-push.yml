@@ -123,7 +123,7 @@ jobs:
   # 2️⃣ GCP JOB
   # ----------------------------------------
   gcp-build-push:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, vpc-runner]
     # needs: aws-build-push   # wait for AWS job to finish before starting GCP job
 
     env:
