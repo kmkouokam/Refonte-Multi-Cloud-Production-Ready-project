@@ -171,7 +171,7 @@ jobs:
             sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
           elif command -v yum >/dev/null 2>&1; then
             sudo yum update -y
-            sudo yum install -y curl gnupg2 ca-certificates
+            sudo yum install -y curl ca-certificates
           else
             echo "No supported package manager found"
             exit 1
