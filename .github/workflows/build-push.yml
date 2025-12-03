@@ -165,7 +165,7 @@ jobs:
 
       - name: Install gke auth plugin
         run: |
-          sudo apt-get update
+          sudo apt-get update -y
           sudo apt-get install apt-transport-https ca-certificates gnupg curl -y
 
           # Add Google Cloud SDK repository
