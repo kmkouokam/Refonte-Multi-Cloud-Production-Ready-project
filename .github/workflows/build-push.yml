@@ -101,8 +101,8 @@ jobs:
       - name: deploy ingress-aws and secret-aws
         run: |
           cd gitop/argocd/k8s
-          kubectl apply -f ingress-aws.yaml .
-          kubectl apply -f secret-aws.yaml .   
+          kubectl apply -f ingress-aws.yaml 
+          kubectl apply -f secret-aws.yaml   
 
         # ----------------------------------------
       #
@@ -307,8 +307,8 @@ jobs:
       - name: deploy ingress-gcp and secret-gcp
         run: |
           cd gitop/argocd/k8s
-          kubectl apply -f ingress-gcp.yaml .
-          kubectl apply -f secret-gcp.yaml .   
+          kubectl apply -f ingress-gcp.yaml 
+          kubectl apply -f secret-gcp.yaml   
 
         # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
