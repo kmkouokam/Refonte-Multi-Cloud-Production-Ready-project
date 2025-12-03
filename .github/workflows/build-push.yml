@@ -98,6 +98,11 @@ jobs:
             echo "No changes to commit"
           fi
 
+      - name: deploy ingress-aws and secret-aws
+        run: |
+          kubectl apply -f argocd/k8s/ingress-aws.yaml
+          kubectl apply -f argocd/k8s/secret-aws.yaml    
+
         # ----------------------------------------
       #
       # 🚨 SLACK NOTIFICATION FOR AWS JOB
@@ -117,7 +122,7 @@ jobs:
               \"text\": \"*$JOB* finished with status: *$STATUS*\nRepo: $REPO\nCommit: $COMMIT\"
             }" \
             $SLACK_WEBHOOK_URL
-   # 
+    
 
   # ----------------------------------------
   # 2️⃣ GCP JOB
@@ -252,6 +257,12 @@ jobs:
           git add flask-app-gcp-rollout.yaml
           git commit -m "Update GCP rollout image $GITHUB_SHA" || true
           git push origin gitop || true
+
+
+      - name: deploy ingress-gcp and secret-gcp
+        run: |
+          kubectl apply -f argocd/k8s/ingress-gcp.yaml
+          kubectl apply -f k8s/secret-gcp.yaml    
 
         # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
