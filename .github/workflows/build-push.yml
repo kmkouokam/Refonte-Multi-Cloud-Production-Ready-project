@@ -202,7 +202,7 @@ jobs:
          sudo rpm --import https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 
          sudo yum clean packages
-          sudo yum install -y google-cloud-sdk
+         sudo yum install -y google-cloud-sdk
           fi
 
          # Install the gke-gcloud-auth-plugin
