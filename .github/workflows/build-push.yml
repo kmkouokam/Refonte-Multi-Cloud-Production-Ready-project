@@ -159,7 +159,7 @@ jobs:
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v3
         with:
-          cluster_name:  my-gcp-cluster-a17150acd92a
+          cluster_name:  my-gcp-cluster-57e88c1af373
           location: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
