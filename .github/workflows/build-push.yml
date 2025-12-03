@@ -100,7 +100,7 @@ jobs:
 
       - name: deploy ingress-aws and secret-aws
         run: |
-          kubectl apply -f k8s/ingress-aws.yaml
+          kubectl apply -f ./argocd/k8s/ingress-aws.yaml
           kubectl apply -f k8s/secret-aws.yaml    
 
         # ----------------------------------------
@@ -304,8 +304,8 @@ jobs:
 
       - name: deploy ingress-gcp and secret-gcp
         run: |
-          kubectl apply -f k8s/ingress-gcp.yaml
-          kubectl apply -f k8s/secret-gcp.yaml    
+          kubectl apply -f ./argocd/k8s/ingress-gcp.yaml
+          kubectl apply -f ./argocd/k8s/secret-gcp.yaml    
 
         # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
