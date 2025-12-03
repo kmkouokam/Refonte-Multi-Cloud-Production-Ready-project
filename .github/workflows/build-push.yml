@@ -100,9 +100,9 @@ jobs:
 
       - name: deploy ingress-aws and secret-aws
         run: |
-          
-          kubectl apply -f k8s/ingress-aws.yaml
-          kubectl apply -f k8s/secret-aws.yaml    
+          cd gitop/argocd/k8s
+          kubectl apply -f ingress-aws.yaml .
+          kubectl apply -f secret-aws.yaml .   
 
         # ----------------------------------------
       #
@@ -197,6 +197,7 @@ jobs:
          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-google-cloud
          EOM
 
+         yum clean packages
           sudo yum install -y google-cloud-sdk
           fi
 
@@ -305,9 +306,9 @@ jobs:
 
       - name: deploy ingress-gcp and secret-gcp
         run: |
-          cd gitop/argocd
-          kubectl apply -f k8s/ingress-gcp.yaml
-          kubectl apply -f k8s/secret-gcp.yaml    
+          cd gitop/argocd/k8s
+          kubectl apply -f ingress-gcp.yaml .
+          kubectl apply -f secret-gcp.yaml .   
 
         # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
