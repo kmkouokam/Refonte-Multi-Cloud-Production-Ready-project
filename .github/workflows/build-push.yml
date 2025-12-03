@@ -197,6 +197,10 @@ jobs:
          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-google-cloud
          EOM
 
+         # Import Google Cloud GPG keys
+         sudo rpm --import https://packages.cloud.google.com/yum/doc/yum-key.gpg
+         sudo rpm --import https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
          sudo yum clean packages
           sudo yum install -y google-cloud-sdk
           fi
