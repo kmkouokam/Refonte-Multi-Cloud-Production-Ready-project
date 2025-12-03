@@ -70,6 +70,19 @@ sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/
 sudo chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 
+# Download latest Linux CLI
+curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+
+# Make it executable
+chmod +x argocd-linux-amd64
+
+# Move to a directory in PATH
+sudo mv argocd-linux-amd64 /usr/local/bin/argocd
+
+# Verify installation
+argocd version
+
+
 # -------------------------------
 # Install ArgoCD (latest stable)
 # -------------------------------

@@ -8,7 +8,7 @@
 resource "kubernetes_service_account" "github_runner" {
   provider = kubernetes.bootstrap
   metadata {
-    name      = "github-actions-runner"
+    name      = "argo-rollouts"
     namespace = "default"
   }
 }
@@ -23,6 +23,7 @@ resource "kubernetes_cluster_role" "argo_rollouts" {
     name = "argo-rollouts-role"
   }
 
+   
   rule {
     api_groups = [""]
     resources  = ["configmaps", "services", "endpoints", "pods"]
@@ -44,7 +45,7 @@ resource "kubernetes_cluster_role" "argo_rollouts" {
 resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
   provider = kubernetes.bootstrap
   metadata {
-    name = "argo-rollouts-runner-binding"
+    name = "argo-rollouts-binding"
   }
 
   role_ref {
@@ -60,6 +61,75 @@ resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
   }
 }
 
+
+#------------------------------
+# Kubernetes Services for AWS Flask App (Active and Preview)
+#------------------------------
+resource "kubernetes_service" "flask_app_aws_active" {
+  provider = kubernetes.bootstrap
+  metadata {
+    name      = "flask-app-aws-active"
+    namespace = "default"
+  }
+
+  spec {
+    selector = { app = "flask-app-aws" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+  }
+}
+
+resource "kubernetes_service" "flask_app_aws_preview" {
+  provider = kubernetes.bootstrap
+  metadata {
+    name      = "flask-app-aws-preview"
+    namespace = "default"
+  }
+
+  spec {
+    selector = { app = "flask-app-aws" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+  }
+}
+
+#------------------------------
+# Kubernetes Services for GCP Flask App (Active and Preview)
+#------------------------------
+
+resource "kubernetes_service" "flask_app_gcp_active" {
+  provider = kubernetes.bootstrap
+  metadata {
+    name      = "flask-app-gcp-active"
+    namespace = "default"
+  }
+  spec {
+    selector = { app = "flask-app-gcp" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+  }
+}
+
+resource "kubernetes_service" "flask_app_gcp_preview" {
+  provider = kubernetes.bootstrap
+  metadata {
+    name      = "flask-app-gcp-preview"
+    namespace = "default"
+  }
+  spec {
+    selector = { app = "flask-app-gcp" }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+  }
+}
 
 
 
