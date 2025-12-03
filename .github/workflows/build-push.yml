@@ -197,7 +197,7 @@ jobs:
          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-google-cloud
          EOM
 
-         yum clean packages
+         sudo yum clean packages
           sudo yum install -y google-cloud-sdk
           fi
 
