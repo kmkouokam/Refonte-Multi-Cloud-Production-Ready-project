@@ -99,10 +99,34 @@ sudo kubectl apply \
 echo "Waiting for ArgoCD pods to be ready..."
 sudo kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
 
+# -------------------------------
+# Install Argo Rollouts kubectl plugin
+# -------------------------------
+sudo curl -sLO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+sudo chmod +x kubectl-argo-rollouts-linux-amd64
+sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+
+
 
 # Install eksctl
 sudo curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
+
+#-------------------------------
+# Sync ArgoCD Applications
+#-------------------------------
+ echo "Syncing AWS ArgoCD app..."
+    argocd app sync flask-app-aws
+
+    echo "Syncing GCP ArgoCD app..."
+    argocd app sync flask-app-gcp
+
+# -------------------------------
+# Verify Argo Rollouts installation
+# -------------------------------
+ echo "Verifying Argo Rollouts installation..."
+ kubectl argo rollouts get rollout flask-app-aws -n default
+ kubectl argo rollouts get rollout flask-app-gcp -n default
 
  
 # Prepare docker home for ec2-user
