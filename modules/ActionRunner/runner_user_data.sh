@@ -112,14 +112,44 @@ sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
 sudo curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
 
+# # -------------------------------
+# # forward ArgoCD server port
+# # -------------------------------
+# kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+# # -------------------------------
+# # Get ArgoCD initial admin password
+# # -------------------------------
+
+# kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode
+
+# # -------------------------------
+# # ssh tunnel to access ArgoCD UI
+# # -------------------------------
+# ssh -i "virg.keypair.pem" -L 8080:localhost:8080 ec2-user@ec2-18-209-47-67.compute-1.amazonaws.com
+
+# # Access ArgoCD UI at:
+# https://localhost:8080
+
+# # -------------------------------
+# # Create ArgoCD Applications for GCP and AWS
+# # -------------------------------
+#  argocd app create flask-app-aws \
+#       --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git \
+#       --path argocd \
+#       --revision gitop \
+#       --dest-server https://kubernetes.default.svc \
+#       --dest-namespace default \
+#       --upsert
+
 #-------------------------------
 # Sync ArgoCD Applications
 #-------------------------------
- echo "Syncing AWS ArgoCD app..."
-    argocd app sync flask-app-aws
+#  echo "Syncing AWS ArgoCD app..."
+#     argocd app sync flask-app-aws
 
-    echo "Syncing GCP ArgoCD app..."
-    argocd app sync flask-app-gcp
+#     echo "Syncing GCP ArgoCD app..."
+#     argocd app sync flask-app-gcp
 
 # -------------------------------
 # Verify Argo Rollouts installation
