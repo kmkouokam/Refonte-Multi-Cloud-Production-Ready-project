@@ -164,29 +164,32 @@ jobs:
           location: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Install gke auth plugin
+      - name: Install Google Cloud SDK
         run: |
-          # Detect package manager
-          if command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get update -y
-            sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-          elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then
-            sudo yum update -y || sudo dnf update -y
-            sudo yum install -y curl ca-certificates || sudo dnf install -y curl ca-certificates
-          else
-            echo "No supported package manager found"
-            exit 1
-          fi
+         # Create safe directory
+         mkdir -p /home/ec2-user/gcloud
+         cd /home/ec2-user/gcloud 
+         # Detect package manager
+         if command -v apt-get >/dev/null 2>&1; then
+          sudo apt-get update -y
+          sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+         elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then
+          sudo yum update -y || sudo dnf update -y
+          sudo yum install -y curl ca-certificates || sudo dnf install -y curl ca-certificates
+         else
+           echo "No supported package manager found"
+          exit 1
+         fi
 
-          # If using apt-get, add Google Cloud SDK via apt repo
-          if command -v apt-get >/dev/null 2>&1; then
-             curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-             echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-             sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-            sudo apt-get update
-            sudo apt-get install -y google-cloud-sdk
-          else
-          # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
+          # If using apt-get, install Google Cloud SDK via apt repo
+         if command -v apt-get >/dev/null 2>&1; then
+           curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+           echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+           sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+           sudo apt-get update
+           sudo apt-get install -y google-cloud-sdk
+         else
+         # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
            curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
            tar -xf google-cloud-cli-linux-x86_64.tar.gz
            sudo ./google-cloud-sdk/install.sh --quiet
@@ -194,12 +197,15 @@ jobs:
            source ~/.bashrc
           fi
 
-          # Install gke plugin
+      - name: Install GKE auth plugin and authenticate to GCP
+        run: |
+         # Install gke plugin
           gcloud components install gke-gcloud-auth-plugin --quiet
 
           # Authenticate to GCP
            echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > gcp-key.json
            gcloud auth activate-service-account --key-file=gcp-key.json --quiet
+  
 
       # - name: Install gke auth plugin
       #   run: |
