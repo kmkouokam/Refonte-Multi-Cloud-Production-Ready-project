@@ -113,7 +113,7 @@ jobs:
 
       - name: Apply Kubernetes Secret
         run: |
-           envsubst < k8s-secret-template-aws.yaml | kubectl apply -f -
+           envsubst < secret-aws.yaml | kubectl apply -f -
 
 
       - name: deploy ingress-aws and secret-aws
@@ -202,7 +202,7 @@ jobs:
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v3
         with:
-          cluster_name:  my-gcp-cluster-f6491c365590
+          cluster_name:  my-gcp-cluster-6ee86b16d771
           location: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
@@ -344,7 +344,7 @@ jobs:
              export BRANCH_NAME="gitop"   # Or dynamically from GitHub Actions
       - name: Apply Kubernetes Secret
         run: |
-           envsubst < k8s-secret-template-gcp.yaml | kubectl apply -f -
+           envsubst < secret-gcp.yaml | kubectl apply -f -
 
             
       - name: deploy ingress-gcp and secret-gcp
