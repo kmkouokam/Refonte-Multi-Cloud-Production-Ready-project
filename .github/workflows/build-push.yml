@@ -113,6 +113,7 @@ jobs:
 
       - name: Apply Kubernetes Secret
         run: |
+           cd gitop/argocd/k8s
            envsubst < secret-aws.yaml | kubectl apply -f -
 
 
@@ -120,7 +121,7 @@ jobs:
         run: |
           cd gitop/argocd/k8s
           kubectl apply -f ingress-aws.yaml 
-          kubectl apply -f secret-aws.yaml   
+          kubectl apply -f service-aws.yaml   
 
 
       - name: Login to ArgoCD
@@ -342,8 +343,11 @@ jobs:
             export DB_HOST=$(gcloud secrets versions access latest --secret="db-host")
              export DB_NAME=$(gcloud secrets versions access latest --secret="db-name")
              export BRANCH_NAME="gitop"   # Or dynamically from GitHub Actions
+
+
       - name: Apply Kubernetes Secret
         run: |
+           cd gitop/argocd/k8s
            envsubst < secret-gcp.yaml | kubectl apply -f -
 
             
@@ -351,7 +355,7 @@ jobs:
         run: |
           cd gitop/argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
-          kubectl apply -f secret-gcp.yaml   
+          kubectl apply -f service-gcp.yaml   
 
 
       - name: Login to ArgoCD
