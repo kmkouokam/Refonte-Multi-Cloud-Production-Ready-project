@@ -117,7 +117,7 @@ jobs:
            envsubst < secret-aws.yaml | kubectl apply -f -
 
 
-      - name: deploy ingress-aws and secret-aws
+      - name: deploy ingress-aws and service-aws
         run: |
           cd gitop/argocd/k8s
           kubectl apply -f ingress-aws.yaml 
@@ -351,7 +351,7 @@ jobs:
            envsubst < secret-gcp.yaml | kubectl apply -f -
 
             
-      - name: deploy ingress-gcp and secret-gcp
+      - name: deploy ingress-gcp and service-gcp
         run: |
           cd gitop/argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
