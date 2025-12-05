@@ -4,6 +4,7 @@
 # Injected from Terraform
 export REGION="${AWS_REGION}"
 export ACCOUNT_ID="${ACCOUNT_ID}"
+export GITHUB_RUNNER_TOKEN="${GITHUB_RUNNER_TOKEN}"
 
 # -------------------------------
 # Ensure ec2-user can write to home directory
@@ -15,7 +16,7 @@ sudo chmod -R u+rwX "${EC2_HOME}"
 
 
 # GitHub runner token (from Terraform variable)
- GITHUB_RUNNER_TOKEN="${GITHUB_RUNNER_TOKEN}"
+  GITHUB_RUNNER_TOKEN="${GITHUB_RUNNER_TOKEN}"
 RUNNER_DIR="${EC2_HOME}/actions-runner"
 RUNNER_WORK_DIR="${RUNNER_DIR}/_work"
 RUNNER_LOG="${RUNNER_DIR}/runner.log"
@@ -34,6 +35,10 @@ sudo chmod -R u+rwx "${RUNNER_DIR}"
 # -------------------------------
 sudo chmod +x "${RUNNER_DIR}/bin/*"
 
+  
+
+
+
 # -------------------------------
 # Prepare _diag folder
 # -------------------------------
@@ -42,9 +47,9 @@ sudo mkdir -p "${DIAG_DIR}"
 sudo chown -R ec2-user:ec2-user "${DIAG_DIR}"
 sudo chmod -R u+rwx "${DIAG_DIR}"
 
-# Write GitHub runner token securely
-sudo echo "${GITHUB_RUNNER_TOKEN}" | sudo tee /tmp/runner_token >/dev/null
-sudo chmod 600 /tmp/runner_token
+# # Write GitHub runner token securely
+ sudo echo "${GITHUB_RUNNER_TOKEN}" | sudo tee /tmp/runner_token >/dev/null
+ sudo chmod 600 /tmp/runner_token
 
 # Basic updates & tools
 sudo yum update -y
@@ -70,94 +75,31 @@ sudo curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/
 sudo chmod +x kubectl
 sudo mv kubectl /usr/local/bin
 
-# Download latest Linux CLI
-curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-
-# Make it executable
-chmod +x argocd-linux-amd64
-
-# Move to a directory in PATH
-sudo mv argocd-linux-amd64 /usr/local/bin/argocd
-
-# Verify installation
-argocd version
-
-
-# -------------------------------
-# Install ArgoCD (latest stable)
-# -------------------------------
-sudo kubectl create namespace argocd || true
-
-sudo kubectl apply -n argocd \
-  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Install Argo Rollouts CRDs
-sudo kubectl apply \
-  -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
-
-# Wait until ArgoCD pods are ready
-echo "Waiting for ArgoCD pods to be ready..."
-sudo kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
-
-# -------------------------------
-# Install Argo Rollouts kubectl plugin
-# -------------------------------
-sudo curl -sLO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
-sudo chmod +x kubectl-argo-rollouts-linux-amd64
-sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
-
-
-
 # Install eksctl
 sudo curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
 
-# # -------------------------------
-# # forward ArgoCD server port
-# # -------------------------------
-# kubectl -n argocd port-forward svc/argocd-server 8080:443
-
-# # -------------------------------
-# # Get ArgoCD initial admin password
-# # -------------------------------
-
-# kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode
-
-# # -------------------------------
-# # ssh tunnel to access ArgoCD UI
-# # -------------------------------
-# ssh -i "virg.keypair.pem" -L 8080:localhost:8080 ec2-user@ec2-18-209-47-67.compute-1.amazonaws.com
-
-# # Access ArgoCD UI at:
-# https://localhost:8080
-
-# # -------------------------------
-# # Create ArgoCD Applications for GCP and AWS
-# # -------------------------------
-#  argocd app create flask-app-aws \
-#       --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git \
-#       --path argocd \
-#       --revision gitop \
-#       --dest-server https://kubernetes.default.svc \
-#       --dest-namespace default \
-#       --upsert
-
-#-------------------------------
-# Sync ArgoCD Applications
-#-------------------------------
-#  echo "Syncing AWS ArgoCD app..."
-#     argocd app sync flask-app-aws
-
-#     echo "Syncing GCP ArgoCD app..."
-#     argocd app sync flask-app-gcp
-
 # -------------------------------
-# Verify Argo Rollouts installation
+# Connect kubectl to EKS cluster
 # -------------------------------
- echo "Verifying Argo Rollouts installation..."
- kubectl argo rollouts get rollout flask-app-aws -n default
- kubectl argo rollouts get rollout flask-app-gcp -n default
+aws eks update-kubeconfig --region us-east-1 --name multi-cloud-cluster
 
+echo "EKS connected. Current context:"
+kubectl config current-context
+
+# Download latest Linux CLI
+ sudo curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+
+ # Make it executable
+sudo chmod +x argocd-linux-amd64
+
+# # Move to a directory in PATH
+ sudo mv argocd-linux-amd64 /usr/local/bin/argocd
+
+# Verify installation
+sudo argocd version
+
+  
  
 # Prepare docker home for ec2-user
 sudo -u ec2-user mkdir -p "${DOCKER_HOME}"
@@ -176,8 +118,8 @@ else
 fi
 
 # Install GitHub Actions Runner
-sudo -u ec2-user mkdir -p "${RUNNER_DIR}"
-sudo cd "${RUNNER_DIR}"
+sudo  mkdir -p "${RUNNER_DIR}"
+ cd "${RUNNER_DIR}"
 
 # -------------------------------
 # Install GitHub Actions Runner
@@ -187,6 +129,9 @@ sudo -u ec2-user curl -o "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSIO
   https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
 sudo -u ec2-user tar xzf "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" -C "${RUNNER_DIR}"
+
+# Clean up downloaded tar.gz file
+ sudo rm actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
 # Make runner binaries executable
 sudo chown -R ec2-user:ec2-user "${RUNNER_DIR}"
@@ -199,33 +144,44 @@ sudo rm -f "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
  
 
 
-# -------------------------------
-# Prepare _work folder inside runner
-# -------------------------------
-sudo -u ec2-user mkdir -p "${RUNNER_WORK_DIR}"
+# # -------------------------------
+# # Prepare _work folder inside runner
+# # -------------------------------
+ ssudo -u ec2-user mkdir -p "${RUNNER_WORK_DIR}"
 sudo chown -R ec2-user:ec2-user "${RUNNER_WORK_DIR}"
 sudo chmod -R u+rwx ${RUNNER_WORK_DIR}
 
-
-# Register runner (requires token stored in environment or a secure mechanism).
-# IMPORTANT: inject the registration token into the instance via SSM parameter or other secure mechanism.
-# Example below expects /tmp/runner_token to be written at deploy time (replace with your secure approach)
+# -------------------------------
+# Read GitHub Runner Token securely
+# -------------------------------
 
 if [ -f /tmp/runner_token ]; then
   GITHUB_RUNNER_TOKEN="$(cat /tmp/runner_token)"
   sudo rm -f /tmp/runner_token
 
-  # Configure runner as ec2-user
-  sudo -u ec2-user "${RUNNER_DIR}/config.sh --unattended \
-    --url "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project" \
-    --token "${GITHUB_RUNNER_TOKEN}" \
-    --labels "self-hosted,linux,vpc-runner" \
-    --name "github-runner-1" \
-    --work "${RUNNER_WORK_DIR}"
+
+# -------------------------------
+# Configure GitHub Runner
+# -------------------------------
+sudo -u ec2-user ./config.sh --unattended \
+  --url "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project" \
+  --token "${GITHUB_RUNNER_TOKEN}" \
+  --labels "self-hosted,linux,vpc-runner" \
+  --name "github-runner-1" \
+  --work "${RUNNER_WORK_DIR}"
 
   # Start runner in background as ec2-user
-  sudo -u ec2-user nohup "${RUNNER_DIR}/run.sh" > "${RUNNER_LOG}" 2>&1 &
-fi
+  sudo -u ec2-user nohup ./run.sh > "${RUNNER_LOG}" 2>&1 &
+ 
+
+echo "Runner started successfully!"
+else
+  echo "Error: Runner token file /tmp/runner_token not found. Runner registration skipped."
+
+
+
+
+
 
 
 # Optional: create a systemd service to manage the runner (uncomment if desired)
