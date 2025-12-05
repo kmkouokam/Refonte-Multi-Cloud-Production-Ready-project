@@ -10,6 +10,8 @@ permissions:
 
 env:
   IMAGE_NAME: flask-app
+  ARGOCD_USERNAME: admin
+  ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
 
 jobs:
   # ----------------------------------------
@@ -27,7 +29,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-       
+            
 
       - name: Check AWS Identity (Self-Hosted Runner)
         run: aws sts get-caller-identity
@@ -79,6 +81,29 @@ jobs:
             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
           kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
 
+      - name: Expose ArgoCD server externally
+        run: |
+          kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+          # Wait until an external IP/DNS is assigned
+           ARGOCD_SERVER_EXTERNAL=""
+          while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
+          echo "Waiting for ArgoCD LoadBalancer IP..."
+           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+           sleep 5
+           done
+           echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
+          echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
+
+
+      - name: Get ArgoCD External Endpoint
+        id: argocd-endpoint
+        run: |
+         EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+         echo "external=$EXTERNAL" >> $GITHUB_OUTPUT
+
+
+   
+
       # Update gitop branch
       - name: Update AWS rollout manifests
         run: |
@@ -124,13 +149,13 @@ jobs:
           kubectl apply -f service-aws.yaml   
 
 
-      - name: Login to ArgoCD
+      
+      - name: ArgoCD Login
         run: |
-          argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
-        env:
-          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-          ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
-          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+         argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
+         --username $ARGOCD_USERNAME \
+         --password $ARGOCD_PASSWORD \
+         --insecure
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
@@ -180,6 +205,7 @@ jobs:
       GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
       IMAGE_NAME: flask-app
       GCP_REGION: ${{ secrets.GCP_REGION }}
+      GCP_CLUSTER_NAME: my-gcp-cluster-6ee86b16d771 
 
     steps:
       - name: Checkout code
@@ -203,7 +229,7 @@ jobs:
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v3
         with:
-          cluster_name:  my-gcp-cluster-6ee86b16d771
+          cluster_name:  ${{ env.GCP_CLUSTER_NAME }}
           location: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
@@ -305,6 +331,16 @@ jobs:
           --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
           -n default || true
 
+      - name: Update kubeconfig for GKE
+        run: |
+         echo "Updating kubeconfig for GKE cluster..."
+          gcloud container clusters get-credentials $GKE_CLUSTER_NAME \
+         --region $GCP_REGION \
+         --project $GCP_PROJECT_ID
+         --cluster $GCP_CLUSTER_NAME
+         echo "Current kubectl context:"
+         kubectl config current-context
+    
 
       # Install ArgoCD on GCP
       - name: Install ArgoCD on GKE
@@ -315,6 +351,24 @@ jobs:
           kubectl apply \
             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
           kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
+
+
+      - name: Expose ArgoCD server externally
+        run: |
+          kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+          # Wait until an external IP/DNS is assigned
+           ARGOCD_SERVER_EXTERNAL=""
+          while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
+          echo "Waiting for ArgoCD LoadBalancer IP..."
+           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+           if [ -z "$ARGOCD_SERVER_EXTERNAL" ]; then
+           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          fi
+           sleep 5
+           done
+           echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
+          echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
 
       # Update gitop branch
       - name: Update GCP rollout manifests
@@ -359,12 +413,11 @@ jobs:
 
 
       - name: Login to ArgoCD
-        run: |
-          argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
-        env:
-          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-          ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
-          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }} 
+        run: | 
+         argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
+         --username $ARGOCD_USERNAME \
+         --password $ARGOCD_PASSWORD \
+         --insecure 
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
