@@ -148,6 +148,25 @@ jobs:
           kubectl apply -f ingress-aws.yaml 
           kubectl apply -f service-aws.yaml   
 
+      - name: Get ArgoCD LoadBalancer Hostname
+        run: |
+         echo "Waiting for ArgoCD LoadBalancer external hostname..."
+
+         for i in {1..30}; do
+         LB_HOST=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+         if [ -n "$LB_HOST" ]; then
+          echo "Found hostname: $LB_HOST"
+          echo "ARGOCD_SERVER_EXTERNAL=$LB_HOST" >> $GITHUB_ENV
+          break
+         fi
+         echo "Still waiting... ($i/30)"
+         sleep 10
+         done
+
+         if [ -z "$LB_HOST" ]; then
+         echo "ERROR: LoadBalancer hostname not found"
+         exit 1
+         fi
 
       
       - name: ArgoCD Login
