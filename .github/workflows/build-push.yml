@@ -429,7 +429,27 @@ jobs:
           cd gitop/argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
           kubectl apply -f service-gcp.yaml   
+      
+      - name: Get ArgoCD LoadBalancer External IP (GCP)
+        run: |
+         echo "Waiting for ArgoCD LoadBalancer external IP..."
 
+         for i in {1..30}; do
+          LB_IP=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+         if [ -n "$LB_IP" ]; then
+          echo "Found IP: $LB_IP"
+          echo "ARGOCD_SERVER_EXTERNAL=$LB_IP" >> $GITHUB_ENV
+         break
+         fi
+         echo "Still waiting... ($i/30)"
+         sleep 10
+         done
+
+         if [ -z "$LB_IP" ]; then
+         echo "ERROR: LoadBalancer external IP not found"
+         exit 1
+    fi
+    
 
       - name: Login to ArgoCD
         run: | 
