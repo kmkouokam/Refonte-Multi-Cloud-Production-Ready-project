@@ -448,7 +448,7 @@ jobs:
          if [ -z "$LB_IP" ]; then
          echo "ERROR: LoadBalancer external IP not found"
          exit 1
-    fi
+         fi
     
 
       - name: Login to ArgoCD
