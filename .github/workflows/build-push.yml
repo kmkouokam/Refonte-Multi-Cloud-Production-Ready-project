@@ -169,9 +169,9 @@ jobs:
       - name: Sync AWS App
         run: |
           argocd app sync flask-app-aws \
-          --grpc-web
-          --server https://argocd-server.argocd.svc.cluster.local
-          --insecure
+          --grpc-web=false \
+           --timeout 300
+           
            
 
 
@@ -180,15 +180,11 @@ jobs:
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-aws \
          --image $IMAGE_URI \
-         --server https://argocd-server.argocd.svc.cluster.local \
-         --insecure \
-         --grpc-web \
+         --grpc-web=false \
          --timeout 60
 
          argocd app sync flask-app-aws \
-           --server https://argocd-server.argocd.svc.cluster.local \
-           --insecure \
-           --grpc-web \
+           --grpc-web=false \
            --timeout 60
    
 
@@ -444,17 +440,15 @@ jobs:
           --revision gitop \
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
-          --insecure \
-          --server https://argocd-server.argocd.svc.cluster.local \
-          --grpc-web \ 
-          --upsert  
+          --grpc-web=false \
+          --upsert \
+          --core  
 
       - name: Sync GCP App
         run: |
          argocd app sync flask-app-gcp
-          --grpc-web \
-          --insecure \
-          --server https://argocd-server.argocd.svc.cluster.local
+          --grpc-web=false \
+           
 
           
 
@@ -463,14 +457,10 @@ jobs:
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-gcp \
            --image $IMAGE_URI \
-           --grpc-web \
-           --insecure \
-           --server https://argocd-server.argocd.svc.cluster.local \
-
+           --grpc-web=false \
+            
          argocd app sync flask-app-gcp --grpc-web \
-           --insecure \
-           --server https://argocd-server.argocd.svc.cluster.local \
-
+            
 
 
         # ----------------------------------------
