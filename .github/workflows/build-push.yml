@@ -175,6 +175,9 @@ jobs:
          --username $ARGOCD_USERNAME \
          --password $ARGOCD_PASSWORD \
          --insecure
+         --grpc-web \
+         --plain-text \
+         --timeout 60
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
@@ -190,6 +193,18 @@ jobs:
         run: |
          argocd app sync flask-app-aws
          argocd app wait flask-app-aws --health --timeout 300    
+
+
+      - name: Update ArgoCD App Image (AWS)
+        run: |
+         echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
+         argocd app set flask-app-aws \
+         --image $IMAGE_URI \
+         --grpc-web \
+         --timeout 60
+
+         argocd app sync flask-app-aws --grpc-web
+   
 
         # ----------------------------------------
       #
@@ -220,11 +235,12 @@ jobs:
     # needs: aws-build-push   # wait for AWS job to finish before starting GCP job
 
     env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
-      IMAGE_NAME: flask-app
-      GCP_REGION: ${{ secrets.GCP_REGION }}
-      GCP_CLUSTER_NAME: my-gcp-cluster-65c5e3b0d327
+     GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+     GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
+     IMAGE_NAME: flask-app
+     GCP_REGION: ${{ secrets.GCP_REGION }}
+     GCP_CLUSTER_NAME: my-gcp-cluster-65c5e3b0d327
+
 
     steps:
       - name: Checkout code
@@ -356,7 +372,6 @@ jobs:
           gcloud container clusters get-credentials $GKE_CLUSTER_NAME \
          --region $GCP_REGION \
          --project $GCP_PROJECT_ID
-         --cluster $GCP_CLUSTER_NAME
          echo "Current kubectl context:"
          kubectl config current-context
     
@@ -451,6 +466,12 @@ jobs:
          exit 1
          fi
     
+       # ---------------------------
+    # Debug — confirm correct ArgoCD endpoint
+    # ---------------------------
+      - name: Debug ArgoCD endpoint
+        run: |
+         echo "ARGOCD_SERVER_EXTERNAL = $ARGOCD_SERVER_EXTERNAL"   
 
       - name: Login to ArgoCD
         run: | 
@@ -458,7 +479,10 @@ jobs:
          argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
          --username $ARGOCD_USERNAME \
          --password $ARGOCD_PASSWORD \
-         --insecure 
+         --insecure \
+         --grpc-web \
+         --plain-text \
+         --timeout 60
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
@@ -474,6 +498,17 @@ jobs:
         run: |
          argocd app sync flask-app-gcp
          argocd app wait flask-app-gcp --health --timeout 300
+
+      - name: Update ArgoCD App Image
+        run: |
+         echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
+         argocd app set flask-app-gcp \
+         --image $IMAGE_URI \
+         --grpc-web
+
+         argocd app sync flask-app-gcp --grpc-web
+
+
 
         # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
