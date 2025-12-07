@@ -148,35 +148,10 @@ jobs:
           kubectl apply -f ingress-aws.yaml 
           kubectl apply -f service-aws.yaml   
 
-      - name: Get ArgoCD LoadBalancer Hostname
-        run: |
-         echo "Waiting for ArgoCD LoadBalancer external hostname..."
-
-         for i in {1..30}; do
-         LB_HOST=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-         if [ -n "$LB_HOST" ]; then
-          echo "Found hostname: $LB_HOST"
-          echo "ARGOCD_SERVER_EXTERNAL=$LB_HOST" >> $GITHUB_ENV
-          break
-         fi
-         echo "Still waiting... ($i/30)"
-         sleep 10
-         done
-
-         if [ -z "$LB_HOST" ]; then
-         echo "ERROR: LoadBalancer hostname not found"
-         exit 1
-         fi
+       
 
       
-      - name: ArgoCD Login
-        run: |
-         argocd login ab85cfc794ddc4f9288e6497ffe0e724-1112744006.us-east-1.elb.amazonaws.com \
-         --username $ARGOCD_USERNAME \
-         --password $ARGOCD_PASSWORD \
-         --insecure
-         --grpc-web \
-         --timeout 60
+       
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
@@ -186,12 +161,18 @@ jobs:
           --revision gitop \
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
-          --upsert
+          --upsert \
+          --insecure \
+           --server https://argocd-server.argocd.svc.cluster.local \
+          --grpc-web
 
       - name: Sync AWS App
         run: |
-         argocd app sync flask-app-aws
-         argocd app wait flask-app-aws --health --timeout 300    
+          argocd app sync flask-app-aws \
+          --grpc-web
+          --server https://argocd-server.argocd.svc.cluster.local
+          --insecure
+           
 
 
       - name: Update ArgoCD App Image (AWS)
@@ -199,10 +180,16 @@ jobs:
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-aws \
          --image $IMAGE_URI \
+         --server https://argocd-server.argocd.svc.cluster.local \
+         --insecure \
          --grpc-web \
          --timeout 60
 
-         argocd app sync flask-app-aws --grpc-web
+         argocd app sync flask-app-aws \
+           --server https://argocd-server.argocd.svc.cluster.local \
+           --insecure \
+           --grpc-web \
+           --timeout 60
    
 
         # ----------------------------------------
@@ -444,42 +431,9 @@ jobs:
           kubectl apply -f ingress-gcp.yaml 
           kubectl apply -f service-gcp.yaml   
       
-      - name: Get ArgoCD LoadBalancer External IP (GCP)
-        run: |
-         echo "Waiting for ArgoCD LoadBalancer external IP..."
+      
 
-         for i in {1..30}; do
-          LB_IP=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-         if [ -n "$LB_IP" ]; then
-          echo "Found IP: $LB_IP"
-          echo "ARGOCD_SERVER_EXTERNAL=$LB_IP" >> $GITHUB_ENV
-         break
-         fi
-         echo "Still waiting... ($i/30)"
-         sleep 10
-         done
-
-         if [ -z "$LB_IP" ]; then
-         echo "ERROR: LoadBalancer external IP not found"
-          kubectl -n argocd get svc argocd-server
-         exit 1
-         fi
-    
-       # ---------------------------
-    # Debug — confirm correct ArgoCD endpoint
-    # ---------------------------
-      - name: Debug ArgoCD endpoint
-        run: |
-         echo "ARGOCD_SERVER_EXTERNAL = $ARGOCD_SERVER_EXTERNAL"   
-
-      - name: Login to ArgoCD
-        run: | 
-         echo "Logging into ArgoCD at: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
-         argocd login 34.11.19.219 \
-         --username $ARGOCD_USERNAME \
-         --password $ARGOCD_PASSWORD \
-         --insecure \
-         --grpc-web \
+       
           
 
       - name: Create or Upsert ArgoCD App (GCP)
@@ -490,21 +444,33 @@ jobs:
           --revision gitop \
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
+          --insecure \
+          --server https://argocd-server.argocd.svc.cluster.local \
+          --grpc-web \
+          --insecure \
           --upsert  
 
       - name: Sync GCP App
         run: |
          argocd app sync flask-app-gcp
-         argocd app wait flask-app-gcp --health --timeout 300
+          --grpc-web \
+          --insecure \
+          --server https://argocd-server.argocd.svc.cluster.local
+
+          
 
       - name: Update ArgoCD App Image
         run: |
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-gcp \
-         --image $IMAGE_URI \
-         --grpc-web
+           --image $IMAGE_URI \
+           --grpc-web \
+           --insecure \
+           --server https://argocd-server.argocd.svc.cluster.local \
 
-         argocd app sync flask-app-gcp --grpc-web
+         argocd app sync flask-app-gcp --grpc-web \
+           --insecure \
+           --server https://argocd-server.argocd.svc.cluster.local \
 
 
 
