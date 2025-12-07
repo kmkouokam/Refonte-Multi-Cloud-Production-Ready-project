@@ -176,14 +176,16 @@ jobs:
           --revision gitop \
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
+          --server https://${{ steps.argocd-endpoint.outputs.external }} \
+          --grpc-web=false \
           --upsert \
-          --grpc-web
           --core
 
       - name: Sync AWS App
         run: |
           argocd app sync flask-app-aws \
           --grpc-web=false \
+          --server https://${{ steps.argocd-endpoint.outputs.external }} \
            --timeout 300
            
            
@@ -195,11 +197,13 @@ jobs:
          argocd app set flask-app-aws \
          --image $IMAGE_URI \
          --grpc-web=false \
+         --server https://${{ steps.argocd-endpoint.outputs.external }} \
          --timeout 60
 
          argocd app sync flask-app-aws \
            --grpc-web=false \
            --timeout 60
+           --server https://${{ steps.argocd-endpoint.outputs.external }}
    
 
         # ----------------------------------------
@@ -469,6 +473,7 @@ jobs:
           --revision gitop \
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
+          --server https://${{ steps.argocd-endpoint.outputs.external }} \
           --grpc-web=false \
           --upsert \
           --core  
@@ -477,6 +482,7 @@ jobs:
         run: |
          argocd app sync flask-app-gcp
           --grpc-web=false \
+          --server https://${{ steps.argocd-endpoint.outputs.external }} \
            
 
           
@@ -487,8 +493,11 @@ jobs:
          argocd app set flask-app-gcp \
            --image $IMAGE_URI \
            --grpc-web=false \
+           --server https://${{ steps.argocd-endpoint.outputs.external }} \
             
-         argocd app sync flask-app-gcp --grpc-web \
+         argocd app sync flask-app-gcp  \
+            --grpc-web=false \
+            --server https://${{ steps.argocd-endpoint.outputs.external }} \
             
 
 
