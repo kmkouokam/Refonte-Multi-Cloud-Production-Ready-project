@@ -170,9 +170,8 @@ jobs:
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
           --upsert \
-          --insecure \
-           --server https://argocd-server.argocd.svc.cluster.local \
           --grpc-web
+          --core
 
       - name: Sync AWS App
         run: |
