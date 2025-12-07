@@ -446,8 +446,7 @@ jobs:
           --dest-namespace default \
           --insecure \
           --server https://argocd-server.argocd.svc.cluster.local \
-          --grpc-web \
-          --insecure \
+          --grpc-web \ 
           --upsert  
 
       - name: Sync GCP App
