@@ -480,7 +480,7 @@ jobs:
          --password $ARGOCD_PASSWORD \
          --insecure \
          --grpc-web \
-         --timeout 60
+          
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
