@@ -369,7 +369,7 @@ jobs:
       - name: Update kubeconfig for GKE
         run: |
          echo "Updating kubeconfig for GKE cluster..."
-          gcloud container clusters get-credentials $GKE_CLUSTER_NAME \
+          gcloud container clusters get-credentials $GCP_CLUSTER_NAME \
          --region $GCP_REGION \
          --project $GCP_PROJECT_ID
          echo "Current kubectl context:"
