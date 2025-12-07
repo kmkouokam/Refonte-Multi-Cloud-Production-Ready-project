@@ -447,12 +447,14 @@ jobs:
 
          if [ -z "$LB_IP" ]; then
          echo "ERROR: LoadBalancer external IP not found"
+          kubectl -n argocd get svc argocd-server
          exit 1
          fi
     
 
       - name: Login to ArgoCD
         run: | 
+         echo "Logging into ArgoCD at: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
          argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
          --username $ARGOCD_USERNAME \
          --password $ARGOCD_PASSWORD \
