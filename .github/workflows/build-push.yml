@@ -79,7 +79,14 @@ jobs:
             -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
           kubectl apply \
             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
-          kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
+          kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
+          # Wait additionally until the argocd-cm exists
+          until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+            echo "Waiting for argocd-cm to be created..."
+            sleep 5
+          done
+
 
       - name: Expose ArgoCD server externally
         run: |
@@ -373,7 +380,14 @@ jobs:
             -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
           kubectl apply \
             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
-          kubectl wait --for=condition=ready pod -n argocd --all --timeout=180s
+          kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
+          # Wait additionally until the argocd-cm exists
+          until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+             echo "Waiting for argocd-cm to be created..."
+             sleep 5
+          done
+
 
 
       - name: Expose ArgoCD server externally
