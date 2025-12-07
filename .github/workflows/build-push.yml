@@ -224,7 +224,7 @@ jobs:
       GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
       IMAGE_NAME: flask-app
       GCP_REGION: ${{ secrets.GCP_REGION }}
-      GCP_CLUSTER_NAME:  my-gcp-cluster-65c5e3b0d327
+      GCP_CLUSTER_NAME: my-gcp-cluster-65c5e3b0d327
 
     steps:
       - name: Checkout code
