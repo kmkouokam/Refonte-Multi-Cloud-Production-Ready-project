@@ -165,7 +165,12 @@ jobs:
 
        
 
-      
+      - name: Update kubeconfig AWS
+        run: |
+          aws eks update-kubeconfig \
+            --name $CLUSTER_NAME \
+            --region $AWS_REGION
+
        
 
       - name: Create or Upsert ArgoCD App (AWS)
@@ -461,6 +466,11 @@ jobs:
           kubectl apply -f service-gcp.yaml   
       
       
+      - name: Update kubeconfig GCP
+        run: |
+          gcloud container clusters get-credentials $GKE_CLUSTER \
+            --region $GKE_REGION \
+            --project $GCP_PROJECT_ID
 
        
           
@@ -476,7 +486,7 @@ jobs:
           --server https://${{ steps.argocd-endpoint.outputs.external }} \
           --grpc-web=false \
           --upsert \
-          --core  
+            
 
       - name: Sync GCP App
         run: |
