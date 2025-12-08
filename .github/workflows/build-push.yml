@@ -173,11 +173,9 @@ jobs:
           --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
           --path argocd \
           --revision gitop \
-          --dest-server https://kubernetes.default.svc \
+          --dest-server https://67F149B873B26EF7291219FE3F0B72DA.gr7.us-east-1.eks.amazonaws.com \
           --dest-namespace default \
-          --server https://${{ steps.argocd-endpoint.outputs.external }} \
-          --grpc-web=false \
-          --upsert \
+          --dest-namepace default  
      
 
 
@@ -253,9 +251,10 @@ jobs:
 
       - name: Get GKE credentials
         run: |
-          gcloud container clusters get-credentials $GCP_CLUSTER_NAME \
-          --region $GCP_REGION \
-          --project $GCP_PROJECT_ID  
+          gcloud container clusters get-credentials ${{ env.GCP_CLUSTER_NAME }} \
+          --region ${{ env.GCP_REGION }} \
+          --project ${{ env.GCP_PROJECT_ID }}
+
           
        # 4️⃣ Optional: Check kubectl context
       - name: Check kubectl context
