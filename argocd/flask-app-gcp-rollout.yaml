@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: us-east4-docker.pkg.dev/prod-251618-359501/my-repo/flask-app
+          image:  ${IMAGE_URI}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
