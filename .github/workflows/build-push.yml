@@ -229,7 +229,7 @@ jobs:
      GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
      IMAGE_NAME: flask-app
      GCP_REGION: us-east4
-     GCP_CLUSTER_NAME: my-gcp-cluster-1c11e8a96f4d
+     GCP_CLUSTER_NAME: my-gcp-cluster-bc995466231c
 
 
     steps:
