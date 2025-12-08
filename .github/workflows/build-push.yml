@@ -136,12 +136,16 @@ jobs:
 
       - name: Apply Kubernetes Secret
         run: |
+          git fetch origin gitop
+          git checkout gitop
            cd gitop/argocd/k8s
            envsubst < secret-aws.yaml | kubectl apply -f -
 
 
       - name: deploy ingress-aws and service-aws
         run: |
+          git fetch origin gitop
+          git checkout gitop
           cd gitop/argocd/k8s
           kubectl apply -f ingress-aws.yaml 
           kubectl apply -f service-aws.yaml   
@@ -158,6 +162,8 @@ jobs:
 
       - name: Apply Kubernetes Rollout (AWS)
         run: |
+          git fetch origin gitop
+          git checkout gitop
           cd gitop/argocd
           envsubst < flask-app-aws-rollout.yaml | kubectl apply -f -
 
@@ -421,12 +427,16 @@ jobs:
 
       - name: Apply Kubernetes Secret
         run: |
-           cd gitop/argocd/k8s
-           envsubst < secret-gcp.yaml | kubectl apply -f -
+          git fetch origin gitop
+          git checkout gitop  
+          cd gitop/argocd/k8s
+          envsubst < secret-gcp.yaml | kubectl apply -f -
 
             
       - name: deploy ingress-gcp and service-gcp
         run: |
+          git fetch origin gitop
+          git checkout gitop
           cd gitop/argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
           kubectl apply -f service-gcp.yaml   
