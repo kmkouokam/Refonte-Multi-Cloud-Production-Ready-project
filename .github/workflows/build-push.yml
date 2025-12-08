@@ -156,7 +156,10 @@ jobs:
         env:
           AWS_REGION: ${{ env.AWS_REGION }}    
 
-       
+      - name: Apply Kubernetes Rollout (AWS)
+        run: |
+          cd gitop/argocd
+          envsubst < flask-app-aws-rollout.yaml | kubectl apply -f -
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
@@ -436,7 +439,10 @@ jobs:
             --project $GCP_PROJECT_ID
 
        
-          
+      - name: Apply Kubernetes Rollout (GCP)
+        run: |
+          cd gitop/argocd
+          envsubst < flask-app-gcp-rollout.yaml | kubectl apply -f -
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
