@@ -9,6 +9,11 @@ variable "gcp_service_account_email" {
   type        = string
 }
 
+variable "service_account_namespace" {
+  type = string
+  default = "default"
+}
+
 variable "gcp_service_account_name" {
   description = "The name of the GKE service account from the Kubernetes module"
   type        = string

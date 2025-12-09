@@ -12,10 +12,15 @@ variable "aws_region" {
   description = "AWS region"
   type        = string
 }
+
+ 
+
 variable "cluster_name" {
-  description = "EKS Cluster name"
+  description = "Kubernetes cluster name"
   type        = string
+  default     = "multi-cloud-cluster"
 }
+
 
 variable "github_runner_role_arn" {
   description = "IAM Role ARN to attach to the GitHub Action Runner EC2 instance"
@@ -39,5 +44,37 @@ variable "wait_for_k8s" {
   default     = null
 }
 
+variable "github_runner_role_name" {
+  description = "Name of the GitHub Action Runner IAM Role"
+  type        = string
+ 
+  
+}
 
+variable "service_account_namespace" {
+  default = "default"
+     type    = string
+}
+ 
+
+variable "argo_rollouts_role_name" {
+  type = string
+}
+
+ 
+
+variable "map_user_arn" {
+type = string
+default = "arn:aws:iam::435329769674:user/refonte"
+}
+
+variable "eks_endpoint" {
+  description = "EKS cluster endpoint"
+  type        = string
+}
+
+variable "eks_ca_certificate" {
+  description = "EKS cluster CA certificate"
+  type        = string
+}
 

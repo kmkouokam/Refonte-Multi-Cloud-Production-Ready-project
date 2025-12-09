@@ -34,9 +34,9 @@ resource "aws_iam_role" "github_actions_role" {
     ]
   })
 }
- 
 
- resource "aws_iam_role_policy" "github_actions_policy" {
+
+resource "aws_iam_role_policy" "github_actions_policy" {
   name = "GitHubActionsCombinedPolicy"
   role = aws_iam_role.github_actions_role.id
 
@@ -118,19 +118,19 @@ module "aws_security" {
   cloud_provider = var.cloud_provider
   aws_iam_roles  = ["eksNodeRole", "appRole"]
   # Credentials come from root locals & random_password result
-  db_name          = local.db_name
-  db_username      = local.db_username
-  db_password      = random_password.db_password.result
-  project          = var.project
-  kms_key_name     = var.kms_key_name
-  name_suffix      = "${var.project}-${var.env}"
-  gcp_region       = var.gcp_region
-  secret_name      = "myawsdb-password"
-  env              = var.env
-  db_endpoint      = module.aws_db[0].db_endpoint
-  aws_region       = var.aws_region
-   
-  depends_on       = [module.aws_db, module.vpc]
+  db_name      = local.db_name
+  db_username  = local.db_username
+  db_password  = random_password.db_password.result
+  project      = var.project
+  kms_key_name = var.kms_key_name
+  name_suffix  = "${var.project}-${var.env}"
+  gcp_region   = var.gcp_region
+  secret_name  = "myawsdb-password"
+  env          = var.env
+  db_endpoint  = module.aws_db[0].db_endpoint
+  aws_region   = var.aws_region
+
+  depends_on = [module.aws_db, module.vpc]
 
 
 }
@@ -173,76 +173,71 @@ module "k8s" {
   cloud_provider = var.cloud_provider
   cluster_name   = var.cluster_name
   aws_region     = var.aws_region
-    
+
   public_subnet_ids = module.vpc[0].aws_private_subnet_ids
   gcp_project_id    = var.gcp_project_id
-   
+
   depends_on = [module.vpc]
 
 
 }
 
-
  
-# module "bootstrap" {
-#   source         = "../../bootstrap"
-#   cluster_name  = var.cluster_name
-#   eks_endpoint = module.k8s[0].eks_endpoint
-#   eks_ca_certificate = module.k8s[0].eks_ca_certificate
-#   github_runner_role_arn = module.actionrunner.github_runner_role_arn
-#   eks_node_role_arn = module.k8s[0].eks_node_role_arn
-#   eks_token = data.aws_eks_cluster_auth.eks.token
-#   eks_module_dependency = module.k8s[0].aws_eks_cluster_id
-
-#    extra_role_arns = [ 
-    
-#     aws_iam_role.github_actions_role.arn,
-#     module.k8s[0].eks_node_role_arn
-        
-#     ]
-#    providers = {
-#     kubernetes = kubernetes
-#     helm       = helm
-#   }
-
-#   depends_on = [module.k8s,
-#    module.aws_db, 
-#    module.aws_security,
-#    null_resource.wait_for_eks
-#    ]
-# }
 
 
 
 module "actionrunner" {
-  source = "../../modules/ActionRunner"
-  aws_vpc_id = module.vpc[0].aws_vpc_id
+  source                = "../../modules/ActionRunner"
+  aws_vpc_id            = module.vpc[0].aws_vpc_id
   aws_public_subnet_ids = module.vpc[0].aws_public_subnet_ids
-  aws_region = var.aws_region
-  eks_cluster_name = var.cluster_name
-  ssh_key = var.ssh_key
-  aws_db_password_arn = module.aws_security[0].aws_db_password_arn
-   eks_node_role_arn = module.k8s[0].eks_node_role_arn
-  github_runner_token = var.github_runner_token 
-   depends_on = [ module.k8s, module.vpc, module.aws_security, module.aws_db ]
-   }
- 
+  aws_region            = var.aws_region
+  eks_cluster_name      = var.cluster_name
+  ssh_key               = var.ssh_key
+  aws_db_password_arn   = module.aws_security[0].aws_db_password_arn
+  eks_node_role_arn     = module.k8s[0].eks_node_role_arn
+  github_runner_token   = var.github_runner_token
+  depends_on            = [module.k8s, module.vpc, module.aws_security, module.aws_db]
+}
 
-module "terraform_rbac" {
-  source = "../../modules/terraform-rbac"
-  project = var.project
-  cluster_name = var.cluster_name 
-  aws_region   = var.aws_region
-  env = var.env
-  eks_node_role_arn = module.k8s[0].eks_node_role_arn
+
+module "argocd-rollout-role" {
+  source = "../../modules/argo-rollouts-role"
+  aws_region = var.aws_region
+  cluster_name = module.k8s[0].cluster_name
+  eks_ca_certificate = module.k8s[0].eks_ca_certificate
+  eks_endpoint      = module.k8s[0].eks_endpoint
+  wait_for_k8s = true
+  # depends_on = [ module.k8s ]
+}
+
+module "argocd-rollouts-binding-aws" {
+  source                 = "../../modules/argo-rollouts-binding-aws"
+  cluster_name           = module.k8s[0].cluster_name
+   eks_node_role_arn      = module.k8s[0].eks_node_role_arn
   github_runner_role_arn = module.actionrunner.github_runner_role_arn
-    wait_for_k8s = module.k8s[0].eks_endpoint
-  extra_role_arns = [ 
-    aws_iam_role.github_actions_role.arn
-  ]
+  eks_endpoint           = module.k8s[0].eks_endpoint
+  eks_ca_certificate     = module.k8s[0].eks_ca_certificate
+  env                    = var.env
+  project                = var.project
+  aws_region             = var.aws_region
+  argo_rollouts_role_name = module.argocd-rollout-role.argo_rollouts_role_name
+  github_runner_role_name = module.actionrunner.github_runner_role_name
+  service_account_namespace = "default"
+   
+   
+
+
+  #  depends_on = [module.argocd-rollouts-role,
+  
+    # module.actionrunner,
+    # module.actionrunner
+  #  ]
+
+
 
 }
- 
- 
+
+
+
 
 

@@ -1,6 +1,30 @@
-###############################################
-# Terraform Role Based Access Control (RBAC) for AWS / EKS
-###############################################
+data "aws_eks_cluster" "eks" {
+  name       = var.cluster_name
+  depends_on = [var.wait_for_k8s]
+}
+
+# ----------------------------------------
+# Kubernetes bootstrap provider to patch aws-auth
+# ----------------------------------------
+provider "kubernetes" {
+  alias                  = "bootstrap"
+  host                   = var.eks_endpoint
+  cluster_ca_certificate = base64decode(var.eks_ca_certificate)
+  # token                  = data.aws_eks_cluster_auth.eks.token
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args = [
+      "eks", "get-token",
+      "--cluster-name", var.cluster_name,
+      "--region", var.aws_region
+    ]
+  }
+
+}
+
+
+
 
 #------------------------------
 #  k8s service account for GitHub Runner IAM Role
@@ -8,37 +32,14 @@
 resource "kubernetes_service_account" "github_runner" {
   provider = kubernetes.bootstrap
   metadata {
-    name      = "argo-rollouts"
-    namespace = "default"
+    name      =  "argo-rollouts"
+    namespace = var.service_account_namespace
   }
 }
 
-#------------------------------
-# Cluster Role for Argo Rollouts
-#------------------------------
-
-resource "kubernetes_cluster_role" "argo_rollouts" {
-  provider = kubernetes.bootstrap
-  metadata {
-    name = "argo-rollouts-role"
-  }
-
-   
-  rule {
-    api_groups = [""]
-    resources  = ["configmaps", "services", "endpoints", "pods"]
-    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
-  }
-
-  rule {
-    api_groups = ["argoproj.io"]
-    resources  = ["rollouts"]
-    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
-  }
-}
 
 #------------------------------
-# Cluster Role Binding for Argo Rollouts to GitHub Runner Service Account
+# Cluster Role Binding for Argo Rollouts to GitHub Runner Service Account (AWS)
 #------------------------------
 
 
@@ -51,13 +52,13 @@ resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "ClusterRole"
-    name      = kubernetes_cluster_role.argo_rollouts.metadata[0].name
+    name      = var.argo_rollouts_role_name
   }
 
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.github_runner.metadata[0].name
-    namespace = kubernetes_service_account.github_runner.metadata[0].namespace
+    namespace = var.service_account_namespace
   }
 }
 
@@ -69,7 +70,7 @@ resource "kubernetes_service" "flask_app_aws_active" {
   provider = kubernetes.bootstrap
   metadata {
     name      = "flask-app-aws-active"
-    namespace = "default"
+    namespace = var.service_account_namespace
   }
 
   spec {
@@ -85,7 +86,7 @@ resource "kubernetes_service" "flask_app_aws_preview" {
   provider = kubernetes.bootstrap
   metadata {
     name      = "flask-app-aws-preview"
-    namespace = "default"
+    namespace = var.service_account_namespace
   }
 
   spec {
@@ -96,42 +97,6 @@ resource "kubernetes_service" "flask_app_aws_preview" {
     }
   }
 }
-
-#------------------------------
-# Kubernetes Services for GCP Flask App (Active and Preview)
-#------------------------------
-
-resource "kubernetes_service" "flask_app_gcp_active" {
-  provider = kubernetes.bootstrap
-  metadata {
-    name      = "flask-app-gcp-active"
-    namespace = "default"
-  }
-  spec {
-    selector = { app = "flask-app-gcp" }
-    port {
-      port        = 80
-      target_port = 8080
-    }
-  }
-}
-
-resource "kubernetes_service" "flask_app_gcp_preview" {
-  provider = kubernetes.bootstrap
-  metadata {
-    name      = "flask-app-gcp-preview"
-    namespace = "default"
-  }
-  spec {
-    selector = { app = "flask-app-gcp" }
-    port {
-      port        = 80
-      target_port = 8080
-    }
-  }
-}
-
-
 
 # ----------------------------------------
 # IAM Role Terraform will use inside EKS
@@ -164,30 +129,6 @@ resource "aws_iam_role_policy_attachment" "terraform_admin" {
 # Read Cluster
 ###############################################
 
-data "aws_eks_cluster" "eks" {
-  name       = var.cluster_name
-  depends_on = [var.wait_for_k8s]
-}
-
-# ----------------------------------------
-# Kubernetes bootstrap provider to patch aws-auth
-# ----------------------------------------
-provider "kubernetes" {
-  alias                  = "bootstrap"
-  host                   = data.aws_eks_cluster.eks.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
-  # token                  = data.aws_eks_cluster_auth.eks.token
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args = [
-      "eks", "get-token",
-      "--cluster-name", var.cluster_name,
-      "--region", var.aws_region
-    ]
-  }
-
-}
 
 # Optional: extra roles to grant system:masters
 # Optional: extra roles + GitHub runner role
@@ -244,7 +185,7 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
             username = "terraform"
             groups   = ["system:masters"]
           },
-           
+
         ],
         local.all_extra_roles
       )
@@ -252,7 +193,7 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
 
     mapUsers = yamlencode([
       {
-        userarn  = "arn:aws:iam::435329769674:user/refonte"
+        userarn  = var.map_user_arn
         username = "refonte"
         groups   = ["system:masters"]
       }
@@ -269,4 +210,5 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
   force = true
 }
 
- 
+
+  
