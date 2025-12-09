@@ -138,6 +138,8 @@ module "argo-rollouts-role" {
   source = "../../modules/argo-rollouts-role"
   aws_region = var.aws_region
   cluster_name = module.k8s[0].cluster_name
+  eks_ca_certificate = module.k8s[0].eks_ca_certificate
+  eks_endpoint      = module.k8s[0].eks_endpoint
    
 }
 
@@ -148,6 +150,7 @@ module "argo-rollouts-binding-gcp" {
   argo_rollouts_role_name   = module.argo-rollouts-role.argo_rollouts_role_name
   gke_ca_certificate = module.k8s[0].gke_ca_certificate
   gke_endpoint      = module.k8s[0].gke_endpoint
+  
 
 
 }
