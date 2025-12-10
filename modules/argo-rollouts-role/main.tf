@@ -2,10 +2,16 @@
 # Read Cluster
 ###############################################
 
-data "aws_eks_cluster" "eks" {
-  name       = var.cluster_name
-  depends_on = [var.wait_for_k8s]
+# data "aws_eks_cluster" "eks" {
+#   name       = var.cluster_name
+#   depends_on = [var.wait_for_k8s]
+# }
+
+locals {
+  is_aws = var.cloud_provider == "aws"
+  is_gcp = var.cloud_provider == "gcp"
 }
+
 
 
 # Wait for EKS endpoint
@@ -21,8 +27,12 @@ resource "null_resource" "wait_for_eks" {
 # ----------------------------------------
 provider "kubernetes" {
   alias                  = "bootstrap"
-  host                   = var.eks_endpoint
-  cluster_ca_certificate = base64decode(var.eks_ca_certificate)
+  host                   = var.eks_endpoint != null ? var.eks_endpoint : ""
+  cluster_ca_certificate = (
+    var.eks_ca_certificate != null
+    ? base64decode(var.eks_ca_certificate)
+    : ""
+  )
   # token                  = data.aws_eks_cluster_auth.eks.token
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
@@ -47,6 +57,7 @@ provider "kubernetes" {
 
 
 resource "kubernetes_cluster_role" "argo_rollouts" {
+  count = var.is_aws || var.is_gcp ? 1 : 0
   provider = kubernetes.bootstrap
   metadata {
     name = var.argo_rollouts_role_name

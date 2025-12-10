@@ -12,6 +12,7 @@ data "google_client_config" "default" {}
 # Cluster Role Binding for Argo Rollouts SA (GCP)
 # ------------------------------
 resource "kubernetes_cluster_role_binding" "argo_rollouts_sa_binding" {
+  count = var.is_gcp ? 1 : 0
   provider = kubernetes.bootstrap
   metadata {
     name = "argo-rollouts-binding-sa"
@@ -36,6 +37,7 @@ resource "kubernetes_cluster_role_binding" "argo_rollouts_sa_binding" {
 #------------------------------
 
 resource "kubernetes_service" "flask_app_gcp_active" {
+  count = var.is_gcp ? 1 : 0
   provider = kubernetes.bootstrap
   metadata {
     name      = "flask-app-gcp-active"
@@ -51,6 +53,7 @@ resource "kubernetes_service" "flask_app_gcp_active" {
 }
 
 resource "kubernetes_service" "flask_app_gcp_preview" {
+  count = var.is_gcp ? 1 : 0
   provider = kubernetes.bootstrap
   metadata {
     name      = "flask-app-gcp-preview"

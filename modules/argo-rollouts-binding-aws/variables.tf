@@ -78,3 +78,16 @@ variable "eks_ca_certificate" {
   type        = string
 }
 
+
+variable "eks_dependency" {
+  description = "Fake dependency to force ordering"
+  type        = any
+  default     = null
+}
+
+variable "is_aws" {
+  description = "Whether the deployment is on AWS"
+  type        = bool
+  default     = true
+}
+

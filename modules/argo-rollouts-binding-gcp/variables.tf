@@ -24,3 +24,15 @@ variable "argo_rollouts_role_name" {
    
 }
 
+variable "gke_dependency" {
+  description = "Fake dependency to force ordering"
+  type        = any
+  default     = null
+}
+
+variable "is_gcp" {
+  description = "Whether to deploy GCP resources"
+  type        = bool
+  default     = false
+}
+

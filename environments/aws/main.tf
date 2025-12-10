@@ -202,12 +202,15 @@ module "actionrunner" {
 
 module "argocd-rollout-role" {
   source = "../../modules/argo-rollouts-role"
+
+  is_aws = true
   aws_region = var.aws_region
   cluster_name = module.k8s[0].cluster_name
   eks_ca_certificate = module.k8s[0].eks_ca_certificate
   eks_endpoint      = module.k8s[0].eks_endpoint
+  
   wait_for_k8s = true
-  # depends_on = [ module.k8s ]
+  eks_dependency =   [ module.k8s ]
 }
 
 module "argocd-rollouts-binding-aws" {
@@ -224,14 +227,7 @@ module "argocd-rollouts-binding-aws" {
   github_runner_role_name = module.actionrunner.github_runner_role_name
   service_account_namespace = "default"
    
-   
-
-
-  #  depends_on = [module.argocd-rollouts-role,
-  
-    # module.actionrunner,
-    # module.actionrunner
-  #  ]
+  eks_dependency = module.k8s
 
 
 
