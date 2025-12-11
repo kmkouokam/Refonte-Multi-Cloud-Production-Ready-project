@@ -87,7 +87,7 @@ jobs:
           echo "Detected VPC ID: $VPC_ID"
 
           # 1. Install CRDs
-          kubectl apply -f https://github.com/aws/eks-charts/releases/download/aws-load-balancer-controller-1.6.2/crds.yaml
+          kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml
 
           # 2. Add Helm repo
           helm repo add eks https://aws.github.io/eks-charts
