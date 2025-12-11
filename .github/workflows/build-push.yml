@@ -214,7 +214,7 @@ jobs:
           --upsert \
           --server https://${{ steps.argocd-endpoint.outputs.external }} \
           --grpc-web=false \
-          --yes 
+           
             
       
 
@@ -232,7 +232,7 @@ jobs:
            --grpc-web=false \
            --timeout 60
            --server https://${{ steps.argocd-endpoint.outputs.external }}
-           --yes
+           
    
 
         # ----------------------------------------
