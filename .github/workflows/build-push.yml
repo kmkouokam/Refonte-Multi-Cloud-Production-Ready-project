@@ -74,7 +74,14 @@ jobs:
         run: |
           aws eks update-kubeconfig \
             --name multi-cloud-cluster \
-            --region $AWS_REGION
+            --region $AWS_REGION    
+            
+            
+      - name: Install Helm
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+
 
       - name: Install AWS Load Balancer Controller
         run: |
@@ -409,8 +416,8 @@ jobs:
         run: |
          echo "Updating kubeconfig for GKE cluster..."
           gcloud container clusters get-credentials $GCP_CLUSTER_NAME \
-         --region $GCP_REGION \
-         --project $GCP_PROJECT_ID
+         --region "$GCP_REGION" \
+         --project "$GCP_PROJECT_ID"
          echo "Current kubectl context:"
          kubectl config current-context
     
@@ -490,8 +497,8 @@ jobs:
       - name: Update kubeconfig GCP
         run: |
           gcloud container clusters get-credentials $GKE_CLUSTER \
-            --region $GKE_REGION \
-            --project $GCP_PROJECT_ID
+            --region "$GKE_REGION" \
+            --project "$GCP_PROJECT_ID"
 
        
       - name: Apply Kubernetes Rollout (GCP)
@@ -521,7 +528,7 @@ jobs:
         run: |
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-gcp \
-           --image $IMAGE_URI \
+           --image "$IMAGE_URI" \
            --grpc-web=false \
            --server https://${{ steps.argocd-endpoint.outputs.external }} \
             
