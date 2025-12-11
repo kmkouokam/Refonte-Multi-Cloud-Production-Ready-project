@@ -10,8 +10,7 @@ permissions:
 
 env:
   IMAGE_NAME: flask-app
-  ARGOCD_USERNAME: admin
-  ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+   
 
 jobs:
   # ----------------------------------------
@@ -76,6 +75,36 @@ jobs:
           aws eks update-kubeconfig \
             --name multi-cloud-cluster \
             --region $AWS_REGION
+
+      - name: Install AWS Load Balancer Controller
+        run: |
+          echo "Installing AWS Load Balancer Controller..."
+
+          # Fetch the VPC ID from AWS (if your EKS cluster is already created)
+          VPC_ID=$(aws eks describe-cluster --name multi-cloud-cluster --region $AWS_REGION \
+            --query "cluster.resourcesVpcConfig.vpcId" --output text)
+
+          echo "Detected VPC ID: $VPC_ID"
+
+          # 1. Install CRDs
+          kubectl apply -f https://github.com/aws/eks-charts/releases/download/aws-load-balancer-controller-1.6.2/crds.yaml
+
+          # 2. Add Helm repo
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+
+          # 3. Install the controller
+          helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            -n kube-system \
+            --set clusterName=multi-cloud-cluster \
+            --set serviceAccount.create=true \
+            --set region=$AWS_REGION \
+            --set vpcId=$VPC_ID
+
+          # Wait for controller to be healthy
+          kubectl wait --for=condition=available deployment/aws-load-balancer-controller \
+            -n kube-system --timeout=300s
+      
 
       - name: Install ArgoCD on AWS
         run: |
@@ -175,6 +204,10 @@ jobs:
           --revision gitop \
           --dest-server https://67F149B873B26EF7291219FE3F0B72DA.gr7.us-east-1.eks.amazonaws.com \
           --dest-namespace default \
+          --upsert \
+          --server https://${{ steps.argocd-endpoint.outputs.external }} \
+          --grpc-web=false \
+          --yes 
             
       
 
@@ -192,6 +225,7 @@ jobs:
            --grpc-web=false \
            --timeout 60
            --server https://${{ steps.argocd-endpoint.outputs.external }}
+           --yes
    
 
         # ----------------------------------------
@@ -478,6 +512,7 @@ jobs:
           --server https://${{ steps.argocd-endpoint.outputs.external }} \
           --grpc-web=false \
           --upsert \
+          --yes
             
 
                
@@ -493,6 +528,7 @@ jobs:
          argocd app sync flask-app-gcp  \
             --grpc-web=false \
             --server https://${{ steps.argocd-endpoint.outputs.external }} \
+            --yes
             
 
 
