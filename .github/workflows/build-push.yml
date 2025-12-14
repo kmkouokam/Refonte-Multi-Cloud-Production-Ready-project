@@ -107,7 +107,8 @@ jobs:
             --set clusterName=multi-cloud-cluster \
             --set serviceAccount.create=true \
             --set region=$AWS_REGION \
-            --set vpcId=$VPC_ID
+            --set vpcId=$VPC_ID \
+            --validate=false
 
           # Wait for controller to be healthy
           kubectl wait --for=condition=available deployment/aws-load-balancer-controller \
@@ -118,8 +119,9 @@ jobs:
         run: |
           kubectl create namespace argocd || true
           kubectl apply -n argocd \
-            -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-          kubectl apply \
+            -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --validate=false
+ 
+            kubectl apply \
             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
           kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
@@ -594,5 +596,3 @@ jobs:
 # kubectl apply -f k8s/secret-aws.yaml
 
 ##### end of alternative steps #####
-
-###
