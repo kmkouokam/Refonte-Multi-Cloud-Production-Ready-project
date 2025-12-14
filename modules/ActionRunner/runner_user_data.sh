@@ -22,6 +22,16 @@ RUNNER_WORK_DIR="${RUNNER_DIR}/_work"
 RUNNER_LOG="${RUNNER_DIR}/runner.log"
 DOCKER_HOME="${EC2_HOME}/.docker"
 
+
+#--------------------------------
+#Prepare .kube directory 
+#--------------------------------
+
+sudo mkdir -p /home/ec2-user/.kube
+sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+
+
+ 
 # -------------------------------
 # Prepare runner directory
 # -------------------------------
