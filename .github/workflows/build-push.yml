@@ -417,17 +417,26 @@ jobs:
           --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
           -n default || true
 
+      - name: Update Cluster
+        run: |    
+         gcloud container clusters update "$GCP_CLUSTER_NAME" \
+         --region us-east4 \
+         --enable-master-authorized-networks \
+         --master-authorized-networks "$(curl -s ifconfig.me)/32" \
+         --enable-private-endpoint=false \
+          --project prod-251618-359501
+          echo "Current kubectl context:"
+         kubectl config current-context
+   
+
       - name: Update kubeconfig for GKE
         run: |
          echo "Updating kubeconfig for GKE cluster..."
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
          --region "$GCP_REGION" \
          --project "$GCP_PROJECT_ID" \
-         --enable-master-authorized-networks \
-          --master-authorized-networks ${{ secrets.PUBLIC_IP }}/32 \
-          --enable-private-endpoint false 
-         echo "Current kubectl context:"
-         kubectl config current-context
+         
+         
     
 
       # Install ArgoCD on GCP
