@@ -436,7 +436,9 @@ jobs:
          --region "$GCP_REGION" \
          --project "$GCP_PROJECT_ID" \
          
-         
+      - name: Test GKE access
+        run: |
+          kubectl get nodes   
     
 
       # Install ArgoCD on GCP
