@@ -200,38 +200,39 @@ module "actionrunner" {
 }
 
 
-module "argocd-rollout-role" {
-  source = "../../modules/argo-rollouts-role"
+# module "argocd-rollout-role" {
+#   source = "../../modules/argo-rollouts-role"
 
-  is_aws = true
-  aws_region = var.aws_region
-  cluster_name = module.k8s[0].cluster_name
-  eks_ca_certificate = module.k8s[0].eks_ca_certificate
-  eks_endpoint      = module.k8s[0].eks_endpoint
+#   is_aws = true
+#   aws_region = var.aws_region
+#   cluster_name = module.k8s[0].cluster_name
+#   eks_ca_certificate = module.k8s[0].eks_ca_certificate
+#   eks_endpoint      = module.k8s[0].eks_endpoint
   
-  wait_for_k8s = true
-  eks_dependency =   [ module.k8s ]
-}
+#   wait_for_k8s = true
+#   eks_dependency =   [ module.k8s ]
+# }
 
-module "argocd-rollouts-binding-aws" {
-  source                 = "../../modules/argo-rollouts-binding-aws"
-  cluster_name           = module.k8s[0].cluster_name
-   eks_node_role_arn      = module.k8s[0].eks_node_role_arn
-  github_runner_role_arn = module.actionrunner.github_runner_role_arn
-  eks_endpoint           = module.k8s[0].eks_endpoint
-  eks_ca_certificate     = module.k8s[0].eks_ca_certificate
-  env                    = var.env
-  project                = var.project
-  aws_region             = var.aws_region
-  argo_rollouts_role_name = module.argocd-rollout-role.argo_rollouts_role_name
-  github_runner_role_name = module.actionrunner.github_runner_role_name
-  service_account_namespace = "default"
+# module "argocd-rollouts-binding-aws" {
+#   source                 = "../../modules/argo-rollouts-binding-aws"
+#   cluster_name           = module.k8s[0].cluster_name
+#    eks_node_role_arn      = module.k8s[0].eks_node_role_arn
+#   github_runner_role_arn = module.actionrunner.github_runner_role_arn
+#   eks_endpoint           = module.k8s[0].eks_endpoint
+#   eks_ca_certificate     = module.k8s[0].eks_ca_certificate
+#   env                    = var.env
+#   project                = var.project
+#   aws_region             = var.aws_region
+#   argo_rollouts_role_name = module.argocd-rollout-role.argo_rollouts_role_name
+#   github_runner_role_name = module.actionrunner.github_runner_role_name
+#   service_account_namespace = "default"
+  
    
-  eks_dependency = module.k8s
+#   eks_dependency = module.k8s
 
 
 
-}
+# }
 
 
 

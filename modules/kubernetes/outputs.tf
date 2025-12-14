@@ -11,6 +11,10 @@ output "gke_ca_certificate" {
   value       = local.is_gcp ? google_container_cluster.gcp_cluster[0].master_auth[0].cluster_ca_certificate : null
 }
 
+# output "gke_client_key" {
+#   value = local.is_gcp ? google_container_cluster.gcp_cluster[0].master_auth[0].client_key : null
+# }
+
 output "gcp_service_account_email" {
   value       = length(google_service_account.gke_sa) > 0 ? google_service_account.gke_sa[0].email : null
   description = "The email of the GKE service account for IAM bindings"
@@ -34,6 +38,8 @@ output "eks_ca_certificate" {
   description = "EKS cluster CA certificate (base64)"
   value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].certificate_authority[0].data : null
 }
+
+ 
 
 
 output "cluster_name" {

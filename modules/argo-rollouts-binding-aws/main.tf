@@ -225,5 +225,37 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
   force = true
 }
 
+#-----------------------------
+#Argocd namespace 
+#-----------------------------
+
+resource "kubernetes_namespace" "argocd" {
+  provider = kubernetes.bootstrap
+  metadata {
+    name = "argocd"
+  }
+}
+
+
+# ------------------------------
+# ArgoCD RBAC ConfigMap
+# ------------------------------
+resource "kubernetes_config_map" "argocd_rbac" {
+  provider = kubernetes.bootstrap
+  metadata {
+    name      = "argocd-rbac-cm"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
+  }
+
+  data = {
+    "policy.csv" = "p, role:admin, *, *, *, allow"
+    "role.csv"   = "g, admin, role:admin"
+  }
+  depends_on = [kubernetes_namespace.argocd]
+}
+
+ 
+
+
 
   

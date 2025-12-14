@@ -13,6 +13,11 @@ variable "gke_ca_certificate" {
   type = string
 }
 
+# variable "gke_client_key" {
+#   type = string
+  
+# }
+
 variable "gke_endpoint" {
   type = string
 }
