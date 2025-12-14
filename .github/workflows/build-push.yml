@@ -423,7 +423,7 @@ jobs:
          --region us-east4 \
          --enable-master-authorized-networks \
          --master-authorized-networks "$(curl -s ifconfig.me)/32" \
-         --enable-private-endpoint=false \
+         --disable-private-endpoint \
           --project prod-251618-359501
           echo "Current kubectl context:"
          kubectl config current-context
