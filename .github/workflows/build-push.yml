@@ -85,36 +85,44 @@ jobs:
 
 
 
-      - name: Install AWS Load Balancer Controller
+      # 1️⃣ Detect VPC ID
+      - name: Fetch VPC ID
         run: |
-          echo "Installing AWS Load Balancer Controller..."
+         echo "Fetching VPC ID for cluster..."
+         VPC_ID=$(aws eks describe-cluster --name multi-cloud-cluster --region $AWS_REGION \
+         --query "cluster.resourcesVpcConfig.vpcId" --output text)
+         echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
 
-          # Fetch the VPC ID from AWS (if your EKS cluster is already created)
-          VPC_ID=$(aws eks describe-cluster --name multi-cloud-cluster --region $AWS_REGION \
-            --query "cluster.resourcesVpcConfig.vpcId" --output text)
+# 2️⃣ Install CRDs
+      - name: Install AWS Load Balancer Controller CRDs
+        run: |
+         echo "Installing AWS Load Balancer Controller CRDs..."
+          kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml --validate=false
 
-          echo "Detected VPC ID: $VPC_ID"
+# 3️⃣ Add Helm repo
+      - name: Add Helm repo for AWS charts
+        run: |
+         helm repo add eks https://aws.github.io/eks-charts
+         helm repo update
 
-          # 1. Install CRDs
-          kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml
+#  Install or upgrade AWS Load Balancer Controller
+      - name: Install AWS Load Balancer Controller via Helm
+        run: |
+         echo "Installing AWS Load Balancer Controller..."
+         helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+          -n kube-system \
+          --set clusterName=multi-cloud-cluster \
+         --set serviceAccount.create=true \
+         --set region=$AWS_REGION \
+         --set vpcId=$VPC_ID \
+         --set crds.create=false
 
-          # 2. Add Helm repo
-          helm repo add eks https://aws.github.io/eks-charts
-          helm repo update
+#  Wait for controller to be ready
+      - name: Wait for AWS Load Balancer Controller to be healthy
+        run: |
+         kubectl wait --for=condition=available deployment/aws-load-balancer-controller \
+         -n kube-system --timeout=300s
 
-          # 3. Install the controller
-          helm upgrade install aws-load-balancer-controller eks/aws-load-balancer-controller \
-            -n kube-system \
-            --set clusterName=multi-cloud-cluster \
-            --set serviceAccount.create=true \
-            --set region=$AWS_REGION \
-            --set vpcId=$VPC_ID \
-            --validate=false
-
-          # Wait for controller to be healthy
-          kubectl wait --for=condition=available deployment/aws-load-balancer-controller \
-            -n kube-system --timeout=300s
-      
 
       - name: Install ArgoCD on AWS
         run: |
