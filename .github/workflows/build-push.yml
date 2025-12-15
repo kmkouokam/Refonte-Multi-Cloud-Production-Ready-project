@@ -413,6 +413,7 @@ jobs:
         run: |
           kubectl create secret docker-registry gcp-creds \
           --docker-server=${GCP_REGION}-docker.pkg.dev \
+          --namespace default
           --docker-username=_json_key \
           --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
           -n default || true
@@ -557,7 +558,7 @@ jobs:
             --server https://${{ steps.argocd-endpoint.outputs.external }} \
             --yes
             
-
+#
 
         # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
