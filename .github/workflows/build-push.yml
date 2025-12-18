@@ -284,6 +284,7 @@ jobs:
      GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
      IMAGE_NAME: flask-app
      GCP_REGION: us-east4
+     GCP_REPO: my-repo
      GCP_CLUSTER_NAME: my-gcp-cluster-7d350e209300
      PUBLIC_IP: ${{secrets.PUBLIC_IP}}
 
@@ -420,15 +421,6 @@ jobs:
         run: |
           echo "IMAGE_URI=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/${IMAGE_NAME}:${GITHUB_SHA}" >> $GITHUB_ENV
 
-      - name: Create GCP Artifact Registry Pull Secret
-        run: |
-          kubectl create secret docker-registry gcp-creds \
-          --docker-server=${GCP_REGION}-docker.pkg.dev \
-          --namespace default
-          --docker-username=_json_key \
-          --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
-          -n default || true
-
       - name: Update Cluster
         run: |    
          gcloud container clusters update "$GCP_CLUSTER_NAME" \
@@ -439,6 +431,19 @@ jobs:
           --project prod-251618-359501
           echo "Current kubectl context:"
          kubectl config current-context
+
+      - name: Create GCP Artifact Registry Pull Secret
+        run: |
+          # Full registry URL
+           REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPO}"
+          kubectl create secret docker-registry gcp-creds \
+          --docker-server="${REGISTRY_URL}" \
+          --namespace default
+          --docker-username=_json_key \
+          --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+      
    
 #
       - name: Update kubeconfig for GKE
