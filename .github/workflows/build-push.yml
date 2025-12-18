@@ -57,15 +57,6 @@ jobs:
          echo "IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${GITHUB_SHA}" >> $GITHUB_ENV
 
 
-      - name: Create ECR Pull Secret
-        run: |
-         kubectl create secret docker-registry ecr-creds \
-         --docker-server=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com \
-         --docker-username=AWS \
-         --docker-password=$(aws ecr get-login-password --region $AWS_REGION) \
-         -n default || true
-
-
       # Configure EKS
       - name: Update kubeconfig for AWS EKS
         env:
@@ -76,6 +67,18 @@ jobs:
             --name multi-cloud-cluster \
             --region $AWS_REGION \
              --alias eks-prod \
+
+
+      - name: Create ECR Pull Secret
+        run: |
+         kubectl create secret docker-registry ecr-creds \
+         --docker-server=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com \
+         --docker-username=AWS \
+         --docker-password=$(aws ecr get-login-password --region $AWS_REGION) \
+         -n default || true
+
+
+      
                
             
             
@@ -281,7 +284,7 @@ jobs:
      GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
      IMAGE_NAME: flask-app
      GCP_REGION: us-east4
-     GCP_CLUSTER_NAME: my-gcp-cluster-a45250b05243
+     GCP_CLUSTER_NAME: my-gcp-cluster-7d350e209300
      PUBLIC_IP: ${{secrets.PUBLIC_IP}}
 
 
