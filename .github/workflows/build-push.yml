@@ -316,6 +316,13 @@ jobs:
           # workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           # service_account: "refonte-project@prod-251618-359501.iam.gserviceaccount.com"
 
+      - name: Fix gcloud install location
+        run: |
+          echo "CLOUDSDK_ROOT_DIR=$HOME/google-cloud-sdk" >> $GITHUB_ENV
+           echo "PATH=$HOME/google-cloud-sdk/bin:$PATH" >> $GITHUB_ENV
+    
+
+
        # 3️⃣ Install gcloud CLI and kubectl
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v3
