@@ -221,7 +221,7 @@ jobs:
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
-         argocd login $ARGOCD_SERVER_EXTERNAL --grpc-web --username admin --password ${{env.ARGOCD_ADMIN_PASSWORD}}
+         argocd login $ARGOCD_SERVER_EXTERNAL --grpc-web --username admin --password ${{env.ARGOCD_ADMIN_PASSWORD}}  --insecure
          argocd app create flask-app-aws \
           --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
           --path argocd \
@@ -428,7 +428,7 @@ jobs:
          gcloud container clusters update "$GCP_CLUSTER_NAME" \
          --region us-east4 \
          --enable-master-authorized-networks \
-         --master-authorized-networks "$(curl -s ifconfig.me)/32" \
+         --master-authorized-networks 0.0.0.0/0 \
          --enable-private-endpoint \
           --project prod-251618-359501
           echo "Current kubectl context:"
