@@ -233,6 +233,8 @@ jobs:
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
+         kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
          argocd login $ARGOCD_SERVER_EXTERNAL --grpc-web --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) --insecure
          argocd app create flask-app-aws \
           --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
