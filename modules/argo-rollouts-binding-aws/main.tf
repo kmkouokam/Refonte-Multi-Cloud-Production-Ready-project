@@ -45,6 +45,8 @@ resource "kubernetes_service_account" "github_runner" {
   }
 }
 
+ 
+
 
 #------------------------------
 # Cluster Role Binding for Argo Rollouts to GitHub Runner Service Account (AWS)
@@ -55,7 +57,7 @@ resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
   count = var.is_aws ? 1 : 0
   provider = kubernetes.bootstrap
   metadata {
-    name = "argo-rollouts-binding"
+    name = "argo-rollouts"
   }
 
   role_ref {
@@ -229,30 +231,30 @@ resource "kubernetes_config_map_v1_data" "aws_auth_patch" {
 #Argocd namespace 
 #-----------------------------
 
-resource "kubernetes_namespace" "argocd" {
-  provider = kubernetes.bootstrap
-  metadata {
-    name = "argocd"
-  }
-}
+# resource "kubernetes_namespace" "argocd" {
+#   provider = kubernetes.bootstrap
+#   metadata {
+#     name = "argocd"
+#   }
+# }
 
 
-# ------------------------------
-# ArgoCD RBAC ConfigMap
-# ------------------------------
-resource "kubernetes_config_map" "argocd_rbac" {
-  provider = kubernetes.bootstrap
-  metadata {
-    name      = "argocd-rbac-cm"
-    namespace = kubernetes_namespace.argocd.metadata[0].name
-  }
+# # ------------------------------
+# # ArgoCD RBAC ConfigMap
+# # ------------------------------
+# resource "kubernetes_config_map" "argocd_rbac" {
+#   provider = kubernetes.bootstrap
+#   metadata {
+#     name      = "argocd-rbac-cm"
+#     namespace = kubernetes_namespace.argocd.metadata[0].name
+#   }
 
-  data = {
-    "policy.csv" = "p, role:admin, *, *, *, allow"
-    "role.csv"   = "g, admin, role:admin"
-  }
-  depends_on = [kubernetes_namespace.argocd]
-}
+#   data = {
+#     "policy.csv" = "p, role:admin, *, *, *, allow"
+#     "role.csv"   = "g, admin, role:admin"
+#   }
+#   depends_on = [kubernetes_namespace.argocd]
+# }
 
  
 

@@ -10,6 +10,6 @@ description = "ServiceAccount created for the GitHub runner"
 }
 
 
-output "argo_rollouts_binding_name" {
-value = kubernetes_cluster_role_binding.argo_rollouts_runner_binding[0].metadata[0].name
-}
+# output "argo_rollouts_binding_name" {
+# value = kubernetes_cluster_role_binding.argo_rollouts_runner_binding[0].metadata[0].name
+# }

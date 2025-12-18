@@ -136,37 +136,37 @@ module "k8s" {
 }
 
 
-# module "argo-rollouts-role" {
-#   source = "../../modules/argo-rollouts-role"
-#   is_aws = false
-#   aws_region = var.aws_region
-#   cluster_name = module.k8s[0].cluster_name
-#   eks_ca_certificate = module.k8s[0].eks_ca_certificate
-#   eks_endpoint      = module.k8s[0].eks_endpoint
+module "argo-rollouts-role" {
+  source = "../../modules/argo-rollouts-role"
+  is_aws = false
+  aws_region = var.aws_region
+  cluster_name = module.k8s[0].cluster_name
+  eks_ca_certificate = module.k8s[0].eks_ca_certificate
+  eks_endpoint      = module.k8s[0].eks_endpoint
    
-# }
+}
 
-# data "google_container_cluster" "gke" {
-#   name     = module.k8s[0].cluster_name
-#   location = var.gcp_region
+data "google_container_cluster" "gke" {
+  name     = module.k8s[0].cluster_name
+  location = var.gcp_region
   
-#   depends_on = [ module.k8s]
-# }
+  depends_on = [ module.k8s]
+}
 
-# module "argo-rollouts-binding-gcp" {
-#    source = "../../modules/argo-rollouts-binding-gcp"
-#   gke_service_account_name = module.k8s[0].gke_service_account_name
-#   service_account_namespace = var.service_account_namespace
-#   argo_rollouts_role_name   = module.argo-rollouts-role.argo_rollouts_role_name
-#   gke_ca_certificate = module.k8s[0].gke_ca_certificate
-#   gke_endpoint      = data.google_container_cluster.gke.endpoint
-#   # gke_client_key = module.k8s[0].gke_client_key
+module "argo-rollouts-binding-gcp" {
+   source = "../../modules/argo-rollouts-binding-gcp"
+  gke_service_account_name = module.k8s[0].gke_service_account_name
+  service_account_namespace = var.service_account_namespace
+  argo_rollouts_role_name   = module.argo-rollouts-role.argo_rollouts_role_name
+  gke_ca_certificate = module.k8s[0].gke_ca_certificate
+  gke_endpoint      = data.google_container_cluster.gke.endpoint
+   
 
-#   gke_dependency = module.k8s
+  gke_dependency = module.k8s
 
 
 
-# }
+}
 
 
 
