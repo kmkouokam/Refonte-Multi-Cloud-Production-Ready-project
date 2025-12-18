@@ -57,7 +57,7 @@ resource "kubernetes_cluster_role_binding" "argo_rollouts_runner_binding" {
   count = var.is_aws ? 1 : 0
   provider = kubernetes.bootstrap
   metadata {
-    name = "argo-rollouts"
+    name = "argo-rollouts-binding"
   }
 
   role_ref {
