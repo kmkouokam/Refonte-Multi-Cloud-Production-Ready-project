@@ -219,6 +219,14 @@ jobs:
           cd argocd
           envsubst < flask-app-aws-rollout.yaml | kubectl apply -f -
 
+      - name: Set ArgoCD admin password
+        run: |
+         # Use a GitHub Secret or generate a password
+          echo "ARGOCD_ADMIN_PASSWORD=${{ secrets.ARGOCD_ADMIN_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Wait for ArgoCD to pick up new password
+        run: sleep 10
+
       - name: Fetch ArgoCD admin password
         run: |
          kubectl -n argocd patch secret argocd-secret \
@@ -436,8 +444,7 @@ jobs:
          --region us-east4 \
          --enable-master-authorized-networks \
          --master-authorized-networks 0.0.0.0/0 \
-         --enable-public-endpoint \
-          --project prod-251618-359501
+         --project prod-251618-359501
           echo "Current kubectl context:"
          kubectl config current-context
 
