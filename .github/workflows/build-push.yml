@@ -236,6 +236,7 @@ jobs:
 
       - name : Create Argo auth
         run: |
+         echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
           argocd app create \
            --auth-token $ARGOCD_AUTH_TOKEN \
            --server ${{ env.ARGOCD_SERVER_EXTERNAL }}
@@ -243,6 +244,7 @@ jobs:
 
       - name: ArgoCD login
         run: |
+         echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
          argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
          --username admin \
          --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} \
@@ -253,6 +255,7 @@ jobs:
       - name: Create or Upsert ArgoCD App (AWS)
         run: |     
          argocd app create flask-app-aws \
+          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
           --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
           --path argocd \
           --revision gitop \
@@ -270,6 +273,7 @@ jobs:
 
       - name: Update ArgoCD App Image (AWS)
         run: |
+         echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-aws \
          --image $IMAGE_URI \
@@ -599,12 +603,14 @@ jobs:
 
       - name : Create Argo auth
         run: |
+          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
           argocd app create \
            --auth-token $ARGOCD_AUTH_TOKEN \
            --server ${{ env.ARGOCD_SERVER_EXTERNAL }} 
 
       - name: Argocd login 
         run: |
+         echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
           argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
           --username admin \
           --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} \
@@ -613,7 +619,9 @@ jobs:
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
+         echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
          argocd app create flask-app-gcp \
+           --auth-token $ARGOCD_AUTH_TOKEN \ 
           --repo  https://github.com/${{ github.repository }} \
           --path argocd \
           --revision gitop \
@@ -630,6 +638,7 @@ jobs:
 
       - name: Update ArgoCD App Image & Sync (GCP)
         run: |
+         echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER_EXTERNAL }}"
          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
          argocd app set flask-app-gcp \
            --image "$IMAGE_URI" \
