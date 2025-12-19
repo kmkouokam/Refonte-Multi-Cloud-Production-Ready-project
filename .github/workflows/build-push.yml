@@ -144,20 +144,49 @@ jobs:
             sleep 5
           done
 
-
-      - name: Expose ArgoCD server externally
+      - name: Wait hostname resolves
         run: |
-          kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-          # Wait until an external IP/DNS is assigned
-           ARGOCD_SERVER_EXTERNAL=""
-          while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
-          echo "Waiting for ArgoCD LoadBalancer IP..."
-           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server \
-           -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          ARGOCD_SERVER=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          # Wait until the hostname resolves
+           until nslookup $ARGOCD_SERVER >/dev/null 2>&1; do
+           echo "Waiting for DNS to propagate..."
            sleep 5
-           done
-           echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
-           echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
+          done
+
+          echo "DNS resolved: $ARGOCD_SERVER"
+          curl -k https://$ARGOCD_SERVER
+
+
+
+      - name: Expose ArgoCD server externally and wait for DNS
+        id: argo
+        run: |
+         # Expose ArgoCD service externally
+          kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+    
+          # Wait until an external hostname/IP is assigned
+          ARGOCD_SERVER_EXTERNAL=""
+          while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
+           echo "Waiting for ArgoCD LoadBalancer IP/DNS..."
+           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+           if [ -z "$ARGOCD_SERVER_EXTERNAL" ]; then
+            ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+           fi
+         sleep 5
+         done
+
+         # Wait until the hostname resolves via DNS (optional if it’s an IP)
+         if ! [[ $ARGOCD_SERVER_EXTERNAL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+         while ! nslookup $ARGOCD_SERVER_EXTERNAL >/dev/null 2>&1; do
+          echo "Waiting for DNS resolution of $ARGOCD_SERVER_EXTERNAL..."
+         sleep 5
+         done
+         fi
+
+         echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
+         echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
+   
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
            # Verify
             curl -k https://$ARGOCD_SERVER_EXTERNAL/healthz
@@ -493,25 +522,36 @@ jobs:
              echo "Waiting for argocd-cm to be created..."
              sleep 5
           done
+ 
 
 
-
-      - name: Expose ArgoCD server externally
+      - name: Expose ArgoCD server externally and wait for DNS
+        id: argo
         run: |
-          kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-          # Wait until an external IP/DNS is assigned
-           ARGOCD_SERVER_EXTERNAL=""
-          while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
-          echo "Waiting for ArgoCD LoadBalancer IP..."
-           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-           if [ -z "$ARGOCD_SERVER_EXTERNAL" ]; then
-           ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server \
-          -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          fi
-           sleep 5
-           done
-           echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
-          echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
+         # Expose ArgoCD service externally
+         kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+
+         # Wait until an external hostname/IP is assigned
+         ARGOCD_SERVER_EXTERNAL=""
+         while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
+         echo "Waiting for ArgoCD LoadBalancer IP/DNS..."
+         ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+         if [ -z "$ARGOCD_SERVER_EXTERNAL" ]; then
+          ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+         fi
+         sleep 5
+         done
+
+         # Wait until the hostname resolves via DNS (optional if it’s an IP)
+          if ! [[ $ARGOCD_SERVER_EXTERNAL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+         while ! nslookup $ARGOCD_SERVER_EXTERNAL >/dev/null 2>&1; do
+         echo "Waiting for DNS resolution of $ARGOCD_SERVER_EXTERNAL..."
+         sleep 5
+         done
+         fi
+
+         echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
+         echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
 
        
 
