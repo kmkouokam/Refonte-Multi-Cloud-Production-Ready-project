@@ -243,7 +243,10 @@ jobs:
 
       - name: ArgoCD login
         run: |
-         argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} --username admin --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} --insecure
+         argocd login ${{ env.ARGOCD_SERVER_EXTERNAL }} \
+         --username admin \
+         --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} \
+         --insecure
 
 
 
@@ -260,7 +263,7 @@ jobs:
           --dest-namespace default \
           --upsert \
            --auth-token $ARGOCD_AUTH_TOKEN \
-          --server $ARGOCD_SERVER_EXTERNAL \
+          --server ${{ env.ARGOCD_SERVER_EXTERNAL }} \
           --grpc-web=false \
             --insecure
            
@@ -274,13 +277,13 @@ jobs:
          argocd app set flask-app-aws \
          --image $IMAGE_URI \
          --grpc-web=false \
-         --server $ARGOCD_SERVER_EXTERNAL \
+         --server ${{ env.ARGOCD_SERVER_EXTERNAL }} \
          --timeout 60
 
          argocd app sync flask-app-aws \
            --grpc-web=false \
-           --timeout 60
-           --server $ARGOCD_SERVER_EXTERNAL 
+           --timeout 60 \
+           --server ${{ env.ARGOCD_SERVER_EXTERNAL }} 
 
            
    
@@ -605,9 +608,10 @@ jobs:
           --revision gitop \
           --dest-server https://kubernetes.default.svc \
           --dest-namespace default \
-          --server $ARGOCD_SERVER_EXTERNAL \
+          --server ${{ env.ARGOCD_SERVER_EXTERNAL }} \
           --grpc-web=false \
-          --upsert 
+          --upsert \
+          --insecure
           
             
 
@@ -619,11 +623,12 @@ jobs:
          argocd app set flask-app-gcp \
            --image "$IMAGE_URI" \
            --grpc-web=false \
-           --server $ARGOCD_SERVER_EXTERNAL  \
+           --server ${{ env.ARGOCD_SERVER_EXTERNAL }}  \
             
          argocd app sync flask-app-gcp  \
             --grpc-web=false \
-            --server $ARGOCD_SERVER_EXTERNAL  
+            --server ${{ env.ARGOCD_SERVER_EXTERNAL }} \
+             
             
             
 #
