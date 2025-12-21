@@ -210,7 +210,8 @@ jobs:
           git checkout gitop
           cd argocd/k8s
           kubectl apply -f ingress-aws.yaml 
-          kubectl apply -f service-aws.yaml   
+          kubectl apply -f service-aws.yaml 
+          kubectl apply -f argocd-ingress-aws.yaml
 
        
 
@@ -570,7 +571,9 @@ jobs:
           git checkout gitop
           cd argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
-          kubectl apply -f service-gcp.yaml   
+          kubectl apply -f service-gcp.yaml 
+          kubectl apply -f  argocd-ingress-gcp.yaml
+ 
       
       
       - name: Update kubeconfig GCP
