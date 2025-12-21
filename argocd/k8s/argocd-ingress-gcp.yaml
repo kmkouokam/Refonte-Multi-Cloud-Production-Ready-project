@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress-gcp
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: gce
+spec:
+  rules:
+    - host: argocd.gcp.flask-app.devopsguru.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
