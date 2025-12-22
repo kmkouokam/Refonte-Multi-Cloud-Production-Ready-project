@@ -464,12 +464,12 @@ jobs:
              sleep 5
           done
 
-      - name: Argocd ingress GCP
-        run: |
-          git fetch origin gitop
-          git checkout gitop
-          cd argocd/k8s
-          kubectl apply -f  argocd-ingress-gcp.yaml
+      # - name: Argocd ingress GCP
+      #   run: |
+      #     git fetch origin gitop
+      #     git checkout gitop
+      #     cd argocd/k8s
+      #     kubectl apply -f  argocd-ingress-gcp.yaml
 
        
 
