@@ -131,39 +131,16 @@ jobs:
             sleep 5
           done
 
-      - name: Argocd ingress AWS
-        run: |
-          git fetch origin gitop
-          git checkout gitop
-          cd argocd/k8s
-           kubectl apply -f argocd-ingress-aws.yaml
-
-      # - name: Expose ArgoCD server externally and wait for DNS
-      #   id: argo
+      # - name: Argocd ingress AWS
       #   run: |
-      #    # Expose ArgoCD service externally
-      #    kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+      #     git fetch origin gitop
+      #     git checkout gitop
+      #     cd argocd/k8s
+           
+      #      ARGOCD_ALB=$(kubectl -n argocd get ingress argocd-server \
+      #      -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 
-      #    # Wait until a hostname is assigned
-      #    ARGOCD_SERVER_EXTERNAL=""
-      #    while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
-      #     echo "Waiting for ArgoCD LoadBalancer hostname..."
-      #     ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-      #     sleep 5
-      #    done
-
-      #    # Wait for DNS resolution
-      #    while ! nslookup $ARGOCD_SERVER_EXTERNAL >/dev/null 2>&1; do
-      #     echo "Waiting for DNS resolution of $ARGOCD_SERVER_EXTERNAL..."
-      #     sleep 5
-      #    done
-
-      #    echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
-      #    echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
-
-      #  kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
-      #  # Verify
-      #   curl -k https://$ARGOCD_SERVER_EXTERNAL/healthz
+       
 
       - name: Fetch DB credentials from terraform outputs
         run: |
@@ -215,15 +192,15 @@ jobs:
 
       - name: Create Argo auth
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
+          echo "Using ArgoCD server: localhost:8080"
            argocd app create \
             --auth-token $ARGOCD_AUTH_TOKEN \
-            --server ${{ env.ARGOCD_SERVER }}
+            --server localhost:8080
 
       - name: ArgoCD login
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
-          argocd login ${{ env.ARGOCD_SERVER }} \
+          echo "Using ArgoCD server: localhost:8080"
+          argocd login localhost:8080 \
           --username admin \
           --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} \
           --insecure
@@ -231,7 +208,7 @@ jobs:
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
           argocd app create flask-app-aws \
-           echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
+           echo "Using ArgoCD server: localhost:8080"
            --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
            --path argocd \
            --revision gitop \
@@ -239,24 +216,24 @@ jobs:
            --dest-namespace default \
            --upsert \
             --auth-token $ARGOCD_AUTH_TOKEN \
-           --server ${{ env.ARGOCD_SERVER }} \
+           --server localhost:8080 \
            --grpc-web=false \
              --insecure
 
       - name: Update ArgoCD App Image (AWS)
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
+          echo "Using ArgoCD server: localhost:8080"
           echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
           argocd app set flask-app-aws \
           --image $IMAGE_URI \
           --grpc-web=false \
-          --server ${{ env.ARGOCD_SERVER }} \
+          --server localhost:8080 \
           --timeout 60
 
           argocd app sync flask-app-aws \
             --grpc-web=false \
             --timeout 60 \
-            --server ${{ env.ARGOCD_SERVER }}
+            --server localhost:8080
 
         # ----------------------------------------
       #
@@ -465,6 +442,12 @@ jobs:
         run: |
           kubectl get nodes
 
+      - name: Connect to ArgoCD via port-forward
+        run: |
+         kubectl -n argocd port-forward svc/argocd-server 8080:443 &
+         sleep 10
+
+
       # Install ArgoCD on GCP
       - name: Install ArgoCD on GKE
         run: |
@@ -488,27 +471,7 @@ jobs:
           cd argocd/k8s
           kubectl apply -f  argocd-ingress-gcp.yaml
 
-      # - name: Expose ArgoCD server externally and wait for DNS
-      #   id: argo
-      #   run: |
-      #     # Expose ArgoCD service externally
-      #     kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
-
-      #     ARGOCD_SERVER_EXTERNAL=""
-      #     while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
-      #     echo "Waiting for ArgoCD LoadBalancer hostname..."
-      #     ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-      #     sleep 5
-      #     done
-
-      #     # Wait for DNS resolution
-      #     while ! nslookup $ARGOCD_SERVER_EXTERNAL >/dev/null 2>&1; do
-      #     echo "Waiting for DNS resolution of $ARGOCD_SERVER_EXTERNAL..."
-      #     sleep 5
-      #     done
-
-      #     echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
-      #     echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
+       
 
       - name: Fetch DB credentials from Terraform outputs
         run: |
@@ -559,22 +522,22 @@ jobs:
 
       - name: Create Argo auth
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
+          echo "Using ArgoCD server: localhost:8080"
           argocd app create \
            --auth-token $ARGOCD_AUTH_TOKEN \
-           --server ${{ env.ARGOCD_SERVER }}
+           --server localhost:8080
 
       - name: Argocd login
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
-           argocd login ${{ env.ARGOCD_SERVER }} \
+          echo "Using ArgoCD server: localhost:8080"
+           argocd login localhost:8080 \
            --username admin \
            --password ${{ secrets.ARGOCD_ADMIN_PASSWORD }} \
            --insecure
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
+          echo "Using ArgoCD server: localhost:8080"
           argocd app create flask-app-gcp \
             --auth-token $ARGOCD_AUTH_TOKEN \ 
            --repo  https://github.com/${{ github.repository }} \
@@ -582,24 +545,23 @@ jobs:
            --revision gitop \
            --dest-server https://kubernetes.default.svc \
            --dest-namespace default \
-           --server ${{ env.ARGOCD_SERVER }} \
+           --server localhost:8080 \
            --grpc-web=false \
            --upsert \
            --insecure
 
       - name: Update ArgoCD App Image & Sync (GCP)
         run: |
-          echo "Using ArgoCD server: ${{ env.ARGOCD_SERVER }}"
+          echo "Using ArgoCD server: localhost:8080"
           echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
           argocd app set flask-app-gcp \
             --image "$IMAGE_URI" \
             --grpc-web=false \
-            --server ${{ env.ARGOCD_SERVER }}  \
+            --server localhost:8080 \
              
           argocd app sync flask-app-gcp  \
              --grpc-web=false \
-             --server ${{ env.ARGOCD_SERVER }} \
-
+             --server localhost:8080 \
       #
 
       # ----------------------------------------
