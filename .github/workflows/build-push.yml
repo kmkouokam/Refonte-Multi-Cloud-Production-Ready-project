@@ -363,10 +363,13 @@ jobs:
             sudo apt-get install -y google-cloud-sdk
           else
           # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
+            sudo -u ec2-user bash
+            cd ~
             curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
             tar -xf google-cloud-cli-linux-x86_64.tar.gz
-            sudo ./google-cloud-sdk/install.sh --quiet
-            echo "export PATH=$PATH:/root/google-cloud-sdk/bin" >> ~/.bashrc
+             ./google-cloud-sdk/install.sh --quiet
+            echo 'source $HOME/google-cloud-sdk/path.bash.inc' >> ~/.bashrc
+            echo 'source $HOME/google-cloud-sdk/completion.bash.inc' >> ~/.bashrc
             source ~/.bashrc
            fi
 
@@ -378,6 +381,9 @@ jobs:
            # Authenticate to GCP
             echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > gcp-key.json
             gcloud auth activate-service-account --key-file=gcp-key.json --quiet
+            # Verify
+            gcloud version
+            kubectl version --client
 
         #  Clean and reconfigure Docker auth for Artifact Registry
       - name: Clean old Docker logins (optional safeguard)
