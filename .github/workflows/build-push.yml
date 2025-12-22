@@ -292,7 +292,7 @@ jobs:
       IMAGE_NAME: flask-app
       GCP_REGION: us-east4
       GCP_REPO: my-repo
-      GCP_CLUSTER_NAME: my-gcp-cluster-9ddaaf1fb06b
+      GCP_CLUSTER_NAME: my-gcp-cluster-b1465f11770f
       PUBLIC_IP: ${{secrets.PUBLIC_IP}}
       ARGOCD_SERVER: argocd.gcp.flask-app.devopsguru.today
 
