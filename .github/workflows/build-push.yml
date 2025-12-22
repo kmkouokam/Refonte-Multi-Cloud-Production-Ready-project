@@ -136,7 +136,7 @@ jobs:
           git fetch origin gitop
           git checkout gitop
           cd argocd/k8s
-          kubectl apply -f ingress-aws.yaml
+           kubectl apply -f argocd-ingress-aws.yaml
 
       # - name: Expose ArgoCD server externally and wait for DNS
       #   id: argo
@@ -196,7 +196,7 @@ jobs:
           cd argocd/k8s
           kubectl apply -f ingress-aws.yaml 
           kubectl apply -f service-aws.yaml 
-          kubectl apply -f argocd-ingress-aws.yaml
+         
 
       - name: Update kubeconfig AWS
         run: |
@@ -480,29 +480,29 @@ jobs:
           git fetch origin gitop
           git checkout gitop
           cd argocd/k8s
-          kubectl apply -f ingress-gcp.yaml
+          kubectl apply -f  argocd-ingress-gcp.yaml
 
-      - name: Expose ArgoCD server externally and wait for DNS
-        id: argo
-        run: |
-          # Expose ArgoCD service externally
-          kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
+      # - name: Expose ArgoCD server externally and wait for DNS
+      #   id: argo
+      #   run: |
+      #     # Expose ArgoCD service externally
+      #     kubectl -n argocd patch svc argocd-server -p '{"spec": {"type": "LoadBalancer"}}'
 
-          ARGOCD_SERVER_EXTERNAL=""
-          while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
-          echo "Waiting for ArgoCD LoadBalancer hostname..."
-          ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          sleep 5
-          done
+      #     ARGOCD_SERVER_EXTERNAL=""
+      #     while [ -z "$ARGOCD_SERVER_EXTERNAL" ]; do
+      #     echo "Waiting for ArgoCD LoadBalancer hostname..."
+      #     ARGOCD_SERVER_EXTERNAL=$(kubectl -n argocd get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      #     sleep 5
+      #     done
 
-          # Wait for DNS resolution
-          while ! nslookup $ARGOCD_SERVER_EXTERNAL >/dev/null 2>&1; do
-          echo "Waiting for DNS resolution of $ARGOCD_SERVER_EXTERNAL..."
-          sleep 5
-          done
+      #     # Wait for DNS resolution
+      #     while ! nslookup $ARGOCD_SERVER_EXTERNAL >/dev/null 2>&1; do
+      #     echo "Waiting for DNS resolution of $ARGOCD_SERVER_EXTERNAL..."
+      #     sleep 5
+      #     done
 
-          echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
-          echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
+      #     echo "ArgoCD external endpoint: $ARGOCD_SERVER_EXTERNAL"
+      #     echo "ARGOCD_SERVER_EXTERNAL=$ARGOCD_SERVER_EXTERNAL" >> $GITHUB_ENV
 
       - name: Fetch DB credentials from Terraform outputs
         run: |
@@ -535,7 +535,7 @@ jobs:
           cd argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
           kubectl apply -f service-gcp.yaml 
-          kubectl apply -f  argocd-ingress-gcp.yaml
+          
 
       - name: Update kubeconfig GCP
         run: |
