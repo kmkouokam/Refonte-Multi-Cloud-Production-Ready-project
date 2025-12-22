@@ -136,7 +136,7 @@ jobs:
           git fetch origin gitop
           git checkout gitop
           cd argocd/k8s
-          kubectl apply -f argocd/ingress-aws.yaml
+          kubectl apply -f ingress-aws.yaml
 
       # - name: Expose ArgoCD server externally and wait for DNS
       #   id: argo
@@ -480,7 +480,7 @@ jobs:
           git fetch origin gitop
           git checkout gitop
           cd argocd/k8s
-          kubectl apply -f argocd/ingress-gcp.yaml
+          kubectl apply -f ingress-gcp.yaml
 
       - name: Expose ArgoCD server externally and wait for DNS
         id: argo
