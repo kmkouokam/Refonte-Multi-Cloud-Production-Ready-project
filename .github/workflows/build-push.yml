@@ -186,12 +186,7 @@ jobs:
           cd argocd
           envsubst < flask-app-aws-rollout.yaml | kubectl apply -f -
 
-      - name: Create Argo auth
-        run: |
-          echo "Using ArgoCD server: localhost:8080"
-           argocd app create \
-            --auth-token $ARGOCD_AUTH_TOKEN \
-            --server localhost:8080
+       
 
       - name: ArgoCD login
         run: |
@@ -511,13 +506,7 @@ jobs:
           cd argocd
           envsubst < flask-app-gcp-rollout.yaml | kubectl apply -f -
 
-      - name: Create Argo auth
-        run: |
-          echo "Using ArgoCD server: localhost:8080"
-          argocd app create \
-           --auth-token $ARGOCD_AUTH_TOKEN \
-           --server localhost:8080
-
+       
       - name: Argocd login
         run: |
           echo "Using ArgoCD server: localhost:8080"
