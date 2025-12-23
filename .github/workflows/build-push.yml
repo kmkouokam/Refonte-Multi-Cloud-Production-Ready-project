@@ -210,7 +210,7 @@ jobs:
            --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
            --path argocd \
            --revision gitop \
-           --dest-server https://67F149B873B26EF7291219FE3F0B72DA.gr7.us-east-1.eks.amazonaws.com \
+           --dest-server https://kubernetes.default.svc \
            --dest-namespace default \
            --upsert \
             --auth-token $ARGOCD_AUTH_TOKEN \
