@@ -549,7 +549,7 @@ jobs:
       #    -o jsonpath="{.data.password}" | base64 -d)
       #     echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> $GITHUB_ENV
 
-
+#
       # - name: ArgoCD login
       #   run: |
       #     echo "Using ArgoCD server: localhost:8080"
