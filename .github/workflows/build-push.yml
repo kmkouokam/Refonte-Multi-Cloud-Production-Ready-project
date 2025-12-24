@@ -163,6 +163,7 @@ jobs:
           git checkout gitop
            cd argocd/k8s
            envsubst < secret-aws.yaml | kubectl apply -f -
+           envsubst < argocd-rbac.yaml | kubectl apply -f - 
 
       - name: deploy ingress-aws and service-aws
         run: |
@@ -181,12 +182,12 @@ jobs:
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
-      - name: Apply Kubernetes Rollout (AWS)
-        run: |
-          git fetch origin gitop
-          git checkout gitop
-          cd argocd
-          envsubst < flask-app-aws-rollout.yaml | kubectl apply -f -
+      # - name: Apply Kubernetes Rollout (AWS)
+      #   run: |
+      #     git fetch origin gitop
+      #     git checkout gitop
+      #     cd argocd
+      #     envsubst < flask-app-aws-rollout.yaml | kubectl apply -f -
 
       # - name: Fetch ArgoCD admin password
       #   run: |
@@ -202,6 +203,21 @@ jobs:
       #     --username admin \
       #     --password $ARGOCD_ADMIN_PASSWORD \
       #     --insecure
+
+      - name: Wait for ArgoCD core config
+        run: |
+         echo "Waiting for argocd-cm..."
+          until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+           sleep 5
+         done
+
+          echo "Waiting for argocd-secret..."
+         until kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; do
+         sleep 5
+         done
+
+         echo "ArgoCD core components ready"
+
 
       - name: Create or Upsert ArgoCD App (AWS)
         run: |
@@ -221,7 +237,6 @@ jobs:
 
       - name: Update ArgoCD App Image (AWS)
         run: |
-          echo "Using ArgoCD server: localhost:8080"
           echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
           argocd app set flask-app-aws \
           --image $IMAGE_URI \
@@ -492,6 +507,7 @@ jobs:
           git checkout gitop  
           cd argocd/k8s
           envsubst < secret-gcp.yaml | kubectl apply -f -
+          envsubst < argocd-rbac.yaml | kubectl apply -f -
 
       - name: deploy ingress-gcp and service-gcp
         run: |
@@ -509,12 +525,12 @@ jobs:
              --region "$GCP_REGION" \
              --project "$GCP_PROJECT_ID"
 
-      - name: Apply Kubernetes Rollout (GCP)
-        run: |
-          git fetch origin gitop
-          git checkout gitop
-          cd argocd
-          envsubst < flask-app-gcp-rollout.yaml | kubectl apply -f -
+      # - name: Apply Kubernetes Rollout (GCP)
+      #   run: |
+      #     git fetch origin gitop
+      #     git checkout gitop
+      #     cd argocd
+      #     envsubst < flask-app-gcp-rollout.yaml | kubectl apply -f -
 
        
       # - name: Fetch ArgoCD admin password
@@ -531,6 +547,21 @@ jobs:
       #     --username admin \
       #     --password $ARGOCD_ADMIN_PASSWORD \
       #     --insecure
+
+      - name: Wait for ArgoCD core config
+        run: |
+         echo "Waiting for argocd-cm..."
+         until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+         sleep 5
+         done
+
+          echo "Waiting for argocd-secret..."
+         until kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; do
+         sleep 5
+         done
+
+         echo "ArgoCD core components ready"
+
 
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
@@ -550,7 +581,6 @@ jobs:
 
       - name: Update ArgoCD App Image & Sync (GCP)
         run: |
-          echo "Using ArgoCD server: localhost:8080"
           echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
           argocd app set flask-app-gcp \
             --image "$IMAGE_URI" \
