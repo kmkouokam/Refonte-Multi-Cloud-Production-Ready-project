@@ -4,13 +4,23 @@ metadata:
   name: argocd-rbac-cm
   namespace: argocd
 data:
+  # Allow admin access for your GitHub/GitOps users
   policy.csv: |
-    # Allow admin user full access
-    p, role:admin, applications, *, */*, allow
+    # Admin role
+    p, role:admin, applications, *, *, allow
+    p, role:admin, clusters, get, *, allow
+    # g, your-github-username, role:admin
 
-    # Allow a GitHub Actions service account limited access (read-only or sync)
+    # CI Bot role: limited access
     p, role:ci-bot, applications, get, */*, allow
     p, role:ci-bot, applications, sync, */*, allow
+    # Map GitHub Actions or service account to ci-bot
+    # g, github-actions-username, role:ci-bot
 
-  # Assign roles to users or service accounts
-  policy.default: role:ci-bot
+  # Set default roles for general users
+  # e.g., read-only access
+  # p, role:readonly, applications, get, *, allow
+  # p, role:readonly, clusters, get, *, allow
+
+  # Optional: set default role for new users
+  default.role: role:admin
