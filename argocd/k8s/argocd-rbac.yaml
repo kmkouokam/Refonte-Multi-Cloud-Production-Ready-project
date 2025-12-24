@@ -1,13 +1,16 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: argocd
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: argocd-rbac-cm
   namespace: argocd
 data:
-  policy.csv: "p, role:admin, *, *, *, allow"
-  role.csv: "g, admin, role:admin"
+  policy.csv: |
+    # Allow admin user full access
+    p, role:admin, applications, *, */*, allow
+
+    # Allow a GitHub Actions service account limited access (read-only or sync)
+    p, role:ci-bot, applications, get, */*, allow
+    p, role:ci-bot, applications, sync, */*, allow
+
+  # Assign roles to users or service accounts
+  policy.default: role:ci-bot
