@@ -213,7 +213,9 @@ jobs:
            --dest-server https://kubernetes.default.svc \
            --dest-namespace default \
            --upsert \
-           --server localhost:8080 \
+           --core \
+            --auto-prune \
+            --sync-policy automated \
            --grpc-web=false \
            --insecure \
            --directory-recurse
@@ -539,7 +541,9 @@ jobs:
            --revision gitop \
            --dest-server https://kubernetes.default.svc \
            --dest-namespace default \
-           --server localhost:8080 \
+            --core \
+            --auto-prune \
+            --sync-policy automated \
            --grpc-web=false \
            --upsert \
            --insecure \
