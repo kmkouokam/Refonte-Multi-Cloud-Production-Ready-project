@@ -15,10 +15,6 @@ spec:
         repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
         targetRevision: gitop
         path: argocd/
-        kustomize:
-          images:
-            - name: flask-app
-              newTag: latest
       destination:
         server: "{{server}}"
         namespace: default
