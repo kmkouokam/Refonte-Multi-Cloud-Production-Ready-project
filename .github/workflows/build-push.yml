@@ -216,7 +216,7 @@ jobs:
             --auto-prune \
             --sync-policy automated \
            --grpc-web=false \
-           --self-healing \
+           --self-heal \
            --directory-recurse
 
       - name: Update ArgoCD App Image (AWS)
@@ -545,7 +545,7 @@ jobs:
             --sync-policy automated \
            --grpc-web=false \
            --upsert \
-           --self-healing \
+           --self-heal \
            --directory-recurse
 
       - name: Update ArgoCD App Image & Sync (GCP)
