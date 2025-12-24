@@ -165,6 +165,13 @@ jobs:
            envsubst < secret-aws.yaml | kubectl apply -f -
            envsubst < argocd-rbac.yaml | kubectl apply -f - 
 
+      - name: Apply ArgoCD ApplicationSet (AWS)
+        run: |
+          git fetch origin gitop
+          git checkout gitop  
+          cd argocd
+          kubectl apply -f flask-app-prod.yaml -n argocd      
+
       - name: deploy ingress-aws and service-aws
         run: |
           git fetch origin gitop
@@ -504,6 +511,13 @@ jobs:
           cd argocd/k8s
           envsubst < secret-gcp.yaml | kubectl apply -f -
           envsubst < argocd-rbac.yaml | kubectl apply -f -
+
+      - name: Apply ArgoCD ApplicationSet (AWS)
+        run: |
+          git fetch origin gitop
+          git checkout gitop  
+          cd argocd
+          kubectl apply -f flask-app-prod.yaml -n argocd      
 
       - name: deploy ingress-gcp and service-gcp
         run: |
