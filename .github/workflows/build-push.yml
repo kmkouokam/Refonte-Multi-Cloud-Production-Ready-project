@@ -23,7 +23,7 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       ARGOCD_ADMIN_PASSWORD: ${{secrets.ARGOCD_ADMIN_PASSWORD}}
-      ARGOCD_SERVER: localhost:8080
+      # ARGOCD_SERVER: localhost:8080
 
        
     steps:
@@ -269,7 +269,7 @@ jobs:
       GCP_REPO: my-repo
       GCP_CLUSTER_NAME:  my-gcp-cluster-656a2a339247
       PUBLIC_IP: ${{secrets.PUBLIC_IP}}
-      ARGOCD_SERVER: localhost:8080
+      # ARGOCD_SERVER: localhost:8080
        
 
     steps:
