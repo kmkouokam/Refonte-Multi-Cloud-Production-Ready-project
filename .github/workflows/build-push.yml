@@ -215,7 +215,8 @@ jobs:
            --upsert \
            --server localhost:8080 \
            --grpc-web=false \
-             --insecure
+           --insecure \
+           --directory-recurse
 
       - name: Update ArgoCD App Image (AWS)
         run: |
@@ -266,7 +267,7 @@ jobs:
       IMAGE_NAME: flask-app
       GCP_REGION: us-east4
       GCP_REPO: my-repo
-      GCP_CLUSTER_NAME: my-gcp-cluster-801e9f7d7469
+      GCP_CLUSTER_NAME:  my-gcp-cluster-656a2a339247
       PUBLIC_IP: ${{secrets.PUBLIC_IP}}
       ARGOCD_SERVER: localhost:8080
        
@@ -529,7 +530,6 @@ jobs:
           --password $ARGOCD_ADMIN_PASSWORD \
           --insecure
 
-
       - name: Create or Upsert ArgoCD App (GCP)
         run: |
           echo "Using ArgoCD server: localhost:8080"
@@ -542,7 +542,8 @@ jobs:
            --server localhost:8080 \
            --grpc-web=false \
            --upsert \
-           --insecure
+           --insecure \
+           --directory-recurse
 
       - name: Update ArgoCD App Image & Sync (GCP)
         run: |
