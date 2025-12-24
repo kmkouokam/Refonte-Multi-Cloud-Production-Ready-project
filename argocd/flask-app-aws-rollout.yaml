@@ -20,7 +20,8 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image:  ${IMAGE_URI}
+          image:   435329769674.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
+
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
