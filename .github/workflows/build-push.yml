@@ -204,50 +204,46 @@ jobs:
       #     --password $ARGOCD_ADMIN_PASSWORD \
       #     --insecure
 
-      # - name: Wait for ArgoCD core config
-      #   run: |
-      #    echo "Waiting for argocd-cm..."
-      #     until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
-      #      sleep 5
-      #    done
+      - name: Wait for ArgoCD core config
+        run: |
+         echo "Waiting for argocd-cm..."
+          until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+           sleep 5
+         done
 
-      #     echo "Waiting for argocd-secret..."
-      #    until kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; do
-      #    sleep 5
-      #    done
+          echo "Waiting for argocd-secret..."
+         until kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; do
+         sleep 5
+         done
 
-      #    echo "ArgoCD core components ready"
+         echo "ArgoCD core components ready"
 
 
-      # - name: Create or Upsert ArgoCD App (AWS)
-      #   run: |
-      #     argocd app create flask-app-aws \
-      #      --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
-      #      --path argocd \
-      #      --revision gitop \
-      #      --dest-server https://kubernetes.default.svc \
-      #      --dest-namespace default \
-      #      --upsert \
-      #      --core \
-      #       --auto-prune \
-      #       --sync-policy automated \
-      #      --grpc-web=false \
-      #      --self-heal \
-      #      --directory-recurse
+      - name: Create or Upsert ArgoCD App (AWS)
+        run: |
+          argocd app create flask-app-aws \
+           --repo https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git  \
+           --path argocd \
+           --revision gitop \
+           --dest-server https://kubernetes.default.svc \
+           --dest-namespace default \
+           --upsert \
+            --auto-prune \
+            --sync-policy automated \
+           --self-heal \
+           --directory-recurse
 
-      # - name: Update ArgoCD App Image (AWS)
-      #   run: |
-      #     echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
-      #     argocd app set flask-app-aws \
-      #     --image $IMAGE_URI \
-      #     --grpc-web=false \
-      #       --timeout 60 \
-      #       --core
+      - name: Update ArgoCD App Image (AWS)
+        run: |
+          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
+          argocd app set flask-app-aws \
+          --image $IMAGE_URI \
+            --timeout 60 \
+          
 
-      #     argocd app sync flask-app-aws \
-      #       --grpc-web=false \
-      #       --timeout 60 \
-      #       --core
+          argocd app sync flask-app-aws  
+          
+            
             
 
         # ----------------------------------------
@@ -548,52 +544,49 @@ jobs:
       #     --password $ARGOCD_ADMIN_PASSWORD \
       #     --insecure
 
-      # - name: Wait for ArgoCD core config
-      #   run: |
-      #    echo "Waiting for argocd-cm..."
-      #    until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
-      #    sleep 5
-      #    done
+      - name: Wait for ArgoCD core config
+        run: |
+         echo "Waiting for argocd-cm..."
+         until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+         sleep 5
+         done
 
-      #     echo "Waiting for argocd-secret..."
-      #    until kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; do
-      #    sleep 5
-      #    done
+          echo "Waiting for argocd-secret..."
+         until kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; do
+         sleep 5
+         done
 
-      #    echo "ArgoCD core components ready"
+         echo "ArgoCD core components ready"
 
 
-      # - name: Create or Upsert ArgoCD App (GCP)
-      #   run: |
-      #     argocd app create flask-app-gcp \
-      #      --repo  https://github.com/${{ github.repository }} \
-      #      --path argocd \
-      #      --revision gitop \
-      #      --dest-server https://kubernetes.default.svc \
-      #      --dest-namespace default \
-      #       --core \
-      #       --auto-prune \
-      #       --sync-policy automated \
-      #      --grpc-web=false \
-      #      --upsert \
-      #      --self-heal \
-      #      --directory-recurse
+      - name: Create or Upsert ArgoCD App (GCP)
+        run: |
+          argocd app create flask-app-gcp \
+           --repo  https://github.com/${{ github.repository }} \
+           --path argocd \
+           --revision gitop \
+           --dest-server https://kubernetes.default.svc \
+           --dest-namespace default \
+            --auto-prune \
+            --sync-policy automated \
+           --upsert \
+           --self-heal \
+           --directory-recurse
 
-      # - name: Update ArgoCD App Image & Sync (GCP)
-      #   run: |
-      #     echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
-      #     argocd app set flask-app-gcp \
-      #       --image "$IMAGE_URI" \
-      #       --grpc-web=false \
-      #       --core 
+      - name: Update ArgoCD App Image & Sync (GCP)
+        run: |
+          echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
+          argocd app set flask-app-gcp \
+            --image "$IMAGE_URI" \
+            
               
              
              
-      #     argocd app sync flask-app-gcp  \
-      #        --grpc-web=false \
-      #        --core 
+          argocd app sync flask-app-gcp  
+             
+             
               
-      #
+      
 
       # ----------------------------------------
       # 🚨 SLACK NOTIFICATION FOR GCP JOB
