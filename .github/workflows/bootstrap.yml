@@ -66,3 +66,4 @@ jobs:
                # --- Register GCP cluster ---
                - name: Register GCP cluster
                  run: argocd cluster add my-gcp-cluster-656a2a339247 --label cloud=gcp
+#
