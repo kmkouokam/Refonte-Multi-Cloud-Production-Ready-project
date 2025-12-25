@@ -6,11 +6,11 @@ metadata:
   name: flask-app-aws-active
   namespace: default
   labels:
-    app: flask-app-aws
+    app: flask-app
 spec:
   type: LoadBalancer
   selector:
-    app: flask-app-aws
+    app: flask-app
   ports:
     - port: 80
       targetPort: 8080
@@ -22,13 +22,12 @@ metadata:
   name: flask-app-aws-preview
   namespace: default
   labels:
-    app: flask-app-aws
+    app: flask-app
 spec:
   type: ClusterIP
   selector:
-    app: flask-app-aws
+    app: flask-app
   ports:
     - port: 80
       targetPort: 8080
       protocol: TCP
-

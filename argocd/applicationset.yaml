@@ -1,20 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: flask-app-multicluster
+  name: flask-app-multicloud
   namespace: argocd
 spec:
   generators:
-    - clusters: {}
+    - clusters:
+        selector:
+          matchLabels:
+            cloud: "{{name}}"
   template:
     metadata:
       name: flask-app-{{name}}
     spec:
       project: default
       source:
-        repoURL: "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git"
+        repoURL: https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project.git
         targetRevision: gitop
-        path: argocd/
+        path: argocd/{{name}}
       destination:
         server: "{{server}}"
         namespace: default
