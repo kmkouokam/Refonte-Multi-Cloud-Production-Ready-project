@@ -1,7 +1,9 @@
 name: ArgoCD Bootstrap
 
 on:
-     workflow_dispatch: # manual trigger only
+     push:
+          branches:
+               - flask-app
 env:
   GCP_CLUSTER_NAME: my-gcp-cluster-5e704c9d76a3
   GCP_REGION: us-east4

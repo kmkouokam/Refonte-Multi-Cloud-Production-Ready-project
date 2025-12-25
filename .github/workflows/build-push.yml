@@ -1,8 +1,10 @@
 name: Build and Push Flask App Image #
 
 on:
-  push:
-    branches: ["flask-app"]
+  workflow_run:
+    workflows: ["ArgoCD Bootstrap"]
+    types:
+      - completed
 
 permissions:
   contents: write
