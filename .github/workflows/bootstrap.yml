@@ -46,7 +46,7 @@ jobs:
 
       - name: Login ArgoCD
         run: |
-          argocd login https://localhost:8080 \
+          argocd login localhost:8080 \
             --username admin \
             --password $ARGOCD_ADMIN_PASSWORD \
             --insecure
@@ -143,7 +143,7 @@ jobs:
 
       - name: Login ArgoCD
         run: |
-          argocd login https://localhost:8080 \
+          argocd login localhost:8080 \
             --username admin \
             --password $ARGOCD_ADMIN_PASSWORD \
             --insecure
