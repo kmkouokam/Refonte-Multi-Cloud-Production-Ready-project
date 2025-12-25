@@ -1,0 +1,68 @@
+name: ArgoCD Bootstrap
+
+on:
+     workflow_dispatch: # manual trigger only
+
+env:
+     ARGOCD_ADMIN_PASSWORD: ${{ secrets.ARGOCD_ADMIN_PASSWORD }}
+
+jobs:
+     bootstrap:
+          runs-on: [self-hosted, linux, vpc-runner]
+
+          steps:
+               - name: Checkout repository
+                 uses: actions/checkout@v4
+
+               # --- AWS kubeconfig ---
+               - name: Configure AWS kubeconfig
+                 run: aws eks update-kubeconfig --name multi-cloud-cluster --region ${{ secrets.AWS_REGION }}
+
+               # --- GCP kubeconfig ---
+               - name: Configure GCP kubeconfig
+                 run:
+                      gcloud container clusters get-credentials my-gcp-cluster-656a2a339247 \
+                      --region us-east4 --project ${{ secrets.GCP_PROJECT_ID }}
+
+               # --- Install ArgoCD ---
+               - name: Install ArgoCD on GKE
+                 run: |
+                      kubectl create namespace argocd || true
+                      kubectl apply -n argocd \
+                        -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+                      kubectl apply \
+                        -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+                      kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
+                      # Wait additionally until the argocd-cm exists
+                      until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+                         echo "Waiting for argocd-cm to be created..."
+                         sleep 5
+                      done
+
+               - name: Argocd ports forwarding
+                 run: |
+                      kubectl port-forward -n argocd svc/argocd-server 8080:443 &
+                      sleep 10
+
+               - name: Fetch ArgoCD admin password
+                 run: |
+                      ARGO_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+                      -o jsonpath="{.data.password}" | base64 -d)
+                       echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> $GITHUB_ENV
+
+               # --- Login ArgoCD ---
+               - name: Login ArgoCD
+                 run: |
+                      argocd login https://localhost:8080 \
+                        --username admin \
+                        --password $ARGOCD_ADMIN_PASSWORD \
+                        --insecure
+
+               # --- Register AWS cluster ---
+               - name: Register AWS cluster
+                 run: argocd cluster add multi-cloud-cluster --label cloud=aws
+
+               # --- Register GCP cluster ---
+               - name: Register GCP cluster
+                 run: argocd cluster add my-gcp-cluster-656a2a339247 --label cloud=gcp
