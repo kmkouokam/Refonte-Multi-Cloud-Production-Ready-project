@@ -123,7 +123,7 @@ jobs:
       #   run: |
       #    kubectl -n argocd port-forward svc/argocd-server 8080:443 &
       #     sleep 10
-
+#
       # - name: Install ArgoCD on AWS
       #   run: |
       #     kubectl create namespace argocd || true
