@@ -38,6 +38,11 @@ jobs:
              sleep 5
            done
 
+      - name: Argocd ports forwarding
+        run: |
+          kubectl port-forward -n argocd svc/argocd-server 8080:443 &
+          sleep 10     
+
       - name: Fetch ArgoCD admin password
         run: |
           ARGO_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
@@ -134,7 +139,12 @@ jobs:
              sleep 5
            done
 
+      - name: Argocd ports forwarding
+        run: |
+          kubectl port-forward -n argocd svc/argocd-server 8080:443 &
+          sleep 10
 
+          
       - name: Fetch ArgoCD admin password
         run: |
           ARGO_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
