@@ -2,9 +2,10 @@ name: ArgoCD Bootstrap
 
 on:
      workflow_dispatch: # manual trigger only
-
 env:
-     ARGOCD_ADMIN_PASSWORD: ${{ secrets.ARGOCD_ADMIN_PASSWORD }}
+  GCP_CLUSTER_NAME: my-gcp-cluster-5e704c9d76a3
+  GCP_REGION: us-east4
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
 
 jobs:
      bootstrap:
@@ -19,11 +20,12 @@ jobs:
                  run: aws eks update-kubeconfig --name multi-cloud-cluster --region ${{ secrets.AWS_REGION }}
 
                # --- GCP kubeconfig ---
-               - name: Configure GCP kubeconfig
-                 run:
-                      gcloud container clusters get-credentials my-gcp-cluster-656a2a339247 \
-                      --region us-east4 --project ${{ secrets.GCP_PROJECT_ID }}
-
+               - name: Update kubeconfig GCP
+                 run: |
+                  echo "Cluster: $GCP_CLUSTER_NAME, Region: $GCP_REGION, Project: $GCP_PROJECT_ID"
+                  gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+                  --region "$GCP_REGION" \
+                  --project "$GCP_PROJECT_ID"
                # --- Install ArgoCD ---
                - name: Install ArgoCD on GKE
                  run: |
