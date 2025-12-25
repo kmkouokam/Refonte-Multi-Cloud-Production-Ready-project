@@ -22,7 +22,10 @@ jobs:
 
       - name: Configure AWS kubeconfig
         run: |
-          aws eks update-kubeconfig --name multi-cloud-cluster --region ${{ secrets.AWS_REGION }}
+          aws eks update-kubeconfig --name $AWS_CLUSTER_NAME --region ${AWS_REGION}
+
+      - name: Verify AWS kubeconfig
+        run: kubectl config get-contexts 
 
       - name: Install ArgoCD on AWS
         run: |
