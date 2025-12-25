@@ -172,5 +172,8 @@ jobs:
 
       
       - name: Register GCP cluster
-        run: argocd cluster add my-gcp-cluster-5e704c9d76a3 --label cloud=gcp 
+        run: |
+         CONTEXT=$(kubectl config current-context)
+          echo "Adding cluster with context: $CONTEXT"
+           argocd cluster add $CONTEXT --label cloud=gcp 
  
