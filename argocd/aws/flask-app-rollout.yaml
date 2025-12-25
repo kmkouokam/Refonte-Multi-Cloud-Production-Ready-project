@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: flask-app
+  namespace: default
+spec:
+  replicas: 2
+  strategy:
+    blueGreen:
+      activeService: flask-app-active
+      previewService: flask-app-preview
+      autoPromotionEnabled: true
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+        - name: flask-app
+          image: 435329769674.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: flask-app-env-aws
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
