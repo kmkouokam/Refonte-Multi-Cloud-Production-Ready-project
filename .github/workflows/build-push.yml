@@ -6,7 +6,7 @@ on:
     types:
       - completed
     branches:
-      - flask-app  
+       - flask-app 
 
 permissions:
   contents: write
