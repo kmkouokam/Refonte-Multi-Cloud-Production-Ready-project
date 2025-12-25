@@ -65,7 +65,7 @@ jobs:
         run: |
          CONTEXT=$(kubectl config current-context)
          echo "Adding cluster with context: $CONTEXT"
-         argocd cluster add $CONTEXT --label cloud=aws
+         argocd cluster add $CONTEXT --label cloud=aws --upsert
 
 
   gcp-bootstrap:
@@ -175,5 +175,5 @@ jobs:
         run: |
          CONTEXT=$(kubectl config current-context)
           echo "Adding cluster with context: $CONTEXT"
-           argocd cluster add $CONTEXT --label cloud=gcp 
+           argocd cluster add $CONTEXT --label cloud=gcp  --upsert
  
