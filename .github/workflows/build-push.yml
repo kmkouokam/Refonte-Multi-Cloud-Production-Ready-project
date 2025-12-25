@@ -1,16 +1,14 @@
 name: Build and Push Flask App Image #
 
 on:
-  workflow_run:
-    workflows: ["ArgoCD Bootstrap"]
+  repository_dispatch:
     types:
-      - completed
-    branches:
-       - flask-app 
-
+      - run_build
+     
 permissions:
   contents: write
   id-token: write
+  actions: write
 
 env:
   IMAGE_NAME: flask-app
@@ -20,7 +18,7 @@ jobs:
   # 1️⃣ AWS JOB
   # ----------------------------------------
   aws-build-push:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.client_payload.branch == 'flask-app' }}
     runs-on: [self-hosted, linux, vpc-runner]
     environment: production
 
@@ -36,6 +34,13 @@ jobs:
 
       - name: Check AWS Identity (Self-Hosted Runner)
         run: aws sts get-caller-identity
+
+      - name: Debug dispatch payload
+        run: |
+         echo "Triggered by dispatch"
+         echo "Branch: ${{ github.event.client_payload.branch }}"
+         echo "SHA: ${{ github.event.client_payload.sha }}"
+  
 
       - name: Login to AWS ECR
         run: |
@@ -271,7 +276,7 @@ jobs:
   # 2️⃣ GCP JOB
   # ----------------------------------------
   gcp-build-push:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.client_payload.branch == 'flask-app' }}
     runs-on: [self-hosted, linux, vpc-runner]
     # needs: aws-build-push   # wait for AWS job to finish before starting GCP job
 
@@ -287,6 +292,13 @@ jobs:
       # ARGOCD_SERVER: localhost:8080
 
     steps:
+      - name: Debug dispatch payload
+        run: |
+         echo "Triggered by dispatch"
+          echo "Branch: ${{ github.event.client_payload.branch }}"
+          echo "SHA: ${{ github.event.client_payload.sha }}"
+
+
       - name: Checkout code
         uses: actions/checkout@v4
 

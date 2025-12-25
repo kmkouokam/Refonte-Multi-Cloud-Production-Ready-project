@@ -5,6 +5,11 @@ on:
     branches:
       - flask-app
 
+permissions:
+  contents: read
+  id-token: write
+  actions: write      
+
 env:
   GCP_CLUSTER_NAME: my-gcp-cluster-5e704c9d76a3
   GCP_REGION: us-east4
@@ -66,6 +71,23 @@ jobs:
          CONTEXT=$(kubectl config current-context)
          echo "Adding cluster with context: $CONTEXT"
          argocd cluster add $CONTEXT --label cloud=aws --upsert
+
+      - name: Trigger Build Workflow
+        if: success()
+        run: |
+         curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github+json" \
+           https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{
+          "event_type": "run_build",
+          "client_payload": {
+          "branch": "flask-app",
+          "sha": "'"${GITHUB_SHA}"'"
+          }
+          }'
+      
+ 
 
 
   gcp-bootstrap:
@@ -189,4 +211,19 @@ jobs:
          CONTEXT=$(kubectl config current-context)
           echo "Adding cluster with context: $CONTEXT"
            argocd cluster add $CONTEXT --label cloud=gcp  --upsert
- 
+      
+      - name: Trigger Build Workflow
+        if: success()
+        run: |
+         curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github+json" \
+           https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{
+          "event_type": "run_build",
+          "client_payload": {
+          "branch": "flask-app",
+          "sha": "'"${GITHUB_SHA}"'"
+          }
+          }'
+           
