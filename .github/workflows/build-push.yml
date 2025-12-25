@@ -5,6 +5,8 @@ on:
     workflows: ["ArgoCD Bootstrap"]
     types:
       - completed
+    branches:
+      - flask-app  
 
 permissions:
   contents: write
