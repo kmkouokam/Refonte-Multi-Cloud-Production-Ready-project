@@ -571,7 +571,7 @@ jobs:
       #     echo "Updating ArgoCD deployment image to $IMAGE_URI ..."
       #     argocd app set flask-app-gcp \
       #       --image "$IMAGE_URI" \
-
+#
       #     argocd app sync flask-app-gcp
 
       # ----------------------------------------
