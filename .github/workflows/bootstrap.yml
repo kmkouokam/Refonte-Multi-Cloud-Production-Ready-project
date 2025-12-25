@@ -62,7 +62,11 @@ jobs:
             --insecure
 
       - name: Register AWS cluster
-        run: argocd cluster add multi-cloud-cluster --label cloud=aws
+        run: |
+         CONTEXT=$(kubectl config current-context)
+         echo "Adding cluster with context: $CONTEXT"
+         argocd cluster add $CONTEXT --label cloud=aws
+
 
   gcp-bootstrap:
     name: Bootstrap GCP
@@ -166,6 +170,7 @@ jobs:
             --password $ARGOCD_ADMIN_PASSWORD \
             --insecure
 
+      
       - name: Register GCP cluster
-        run: argocd cluster add $GCP_CLUSTER_NAME --label cloud=gcp
+        run: argocd cluster add my-gcp-cluster-5e704c9d76a3 --label cloud=gcp 
  
