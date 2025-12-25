@@ -75,6 +75,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
+      - name: Fix gcloud install location
+        run: |
+          echo "CLOUDSDK_ROOT_DIR=$HOME/google-cloud-sdk" >> $GITHUB_ENV
+           echo "PATH=$HOME/google-cloud-sdk/bin:$PATH" >> $GITHUB_ENV
+
+        # 3️⃣ Install gcloud CLI and kubectl
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          install_components: "kubectl"
+  
 
       # --- Install gcloud ---
       - name: Install Google Cloud SDK
