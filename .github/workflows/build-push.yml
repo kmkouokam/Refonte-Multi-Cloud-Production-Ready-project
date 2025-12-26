@@ -59,8 +59,7 @@ jobs:
              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
-           # Install default RBAC settings
-           kubectl -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/rbac/argocd-rbac-default.yaml
+            
           
            # Wait additionally until the argocd-cm exists
            until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
@@ -74,6 +73,14 @@ jobs:
             -n argocd \
             --for=condition=available \
             --timeout=300s
+
+      - name: Install RBAC
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+           cd argocd/k8s
+           kubectl -n argocd apply -f argocd-rbac.yaml          
+      
 
       - name: Login ArgoCD
         run: |
@@ -184,8 +191,7 @@ jobs:
              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
-            # install default RBAC settings
-           kubectl -n argocd apply -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/rbac/argocd-rbac-default.yaml
+             
 
            # Wait additionally until the argocd-cm exists
            until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
@@ -201,7 +207,12 @@ jobs:
             --timeout=300s
             
          
-                
+      - name: Install RBAC
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+           cd argocd/k8s
+           kubectl -n argocd apply -f argocd-rbac.yaml          
 
       - name: Register GCP cluster
         run: |
