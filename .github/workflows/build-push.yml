@@ -181,7 +181,7 @@ jobs:
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts      
 
-      - name: Install ArgoCD on GCP
+      - name: Install ArgoCD on AWS
         run: |
            kubectl create namespace argocd || true
            kubectl apply -n argocd \
@@ -191,8 +191,8 @@ jobs:
              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
-             
-
+            
+          
            # Wait additionally until the argocd-cm exists
            until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
              echo "Waiting for argocd-cm to be created..."
