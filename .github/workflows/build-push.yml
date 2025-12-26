@@ -162,7 +162,7 @@ jobs:
             gcloud version
             kubectl version --client
 
-            
+          
 
       - name: Update GKE kubeconfig
         run: |
