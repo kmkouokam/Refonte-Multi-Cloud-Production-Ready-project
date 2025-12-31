@@ -145,6 +145,9 @@ jobs:
             sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
             sudo apt-get update
             sudo apt-get install -y google-cloud-sdk
+
+            # Install GKE auth plugin
+           sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
           else
           # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
             sudo -u ec2-user bash
@@ -155,6 +158,9 @@ jobs:
             echo 'source $HOME/google-cloud-sdk/path.bash.inc' >> ~/.bashrc
             echo 'source $HOME/google-cloud-sdk/completion.bash.inc' >> ~/.bashrc
             source ~/.bashrc
+
+            # Install GKE auth plugin
+           gcloud components install gke-gcloud-auth-plugin --quiet
            fi
     
 
