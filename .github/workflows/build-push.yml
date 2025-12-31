@@ -185,7 +185,15 @@ jobs:
             --project "$GCP_PROJECT_ID"
 
       - name: Verify GCP kubeconfig
-        run: kubectl config get-contexts      
+        run: kubectl config get-contexts   
+        
+      # --- Optional: Check connectivity ---
+      - name: Check Kubernetes API connectivity
+        run: |
+         if ! curl -k -m 5 https://$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|https://||'); then
+         echo "Cannot reach Kubernetes API. Check VPC/firewall/network!"
+         exit 1
+         fi  
 
       - name: Install ArgoCD on AWS
         run: |
