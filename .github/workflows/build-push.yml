@@ -430,6 +430,17 @@ jobs:
           credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
+      - name: Authenticate to GCP and Install GKE auth plugin
+        run: |
+          # Install gke plugin
+           gcloud components install gke-gcloud-auth-plugin --quiet 
+          
+          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > key.json
+          gcloud auth activate-service-account --key-file=key.json  --quiet
+          # Verify
+            gcloud version
+            kubectl version --client    
+
        #  Clean and reconfigure Docker auth for Artifact Registry
       - name: Clean old Docker logins (optional safeguard)
         run: |
@@ -477,11 +488,18 @@ jobs:
 
       - name: Update kubeconfig GCP
         run: |
+          gcloud container clusters update "$GCP_CLUSTER_NAME" \
+            --region "$GCP_REGION" \
+            --project "$GCP_PROJECT_ID" \
+            --enable-master-authorized-networks \
+            --master-authorized-networks 0.0.0.0/0   
+
+      - name: Update kubeconfig GCP
+        run: |
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
             --region "$GCP_REGION" \
             --project "$GCP_PROJECT_ID"
-            --enaable-master-authorized-networks \
-            --master-authorized-networks 0.0.0.0/0
+             
 
       - name: Create GCR Pull Secret
         run: |
