@@ -201,7 +201,7 @@ jobs:
             --region "$GCP_REGION" \
             --project "$GCP_PROJECT_ID" \
              --enable-master-authorized-networks \
-             --master-authorized-networks 34.228.113.98/32   
+             --master-authorized-networks 34.228.113.98/32   #runner IP
 
       - name: Install ArgoCD on AWS
         run: |
