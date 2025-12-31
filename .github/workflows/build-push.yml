@@ -183,7 +183,7 @@ jobs:
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
             --region "$GCP_REGION" \
             --project "$GCP_PROJECT_ID" \
-            --internal-ip
+            --enable-master-authorized-networks \
 
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
