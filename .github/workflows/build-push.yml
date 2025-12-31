@@ -195,6 +195,14 @@ jobs:
          exit 1
          fi  
 
+      - name: update cluster
+        run: |
+          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+            --region "$GCP_REGION" \
+            --project "$GCP_PROJECT_ID" \
+            # --enable-master-authorized-networks \
+            # --master-authorized-networks 34.228.113.98/32   
+
       - name: Install ArgoCD on AWS
         run: |
            kubectl create namespace argocd || true
