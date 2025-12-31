@@ -389,26 +389,27 @@ jobs:
           kubectl apply -f ingress-aws.yaml 
           kubectl apply -f service-aws.yaml
 
-      # - name: Create or upsert argocd cluster AWS
-      #   run: |
-      #     argocd app create flask-app \
-      #       --repo https://github.com/${{ github.repository }} \
-      #       --path argocd/aws \
-      #       --dest-server https://kubernetes.default.svc \
-      #       --dest-namespace default \
-      #       --project default \
-      #       --auto-prune \
-      #       --self-heal \
-      #       --sync-policy automated \
-      #       --upsert \
-      #       --revision gitop 
+      - name: Create or upsert argocd cluster AWS
+        run: |
+           argocd app create flask-app \
+              --port-forward \  
+             --repo https://github.com/${{ github.repository }} \
+             --path argocd/aws \
+             --dest-server https://kubernetes.default.svc \
+             --dest-namespace default \
+             --project default \
+             --auto-prune \
+             --self-heal \
+             --sync-policy automated \
+             --upsert \
+             --revision gitop 
 
-      # - name: Update ArgoCD image
-      #   run: |
-      #       argocd app set flask-app \
-      #         --param IMAGE_URI=$IMAGE_URI
+      - name: Update ArgoCD image
+        run: |
+             argocd app set flask-app \
+               --param IMAGE_URI=$IMAGE_URI
 
-      #         argocd app sync flask-app
+               argocd app sync flask-app
               
           
 
