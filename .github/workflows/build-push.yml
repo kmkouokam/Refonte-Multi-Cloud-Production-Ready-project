@@ -184,6 +184,7 @@ jobs:
             --region "$GCP_REGION" \
             --project "$GCP_PROJECT_ID" \
             --enable-master-authorized-networks \
+            --master-authorized-networks 0.0.0.0/0
 
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
