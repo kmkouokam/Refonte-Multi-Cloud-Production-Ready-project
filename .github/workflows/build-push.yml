@@ -316,12 +316,42 @@ jobs:
           VPC_ID=$(aws eks describe-cluster --name $AWS_CLUSTER_NAME --region $AWS_REGION \
           --query "cluster.resourcesVpcConfig.vpcId" --output text)
           echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
+
+      - name: Cleanup stuck AWS Load Balancer Controller (safe)
+        run: |
+         set +e
+
+          echo "Checking Helm release status..."
+          helm status aws-load-balancer-controller -n kube-system
+
+          echo "Attempting safe uninstall (if exists)..."
+           helm uninstall aws-load-balancer-controller -n kube-system || true
+
+          echo "Removing any stuck Helm secrets..."
+          kubectl -n kube-system delete secret -l "name=aws-load-balancer-controller,owner=helm" || true
+
+         set -e
+    
           
       #    install AWS Load Balancer Controller CRDs
-      - name: Install AWS Load Balancer Controller CRDs
+      # - name: Install AWS Load Balancer Controller CRDs
+      #   run: |
+      #     echo "Installing AWS Load Balancer Controller CRDs..."
+      #      kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml --validate=false
+
+      - name: Install AWS Load Balancer Controller
         run: |
-          echo "Installing AWS Load Balancer Controller CRDs..."
-           kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml --validate=false
+         helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+         -n kube-system \
+          --set clusterName="$AWS_CLUSTER_NAME" \
+         --set serviceAccount.create=false \
+         --set serviceAccount.name=aws-load-balancer-controller \
+         --atomic \
+         --wait \
+          --timeout 10m
+
+
+
 
        # Add Helm repo
       - name: Add Helm repo for AWS charts
