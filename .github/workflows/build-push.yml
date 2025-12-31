@@ -378,7 +378,7 @@ jobs:
           git fetch origin gitop
           git checkout gitop  
           cd argocd/aws
-          kubectl apply -f flask-app-rollout.yaml -n argocd 
+          kubectl apply -f flask-app-rollout.yaml --namespace=default
 
       - name: deploy ingress-aws and service-aws
         run: |
