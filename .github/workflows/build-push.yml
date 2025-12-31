@@ -183,6 +183,7 @@ jobs:
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
             --region "$GCP_REGION" \
             --project "$GCP_PROJECT_ID"
+            --internal-ip
 
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
@@ -190,18 +191,13 @@ jobs:
       # --- Optional: Check connectivity ---
       - name: Check Kubernetes API connectivity
         run: |
-         if ! curl -k -m 5 https://$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|https://||'); then
-         echo "Cannot reach Kubernetes API. Check VPC/firewall/network!"
-         exit 1
+         INTERNAL_IP=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|https://||')
+         if ! curl -k -m 5 https://$INTERNAL_IP; then
+          echo "Cannot reach Kubernetes API via internal IP. Check VPC/firewall!"
+          exit 1
          fi  
 
-      - name: update cluster
-        run: |
-          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-            --region "$GCP_REGION" \
-            --project "$GCP_PROJECT_ID" \
-             --enable-master-authorized-networks \
-             --master-authorized-networks $PUBLIC_IP/32   #runner IP
+        
 
       - name: Install ArgoCD on AWS
         run: |
