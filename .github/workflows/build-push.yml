@@ -339,6 +339,11 @@ jobs:
       #     echo "Installing AWS Load Balancer Controller CRDs..."
       #      kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml --validate=false
 
+      - name: Create service account for AWS Load Balancer Controller
+        run: |
+         kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/service-account.yaml
+         
+
       - name: Install AWS Load Balancer Controller
         run: |
          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
