@@ -332,7 +332,12 @@ jobs:
 
          set -e
     
-          
+      - name: Associate IAM OIDC Provider
+        run: |
+          eksctl utils associate-iam-oidc-provider \
+          --region $AWS_REGION \
+          --cluster $AWS_CLUSTER_NAME \
+          --approve    
       #    install AWS Load Balancer Controller CRDs
       # - name: Install AWS Load Balancer Controller CRDs
       #   run: |
