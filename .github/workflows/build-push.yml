@@ -258,7 +258,7 @@ jobs:
      
 
 
-#
+
 
   aws-build-push:
       name: Build & Deploy AWS
@@ -342,7 +342,8 @@ jobs:
       - name: Create service account for AWS Load Balancer Controller
         run: |
          kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/service-account.yaml
-         
+
+
 
       - name: Install AWS Load Balancer Controller
         run: |
