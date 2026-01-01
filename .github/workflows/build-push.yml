@@ -341,16 +341,13 @@ jobs:
 
       - name: Create service account for AWS Load Balancer Controller
         run: |
-          cat <<EOF | kubectl apply -f -
-          apiVersion: v1
-          kind: ServiceAccount
-          metadata:
-            name: aws-load-balancer-controller
-            namespace: kube-system
-            labels:
-              app.kubernetes.io/name: aws-load-balancer-controller
-              app.kubernetes.io/component: controller
-           EOF
+          eksctl create iamserviceaccount \
+          --cluster $AWS_CLUSTER_NAME \
+          --namespace kube-system \
+          --name aws-load-balancer-controller \
+          --attach-policy-arn arn:aws:iam::435329769674:policy/AWSLoadBalancerControllerIAMPolicy \
+          --approve
+
 
 
 
