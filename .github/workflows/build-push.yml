@@ -341,7 +341,16 @@ jobs:
 
       - name: Create service account for AWS Load Balancer Controller
         run: |
-         kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/service-account.yaml
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: aws-load-balancer-controller
+            namespace: kube-system
+            labels:
+              app.kubernetes.io/name: aws-load-balancer-controller
+              app.kubernetes.io/component: controller
+           EOF
 
 
 
