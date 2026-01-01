@@ -256,7 +256,7 @@ jobs:
            CONTEXT=$(kubectl config current-context)
            argocd cluster add "$CONTEXT" --label cloud=gcp --upsert
      
-#
+
 
 
 
