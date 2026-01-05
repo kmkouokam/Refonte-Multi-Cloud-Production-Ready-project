@@ -109,6 +109,12 @@ jobs:
       steps:
       - uses: actions/checkout@v4
 
+      # ✅ Authenticate FIRST
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+         credentials_json: ${{ secrets.GCP_SA_KEY }}
+
       - name: Fix gcloud install location
         run: |
           echo "CLOUDSDK_ROOT_DIR=$HOME/google-cloud-sdk" >> $GITHUB_ENV
@@ -118,7 +124,13 @@ jobs:
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
-          install_components: kubectl
+          install_components: kubectl,gke-gcloud-auth-plugin
+
+      - name: Verify gcloud
+        run: |
+         gcloud auth list
+         gcloud version
+         kubectl version --client    
 
       # --- Install gcloud ---
       - name: Install Google Cloud SDK
@@ -164,16 +176,16 @@ jobs:
            fi
     
 
-      - name: Authenticate to GCP and Install GKE auth plugin
-        run: |
-          # Install gke plugin
-           gcloud components install gke-gcloud-auth-plugin --quiet 
+      # - name: Authenticate to GCP and Install GKE auth plugin
+      #   run: |
+      #     # Install gke plugin
+      #      gcloud components install gke-gcloud-auth-plugin --quiet 
           
-          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > key.json
-          gcloud auth activate-service-account --key-file=key.json  --quiet
-          # Verify
-            gcloud version
-            kubectl version --client
+      #     echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > key.json
+      #     gcloud auth activate-service-account --key-file=key.json  --quiet
+      #     # Verify
+      #       gcloud version
+      #       kubectl version --client
 
       - name: Update kubeconfig GCP
         run: |
@@ -205,7 +217,7 @@ jobs:
 
       
 
-      - name: Install ArgoCD on AWS
+      - name: Install ArgoCD on GCP
         run: |
            kubectl create namespace argocd || true
            kubectl apply -n argocd \
