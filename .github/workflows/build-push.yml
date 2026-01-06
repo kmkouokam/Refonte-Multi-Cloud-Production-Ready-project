@@ -19,7 +19,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   
-
+#
   # GCP
   GCP_CLUSTER_NAME: my-gcp-cluster-95fdf44d2c82
   GCP_REGION: us-east4
