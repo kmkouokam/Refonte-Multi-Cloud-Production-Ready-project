@@ -350,11 +350,14 @@ jobs:
           --region $AWS_REGION \
           --cluster $AWS_CLUSTER_NAME \
           --approve    
-      #    install AWS Load Balancer Controller CRDs
-      # - name: Install AWS Load Balancer Controller CRDs
-      #   run: |
-      #     echo "Installing AWS Load Balancer Controller CRDs..."
-      #      kubectl apply -f https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml --validate=false
+       
+      - name: AWS Cloudformation Setup for ALB Controller
+        run: |
+          aws cloudformation describe-stack-events \
+          --stack-name eksctl-multi-cloud-cluster-addon-iamserviceaccount-kube-system-aws-load-balancer-controller \
+          --max-items 20
+
+
 
       - name: Create service account for AWS Load Balancer Controller
         run: |
