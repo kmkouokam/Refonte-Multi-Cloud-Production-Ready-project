@@ -374,6 +374,7 @@ jobs:
         run: |
           helm repo add eks https://aws.github.io/eks-charts
           helm repo update
+          kubectl create namespace kube-system --dry-run=client -o yaml | kubectl apply -f -
 #
 
       - name: Install AWS Load Balancer Controller
@@ -383,9 +384,8 @@ jobs:
           --set clusterName="$AWS_CLUSTER_NAME" \
          --set serviceAccount.create=false \
          --set serviceAccount.name=aws-load-balancer-controller \
-         --atomic \
          --wait \
-          --timeout 10m
+          --timeout 20m
 
 
 
