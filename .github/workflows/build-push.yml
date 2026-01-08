@@ -368,7 +368,11 @@ jobs:
           --attach-policy-arn arn:aws:iam::435329769674:policy/AWSLoadBalancerControllerIAMPolicy \
           --approve
 
-
+       # Add Helm repo
+      - name: Add Helm repo for AWS charts
+        run: |
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
 #
 
       - name: Install AWS Load Balancer Controller
@@ -385,11 +389,7 @@ jobs:
 
 
 
-       # Add Helm repo
-      - name: Add Helm repo for AWS charts
-        run: |
-          helm repo add eks https://aws.github.io/eks-charts
-          helm repo update  
+        
           
       #  Install or upgrade AWS Load Balancer Controller
       - name: Install AWS Load Balancer Controller via Helm
