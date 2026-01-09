@@ -349,7 +349,7 @@ jobs:
       - name: Add Helm repo for AWS charts
         run: |
           helm repo add eks https://aws.github.io/eks-charts
-          helm repo update  
+          helm repo update eks
           kubectl create namespace kube-system --dry-run=client -o yaml | kubectl apply -f - 
     
       - name: Associate IAM OIDC Provider
@@ -374,6 +374,8 @@ jobs:
           --namespace kube-system \
           --name aws-load-balancer-controller \
           --attach-policy-arn arn:aws:iam::435329769674:policy/AWSLoadBalancerControllerIAMPolicy \
+          --override-existing-serviceaccounts \
+          --region $AWS_REGION \
           --approve
 
       # Apply CRDs explicitly (recommended for upgrade/install safety)
@@ -393,12 +395,12 @@ jobs:
           --set clusterName="$AWS_CLUSTER_NAME" \
          --set serviceAccount.create=false \
          --set serviceAccount.name=aws-load-balancer-controller \
-         --set region="$AWS_REGION" \
-         --set vpcId="$VPC_ID" \
-         --wait \
-         --set crds.create=false
-          --timeout 20m \
-           --debug
+        #  --set region="$AWS_REGION" \
+        #  --set vpcId="$VPC_ID" \
+        #  --wait \
+        #  --set crds.create=false
+        #   --timeout 20m \
+        #    --debug
 
 
 
