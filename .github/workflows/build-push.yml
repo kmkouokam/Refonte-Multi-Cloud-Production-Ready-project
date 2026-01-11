@@ -22,7 +22,7 @@ env:
 
 
   # GCP
-  GCP_CLUSTER_NAME: my-gcp-cluster-c77118dd7937
+  GCP_CLUSTER_NAME:  my-gcp-cluster-d870187fe29a
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -37,6 +37,8 @@ jobs:
   aws-bootstrap:
     name: Bootstrap AWS (ArgoCD + Cluster)
     runs-on: [self-hosted, linux, vpc-runner]
+    env:
+     KUBECONFIG: ${{ runner.temp }}/kubeconfig-aws
 
     steps:
       - uses: actions/checkout@v4
@@ -85,8 +87,10 @@ jobs:
 
       - name: Login ArgoCD
         run: |
-          kubectl -n argocd port-forward svc/argocd-server 8080:443 &
+          kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+          PF_PID=$!
           sleep 10
+          kill $PF_PID || true
           ARGO_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
             -o jsonpath="{.data.password}" | base64 -d)
             echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> $GITHUB_ENV
@@ -101,10 +105,33 @@ jobs:
           CONTEXT=$(kubectl config current-context)
           argocd cluster add "$CONTEXT" --label cloud=aws --upsert 
 
-      - name: Clean up runner
+      - name: Clean up runner (safe)
+        if: always()
         run: |
-          docker system prune -af || true
-          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+         rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+    
+
+       
    
 
 
@@ -112,6 +139,9 @@ jobs:
       name: Bootstrap GCP (ArgoCD + Cluster)
       needs: aws-bootstrap
       runs-on: [self-hosted, linux, vpc-runner]
+      env:
+       KUBECONFIG: ${{ runner.temp }}/kubeconfig-gcp
+       CLOUDSDK_CONFIG: ${{ runner.temp }}/gcloud-config
 
       steps:
       - uses: actions/checkout@v4
@@ -140,59 +170,52 @@ jobs:
          kubectl version --client    
 
       # --- Install gcloud ---
-      - name: Install Google Cloud SDK
+      # - name: Install Google Cloud SDK
+      #   run: |
+      #     # Create safe directory
+      #     mkdir -p /home/ec2-user/gcloud
+      #     cd /home/ec2-user/gcloud
+      #     # Detect package manager
+      #     if command -v apt-get >/dev/null 2>&1; then
+      #      sudo apt-get update -y
+      #      sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+      #     elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then
+      #      sudo yum update -y || sudo dnf update -y
+      #      sudo yum install -y curl ca-certificates || sudo dnf install -y curl ca-certificates
+      #     else
+      #       echo "No supported package manager found"
+      #      exit 1
+      #     fi
+
+      #      # If using apt-get, install Google Cloud SDK via apt repo
+      #     if command -v apt-get >/dev/null 2>&1; then
+      #       curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+      #       echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+      #       sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+      #       sudo apt-get update
+      #       sudo apt-get install -y google-cloud-sdk
+
+      #       # Install GKE auth plugin
+      #      sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
+      #     else
+      #     # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
+      #       sudo -u ec2-user bash
+      #       cd ~
+      #       curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz  
+      #       tar -xf google-cloud-cli-linux-x86_64.tar.gz
+      #        ./google-cloud-sdk/install.sh --quiet
+      #       echo 'source $HOME/google-cloud-sdk/path.bash.inc' >> ~/.bashrc
+      #       echo 'source $HOME/google-cloud-sdk/completion.bash.inc' >> ~/.bashrc
+      #       source ~/.bashrc
+
+            # Install GKE auth plugin
+      - name: Ensure GKE auth plugin is installed
         run: |
-          # Create safe directory
-          mkdir -p /home/ec2-user/gcloud
-          cd /home/ec2-user/gcloud
-          # Detect package manager
-          if command -v apt-get >/dev/null 2>&1; then
-           sudo apt-get update -y
-           sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-          elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then
-           sudo yum update -y || sudo dnf update -y
-           sudo yum install -y curl ca-certificates || sudo dnf install -y curl ca-certificates
-          else
-            echo "No supported package manager found"
-           exit 1
-          fi
-
-           # If using apt-get, install Google Cloud SDK via apt repo
-          if command -v apt-get >/dev/null 2>&1; then
-            curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-            echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-            sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-            sudo apt-get update
-            sudo apt-get install -y google-cloud-sdk
-
-            # Install GKE auth plugin
-           sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
-          else
-          # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
-            sudo -u ec2-user bash
-            cd ~
-            curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz  
-            tar -xf google-cloud-cli-linux-x86_64.tar.gz
-             ./google-cloud-sdk/install.sh --quiet
-            echo 'source $HOME/google-cloud-sdk/path.bash.inc' >> ~/.bashrc
-            echo 'source $HOME/google-cloud-sdk/completion.bash.inc' >> ~/.bashrc
-            source ~/.bashrc
-
-            # Install GKE auth plugin
            gcloud components install gke-gcloud-auth-plugin --quiet
            fi
     
 
-      # - name: Authenticate to GCP and Install GKE auth plugin
-      #   run: |
-      #     # Install gke plugin
-      #      gcloud components install gke-gcloud-auth-plugin --quiet 
-          
-      #     echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > key.json
-      #     gcloud auth activate-service-account --key-file=key.json  --quiet
-      #     # Verify
-      #       gcloud version
-      #       kubectl version --client
+       
 
       - name: Update kubeconfig GCP
         run: |
@@ -275,10 +298,31 @@ jobs:
            CONTEXT=$(kubectl config current-context)
            argocd cluster add "$CONTEXT" --label cloud=gcp --upsert
 
-      - name: Clean up runner
+      - name: Clean up runner (safe)
+        if: always()
         run: |
-          docker system prune -af || true
-          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true     
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+         rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+        
      
 
 
@@ -288,6 +332,10 @@ jobs:
       name: Build & Deploy AWS
       needs: gcp-bootstrap
       runs-on: [self-hosted, linux, vpc-runner]
+
+      env:
+       KUBECONFIG: ${{ runner.temp }}/kubeconfig-aws
+
 
       steps:
       - uses: actions/checkout@v4
@@ -327,11 +375,10 @@ jobs:
 
       - name: Update kubeconfig AWS
         run: |
-          aws eks update-kubeconfig \
-            --name $AWS_CLUSTER_NAME \
-            --region $AWS_REGION   \
-             kubectl config current-context
-             kubectl get nodes -o wide 
+          aws eks update-kubeconfig --name "$AWS_CLUSTER_NAME" --region "$AWS_REGION"
+          kubectl config current-context
+          kubectl get nodes -o wide
+
           
       - name: Install Helm
         run: |
@@ -364,7 +411,7 @@ jobs:
       - name: Add Helm repo for AWS charts
         run: |
           helm repo add eks https://aws.github.io/eks-charts
-          helm repo update eks
+          helm repo update 
           kubectl create namespace kube-system --dry-run=client -o yaml | kubectl apply -f - 
     
       - name: Associate IAM OIDC Provider
@@ -478,8 +525,12 @@ jobs:
 
       - name: Login ArgoCD
         run: |
-          kubectl -n argocd port-forward svc/argocd-server 8080:443 &
+          kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+          PF_PID=$!
           sleep 10
+          kill $PF_PID || true
+
+
           ARGO_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
             -o jsonpath="{.data.password}" | base64 -d)
             echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> $GITHUB_ENV
@@ -492,18 +543,17 @@ jobs:
       - name: Create or upsert argocd cluster AWS
         run: |
            argocd app create flask-app \
-              --server "$ARGOCD_SERVER" \
-              --port-forward \  
-             --repo https://github.com/${{ github.repository }} \
-             --path argocd/aws \
-             --dest-server https://kubernetes.default.svc \
-             --dest-namespace default \
-             --project default \
-             --auto-prune \
-             --self-heal \
-             --sync-policy automated \
-             --upsert \
-             --revision gitop 
+           --port-forward \
+           --repo https://github.com/${{ github.repository }} \
+           --path argocd/aws \
+           --dest-server https://kubernetes.default.svc \
+           --dest-namespace default \
+           --project default \
+           --sync-policy automated \
+           --auto-prune \
+           --self-heal \
+           --upsert \
+           --revision gitop
 
       - name: Update ArgoCD image
         run: |
@@ -512,11 +562,33 @@ jobs:
 
                argocd app sync flask-app
 
-      - name: Clean up runner
+      - name: Clean up runner (safe)
+        if: always()
         run: |
-          docker system prune -af || true
-          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true         
-              
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+         rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+           
+
+       
           
 
 
@@ -526,6 +598,9 @@ jobs:
     needs: [gcp-bootstrap, aws-build-push]
     environment: production
     runs-on: [self-hosted, linux, vpc-runner]
+    env:
+     KUBECONFIG: ${{ runner.temp }}/kubeconfig-gcp
+     CLOUDSDK_CONFIG: ${{ runner.temp }}/gcloud-config
  
     steps:
       - uses: actions/checkout@v4
@@ -657,13 +732,37 @@ jobs:
           git checkout gitop
           cd argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
-          kubectl apply -f service-gcp.yaml    
-
-
-      - name: Clean up runner
+          kubectl apply -f service-gcp.yaml  
+          
+          
+      - name: Clean up runner (safe)
+        if: always()
         run: |
-          docker system prune -af || true
-          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true    
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+         rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+    
+
+
+          
           
           
 
