@@ -22,7 +22,7 @@ env:
 
 
   # GCP
-  GCP_CLUSTER_NAME: my-gcp-cluster-c77118dd7937
+  GCP_CLUSTER_NAME: my-gcp-cluster-549e2a603923
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -99,7 +99,13 @@ jobs:
       - name: Register AWS cluster
         run: |
           CONTEXT=$(kubectl config current-context)
-          argocd cluster add "$CONTEXT" --label cloud=aws --upsert
+          argocd cluster add "$CONTEXT" --label cloud=aws --upsert 
+
+      - name: Clean up runner
+        run: |
+          docker system prune -af || true
+          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true
+   
 
 
   gcp-bootstrap:
@@ -268,6 +274,11 @@ jobs:
             #Register GCP cluster
            CONTEXT=$(kubectl config current-context)
            argocd cluster add "$CONTEXT" --label cloud=gcp --upsert
+
+      - name: Clean up runner
+        run: |
+          docker system prune -af || true
+          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true     
      
 
 
@@ -492,6 +503,11 @@ jobs:
                --param IMAGE_URI=$IMAGE_URI
 
                argocd app sync flask-app
+
+      - name: Clean up runner
+        run: |
+          docker system prune -af || true
+          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true         
               
           
 
@@ -634,6 +650,12 @@ jobs:
           cd argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
           kubectl apply -f service-gcp.yaml    
+
+
+      - name: Clean up runner
+        run: |
+          docker system prune -af || true
+          rm -rf ~/.kube ~/.terraform.d ~/.config/gcloud || true    
           
           
 
