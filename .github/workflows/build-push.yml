@@ -22,7 +22,7 @@ env:
 
 
   # GCP
-  GCP_CLUSTER_NAME: my-gcp-cluster-549e2a603923
+  GCP_CLUSTER_NAME: my-gcp-cluster-c77118dd7937
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -315,11 +315,7 @@ jobs:
         run: |
           echo "IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest" >> $GITHUB_ENV 
           
-      - name: Update kubeconfig AWS
-        run: |
-          aws eks update-kubeconfig \
-            --name $AWS_CLUSTER_NAME \
-            --region $AWS_REGION
+      
             
       - name: Create ECR Pull Secret
         run: |
@@ -328,6 +324,14 @@ jobs:
           --docker-username=AWS \
           --docker-password=$(aws ecr get-login-password --region $AWS_REGION) \
           -n default || true 
+
+      - name: Update kubeconfig AWS
+        run: |
+          aws eks update-kubeconfig \
+            --name $AWS_CLUSTER_NAME \
+            --region $AWS_REGION   \
+             kubectl config current-context
+             kubectl get nodes -o wide 
           
       - name: Install Helm
         run: |
@@ -388,6 +392,10 @@ jobs:
           --override-existing-serviceaccounts \
           --region $AWS_REGION \
           --approve
+
+      - name: Verify ServiceAccount exists (EKS)
+        run: |
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml    
 
       # Apply CRDs explicitly (recommended for upgrade/install safety)
       - name: Install AWS Load Balancer Controller CRDs
