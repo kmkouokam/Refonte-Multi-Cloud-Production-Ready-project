@@ -138,10 +138,18 @@ jobs:
           #   --password "$ARGO_PWD" \
           #   --insecure
 
-      - name: Register AWS cluster
+      - name: Register AWS cluster (via ArgoCD port-forward)
+        shell: bash
         run: |
-          CONTEXT=$(kubectl config current-context)
-          argocd cluster add "$CONTEXT" --label cloud=aws --upsert 
+         set -euo pipefail
+         CONTEXT="$(kubectl config current-context)"
+         argocd cluster add "$CONTEXT" \
+         --label cloud=aws \
+         --upsert \
+         --port-forward \
+         --port-forward-namespace argocd \
+         --insecure
+
 
       - name: Clean up runner (safe)
         if: always()
