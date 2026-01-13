@@ -95,6 +95,16 @@ jobs:
            kubectl -n argocd apply -f argocd-rbac.yaml          
       
 
+      - name: Sanity check ArgoCD objects
+        shell: bash
+        run: |
+         set -x
+          kubectl get ns argocd || true
+          kubectl -n argocd get svc argocd-server -o wide || true
+          kubectl -n argocd get endpoints argocd-server -o yaml || true
+          kubectl -n argocd get pods -o wide || true
+   
+
       - name: Login ArgoCD
         shell: bash
         run: |
