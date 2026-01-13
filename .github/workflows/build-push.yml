@@ -553,13 +553,12 @@ jobs:
          kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
           PF_PID=$!
 
-         # Ensure we always cleanup
-         cleanup() { kill "$PF_PID" >/dev/null 2>&1 || true; }
-         trap cleanup EXIT
+          # Always cleanup at the end (not before)
+         trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
 
          # Wait for port-forward to be ready (up to ~30s)
-         for i in {1..30}; do
-         if nc -z 127.0.0.1 8080 >/dev/null 2>&1; then
+         for i in {1..60}; do
+         if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
           echo "Port-forward is ready."
           break
           fi
@@ -570,6 +569,9 @@ jobs:
          fi
          sleep 1
          done
+
+          echo "Port-forward logs (last 50 lines):"
+          tail -n 50 /tmp/argocd-pf.log || true
 
          # Get admin password (may not exist if already rotated/disabled)
          ARGO_PWD="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
