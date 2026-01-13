@@ -122,11 +122,7 @@ jobs:
          echo "Port-forward ready"
          break
          fi
-         if ! kill -0 "$PF_PID" >/dev/null 2>&1; then
-         echo "kubectl port-forward died. Logs:"
-         cat /tmp/argocd-pf.log || true
-         exit 1
-         fi
+          
          sleep 1
          done
 
