@@ -601,9 +601,7 @@ jobs:
     needs: [gcp-bootstrap, aws-build-push]
     environment: production
     runs-on: [self-hosted, linux, vpc-runner]
-    env:
-     KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-gcp
-     CLOUDSDK_CONFIG: ${{ env.RUNNER_TEMP }}/gcloud-config
+     
  
     steps:
       - uses: actions/checkout@v4
