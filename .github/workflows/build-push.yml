@@ -47,7 +47,7 @@ jobs:
          set -euo pipefail
 
          echo "RUNNER_TEMP=$RUNNER_TEMP"
-         mkdir -p "$RUNNER_TEMP/aws-config"
+         mkdir -p "$RUNNER_TEMP"
 
          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
         # echo "AWS_SHARED_CREDENTIALS_FILE=$RUNNER_TEMP/aws-config" >> "$GITHUB_ENV"
@@ -133,8 +133,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${env.RUNNER_TEMP:-}" ]; then
-         rm -rf "${env.RUNNER_TEMP:?}/"* || true
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
@@ -156,8 +156,8 @@ jobs:
           echo "RUNNER_TEMP=$RUNNER_TEMP"
           mkdir -p "$RUNNER_TEMP/gcloud-config"
 
-          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-gcp" >> $GITHUB_ENV
-          echo "CLOUDSDK_CONFIG=${{ env.RUNNER_TEMP }}/gcloud-config" >> $GITHUB_ENV
+          echo "KUBECONFIG=${RUNNER_TEMP }/kubeconfig-gcp" >> $GITHUB_ENV
+          echo "CLOUDSDK_CONFIG=${RUNNER_TEMP }/gcloud-config" >> $GITHUB_ENV
            
 
       # ✅ Authenticate FIRST
@@ -330,8 +330,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${env.RUNNER_TEMP:-}" ]; then
-         rm -rf "${env.RUNNER_TEMP:?}/"* || true
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
@@ -356,9 +356,9 @@ jobs:
         run: |
           set -euo pipefail
           echo "RUNNER_TEMP=$RUNNER_TEMP"
-          mkdir -p "$RUNNER_TEMP/aws-config"
+          mkdir -p "$RUNNER_TEMP"
 
-          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-aws" >> $GITHUB_ENV
+          echo "KUBECONFIG=${RUNNER_TEMP }/kubeconfig-aws" >> $GITHUB_ENV
            
 
       - name: Check AWS Identity (Self-Hosted Runner)
@@ -601,8 +601,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${env.RUNNER_TEMP:-}" ]; then
-         rm -rf "${env.RUNNER_TEMP:?}/"* || true
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
@@ -628,8 +628,8 @@ jobs:
           echo "RUNNER_TEMP=$RUNNER_TEMP"
           mkdir -p "$RUNNER_TEMP/gcloud-config"
 
-          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-gcp" >> $GITHUB_ENV
-          echo "CLOUDSDK_CONFIG=${{ env.RUNNER_TEMP }}/gcloud-config" >> $GITHUB_ENV
+          echo "KUBECONFIG=${RUNNER_TEMP }/kubeconfig-gcp" >> $GITHUB_ENV
+          echo "CLOUDSDK_CONFIG=${RUNNER_TEMP }/gcloud-config" >> $GITHUB_ENV
            
 
       - name: Authenticate to GCP
@@ -780,8 +780,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${env.RUNNER_TEMP:-}" ]; then
-         rm -rf "${env.RUNNER_TEMP:?}/"* || true
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
