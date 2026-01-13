@@ -22,7 +22,7 @@ env:
 
 
   # GCP
-  GCP_CLUSTER_NAME:  my-gcp-cluster-d870187fe29a
+  GCP_CLUSTER_NAME:  my-gcp-cluster-7393678df1c1
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
