@@ -37,10 +37,12 @@ jobs:
     name: Bootstrap AWS (ArgoCD + Cluster)
     runs-on: [self-hosted, linux, vpc-runner]
     env:
-     KUBECONFIG: ${{ runner.temp }}/kubeconfig-aws
+     KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-aws
 
     steps:
       - uses: actions/checkout@v4
+
+      
 
       - name: Configure EKS kubeconfig
         run: |
@@ -122,8 +124,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${RUNNER_TEMP:-}" ]; then
-         rm -rf "${RUNNER_TEMP:?}/"* || true
+         if [ -n "${env.RUNNER_TEMP:-}" ]; then
+         rm -rf "${env.RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
@@ -134,11 +136,13 @@ jobs:
       needs: aws-bootstrap
       runs-on: [self-hosted, linux, vpc-runner]
       env:
-       KUBECONFIG: ${{ runner.temp }}/kubeconfig-gcp
-       CLOUDSDK_CONFIG: ${{ runner.temp }}/gcloud-config
+        KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-gcp
+        CLOUDSDK_CONFIG: ${{ env.RUNNER_TEMP }}/gcloud-config
 
       steps:
       - uses: actions/checkout@v4
+
+       
 
       # ✅ Authenticate FIRST
       - name: Authenticate to GCP
@@ -310,8 +314,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${RUNNER_TEMP:-}" ]; then
-         rm -rf "${RUNNER_TEMP:?}/"* || true
+         if [ -n "${env.RUNNER_TEMP:-}" ]; then
+         rm -rf "${env.RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
@@ -327,7 +331,7 @@ jobs:
       runs-on: [self-hosted, linux, vpc-runner]
 
       env:
-       KUBECONFIG: ${{ runner.temp }}/kubeconfig-aws
+       KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-aws
 
 
       steps:
@@ -573,8 +577,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${RUNNER_TEMP:-}" ]; then
-         rm -rf "${RUNNER_TEMP:?}/"* || true
+         if [ -n "${env.RUNNER_TEMP:-}" ]; then
+         rm -rf "${env.RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
@@ -589,8 +593,8 @@ jobs:
     environment: production
     runs-on: [self-hosted, linux, vpc-runner]
     env:
-     KUBECONFIG: ${{ runner.temp }}/kubeconfig-gcp
-     CLOUDSDK_CONFIG: ${{ runner.temp }}/gcloud-config
+     KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-gcp
+     CLOUDSDK_CONFIG: ${{ env.RUNNER_TEMP }}/gcloud-config
  
     steps:
       - uses: actions/checkout@v4
@@ -743,8 +747,8 @@ jobs:
          fi
 
          # Clean job temp files only (never HOME)
-         if [ -n "${RUNNER_TEMP:-}" ]; then
-         rm -rf "${RUNNER_TEMP:?}/"* || true
+         if [ -n "${env.RUNNER_TEMP:-}" ]; then
+         rm -rf "${env.RUNNER_TEMP:?}/"* || true
          fi
 
          # Optional: Docker cleanup (keeps runner stable, slower builds)
