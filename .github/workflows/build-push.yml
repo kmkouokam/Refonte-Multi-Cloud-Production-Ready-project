@@ -630,6 +630,7 @@ jobs:
          PF_PID=$!
          trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
 
+         # wait until port-forward is actually ready
          for i in {1..60}; do
           if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
           echo "Port-forward is ready."
@@ -649,10 +650,7 @@ jobs:
          ARGO_PWD="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
          echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> "$GITHUB_ENV"
 
-         argocd login 127.0.0.1:8080 \
-         --username admin \
-         --password "$ARGO_PWD" \
-         --insecure
+         argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
  
 
       - name: Create or upsert argocd cluster AWS
@@ -720,7 +718,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "RUNNER_TEMP=$RUNNER_TEMP"
-          mkdir -p "$RUNNER_TEMP/gcloud-config"
+          mkdir -p "$RUNNER_TEMP"
 
           echo "KUBECONFIG=${RUNNER_TEMP }/kubeconfig-gcp" >> $GITHUB_ENV
           echo "CLOUDSDK_CONFIG=${RUNNER_TEMP }/gcloud-config" >> $GITHUB_ENV
