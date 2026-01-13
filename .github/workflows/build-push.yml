@@ -36,13 +36,15 @@ jobs:
   aws-bootstrap:
     name: Bootstrap AWS (ArgoCD + Cluster)
     runs-on: [self-hosted, linux, vpc-runner]
-    env:
-     KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-aws
+     
 
     steps:
       - uses: actions/checkout@v4
 
-      
+      - name: Set job scoped KUBECONFIG
+        run: |
+          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-aws" >> $GITHUB_ENV
+          sudo mdkir -p "${RUNNER_TEMP }/aws-config"
 
       - name: Configure EKS kubeconfig
         run: |
@@ -135,14 +137,17 @@ jobs:
       name: Bootstrap GCP (ArgoCD + Cluster)
       needs: aws-bootstrap
       runs-on: [self-hosted, linux, vpc-runner]
-      env:
-        KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-gcp
-        CLOUDSDK_CONFIG: ${{ env.RUNNER_TEMP }}/gcloud-config
+       
 
       steps:
       - uses: actions/checkout@v4
 
-       
+      - name: Set job scoped KUBECONFIG
+        shell: bash
+        run: |
+          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-gcp" >> $GITHUB_ENV
+          echo "CLOUDSDK_CONFIG=${{ env.RUNNER_TEMP }}/gcloud-config" >> $GITHUB_ENV
+          sudo mkdir -p "${RUNNER_TEMP }/gcloud-config"
 
       # ✅ Authenticate FIRST
       - name: Authenticate to GCP
@@ -330,12 +335,16 @@ jobs:
       needs: gcp-bootstrap
       runs-on: [self-hosted, linux, vpc-runner]
 
-      env:
-       KUBECONFIG: ${{ env.RUNNER_TEMP }}/kubeconfig-aws
+
 
 
       steps:
       - uses: actions/checkout@v4
+
+      - name: Set job scoped KUBECONFIG
+        run: |
+          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-aws" >> $GITHUB_ENV
+          sudo mdkir -p "${RUNNER_TEMP }/aws-config"  
 
       - name: Check AWS Identity (Self-Hosted Runner)
         run: aws sts get-caller-identity
@@ -598,6 +607,13 @@ jobs:
  
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set job scoped KUBECONFIG
+        shell: bash
+        run: |
+          echo "KUBECONFIG=${{ env.RUNNER_TEMP }}/kubeconfig-gcp" >> $GITHUB_ENV
+          echo "CLOUDSDK_CONFIG=${{ env.RUNNER_TEMP }}/gcloud-config" >> $GITHUB_ENV
+          sudo mkdir -p "${RUNNER_TEMP }/gcloud-config"
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
