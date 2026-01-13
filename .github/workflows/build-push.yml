@@ -544,6 +544,14 @@ jobs:
           kubectl apply -f ingress-aws.yaml 
           kubectl apply -f service-aws.yaml
 
+      - name: Sanity check ArgoCD objects
+        shell: bash
+        run: |
+          kubectl -n argocd get svc argocd-server -o wide
+          kubectl -n argocd get endpoints argocd-server -o yaml
+          kubectl -n argocd get pods -o wide
+    
+
       - name: Login ArgoCD
         shell: bash
         run: |
