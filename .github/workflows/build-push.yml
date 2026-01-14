@@ -545,8 +545,8 @@ jobs:
       - name: Verify ServiceAccount exists (EKS)
         shell: bash
         run: |
-        set -euo pipefail
-        kubectl -n kube-system get sa aws-load-balancer-controller -o yaml
+         set -euo pipefail
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml
 
       # Apply CRDs explicitly (recommended for upgrade/install safety)
       - name: Install AWS Load Balancer Controller CRDs
