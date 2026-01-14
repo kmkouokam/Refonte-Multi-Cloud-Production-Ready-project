@@ -528,6 +528,14 @@ jobs:
          kubectl config current-context
          kubectl get ns
 
+      - name: Create iam policy for service account
+        shell: bash
+        run: |
+         set -euo pipefail
+         aws iam create-policy \
+         --policy-name AWSLoadBalancerControllerIAMPolicy \
+         --policy-document file://modules/eks/alb-controller-policy.json || true   
+
 
       - name: Create service account for AWS Load Balancer Controller
         shell: bash
@@ -542,6 +550,12 @@ jobs:
          --region "$AWS_REGION" \
          --verbose  \
          --approve
+
+      - name: Verify IAM Role Annotation
+        shell: bash
+        run: |
+         set -euo pipefail
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml | grep "eks.amazonaws.com/role"   
 
       - name: Debug service account
         if: failure()
