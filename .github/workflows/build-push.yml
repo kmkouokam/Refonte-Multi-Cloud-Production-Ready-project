@@ -542,6 +542,14 @@ jobs:
          --region "$AWS_REGION" \
          --approve
 
+      - name: Debug service account
+        if: failure()
+        shell: bash
+        run: |
+         kubectl config get-contexts
+         kubectl -n kube-system get sa | head -n 50
+   
+
       - name: Verify ServiceAccount exists (EKS)
         shell: bash
         run: |
