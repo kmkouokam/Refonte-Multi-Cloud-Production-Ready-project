@@ -261,7 +261,7 @@ jobs:
       - name: Ensure GKE auth plugin is installed
         run: |
            gcloud components install gke-gcloud-auth-plugin --quiet
-           fi
+          
     
 
        
