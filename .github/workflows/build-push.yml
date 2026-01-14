@@ -419,13 +419,15 @@ jobs:
       steps:
       - uses: actions/checkout@v4
 
-      - name: Set job scoped KUBECONFIG
+      - name: Set job-scoped configs (AWS)
+        shell: bash
         run: |
-          set -euo pipefail
-          echo "RUNNER_TEMP=$RUNNER_TEMP"
-          mkdir -p "$RUNNER_TEMP"
+         set -euo pipefail
 
-          echo "KUBECONFIG=${RUNNER_TEMP }/kubeconfig-aws" >> $GITHUB_ENV
+         echo "RUNNER_TEMP=$RUNNER_TEMP"
+         mkdir -p "$RUNNER_TEMP"
+
+         echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
            
 
       - name: Check AWS Identity (Self-Hosted Runner)
@@ -719,8 +721,8 @@ jobs:
           echo "RUNNER_TEMP=$RUNNER_TEMP"
           mkdir -p "$RUNNER_TEMP"
 
-          echo "KUBECONFIG=${RUNNER_TEMP }/kubeconfig-gcp" >> $GITHUB_ENV
-          echo "CLOUDSDK_CONFIG=${RUNNER_TEMP }/gcloud-config" >> $GITHUB_ENV
+          echo "KUBECONFIG=${RUNNER_TEMP}/kubeconfig-gcp" >> "$GITHUB_ENV"
+          echo "CLOUDSDK_CONFIG=${RUNNER_TEMP}/gcloud-config" >> "$GITHUB_ENV"
            
 
       - name: Authenticate to GCP
