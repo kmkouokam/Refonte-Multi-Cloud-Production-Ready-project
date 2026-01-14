@@ -528,27 +528,57 @@ jobs:
          kubectl config current-context
          kubectl get ns
 
-      - name: Create iam policy for service account
+      - name: Ensure IAM policy exists and capture ARN
         shell: bash
         run: |
          set -euo pipefail
-         aws iam create-policy \
-         --policy-name AWSLoadBalancerControllerIAMPolicy \
-         --policy-document file://modules/eks/alb-controller-policy.json || true   
+
+         POLICY_NAME="AWSLoadBalancerControllerIAMPolicy"
+         POLICY_DOC="file://modules/eks/alb-controller-policy.json"
+
+         # Try to find existing policy ARN
+         POLICY_ARN="$(aws iam list-policies --scope Local \
+         --query "Policies[?PolicyName=='${POLICY_NAME}'].Arn | [0]" \
+         --output text)"
+
+         if [ "$POLICY_ARN" = "None" ] || [ -z "$POLICY_ARN" ]; then
+         echo "Policy not found, creating..."
+         POLICY_ARN="$(aws iam create-policy \
+         --policy-name "$POLICY_NAME" \
+         --policy-document "$POLICY_DOC" \
+         --query "Policy.Arn" \
+         --output text)"
+         else
+         echo "Policy exists: $POLICY_ARN"
+         fi
+
+          echo "ALB_POLICY_ARN=$POLICY_ARN" >> "$GITHUB_ENV"
 
 
-      - name: Create service account for AWS Load Balancer Controller
+
+      - name: Create service account for AWS Load Balancer Controller (IRSA)
         shell: bash
         run: |
          set -euo pipefail
+         echo "Using policy ARN: $ALB_POLICY_ARN"
+
          eksctl create iamserviceaccount \
          --cluster "$AWS_CLUSTER_NAME" \
          --namespace kube-system \
          --name aws-load-balancer-controller \
-         --attach-policy-arn arn:aws:iam::435329769674:policy/AWSLoadBalancerControllerIAMPolicy \
+         --attach-policy-arn "$ALB_POLICY_ARN" \
          --override-existing-serviceaccounts \
          --region "$AWS_REGION" \
          --approve
+
+      - name: Verify ServiceAccount + annotation
+        shell: bash
+        run: |
+         set -euo pipefail
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml
+         kubectl -n kube-system get sa aws-load-balancer-controller \
+         -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+
 
       - name: Verify IAM Role Annotation
         shell: bash
