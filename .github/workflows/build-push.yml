@@ -548,7 +548,6 @@ jobs:
          --attach-policy-arn arn:aws:iam::435329769674:policy/AWSLoadBalancerControllerIAMPolicy \
          --override-existing-serviceaccounts \
          --region "$AWS_REGION" \
-         --verbose  \
          --approve
 
       - name: Verify IAM Role Annotation
