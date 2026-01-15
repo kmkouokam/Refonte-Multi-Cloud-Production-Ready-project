@@ -31,7 +31,6 @@ env:
 
 
 
-
 jobs:
   aws-bootstrap:
     name: Bootstrap AWS (ArgoCD + Cluster)
