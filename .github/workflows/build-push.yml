@@ -452,8 +452,7 @@ jobs:
         run: |
           echo "IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest" >> $GITHUB_ENV 
           
-      
-            
+                  
       - name: Create ECR Pull Secret
         run: |
           kubectl create secret docker-registry ecr-creds \
