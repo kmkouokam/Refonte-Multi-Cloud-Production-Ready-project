@@ -530,6 +530,9 @@ jobs:
       - name: Ensure IAM policy exists and capture ARN
         shell: bash
         run: |
+         git fetch origin master
+         git checkout master
+          
          set -euo pipefail
 
          POLICY_NAME="AWSLoadBalancerControllerIAMPolicy"
