@@ -481,20 +481,20 @@ jobs:
           echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
 
 
-      - name: Cleanup stuck AWS Load Balancer Controller (safe)
-        run: |
-         set +e
+      # - name: Cleanup stuck AWS Load Balancer Controller (safe)
+      #   run: |
+      #    set +e
 
-          echo "Checking Helm release status..."
-          helm status aws-load-balancer-controller -n kube-system
+      #     echo "Checking Helm release status..."
+      #     helm status aws-load-balancer-controller -n kube-system
 
-          echo "Attempting safe uninstall (if exists)..."
-           helm uninstall aws-load-balancer-controller -n kube-system || true
+      #     echo "Attempting safe uninstall (if exists)..."
+      #      helm uninstall aws-load-balancer-controller -n kube-system || true
 
-          echo "Removing any stuck Helm secrets..."
-          kubectl -n kube-system delete secret -l "name=aws-load-balancer-controller,owner=helm" || true
+      #     echo "Removing any stuck Helm secrets..."
+      #     kubectl -n kube-system delete secret -l "name=aws-load-balancer-controller,owner=helm" || true
 
-         set -e
+      #    set -e
 
        # Add Helm repo
       - name: Add Helm repo for AWS charts
@@ -556,47 +556,74 @@ jobs:
 
           echo "ALB_POLICY_ARN=$POLICY_ARN" >> "$GITHUB_ENV"
 
-      - name: Checking for existing eks stack
-        run: |
-          set -euo pipefail
-
-          STACK="eksctl-${AWS_CLUSTER_NAME}-addon-iamserviceaccount-kube-system-aws-load-balancer-controller"
-
-          
-          echo "Disabling termination protection on $STACK..."
-          aws cloudformation update-termination-protection \
-          --stack-name "$STACK" \
-           --no-enable-termination-protection
-
-           aws cloudformation describe-stacks \
-          --stack-name "$STACK" \
-          --query "Stacks[0].Outputs[*].[OutputKey,OutputValue]" \
-          --output table
-
-          echo "Checking for existing eksctl stack: $STACK"
-          if aws cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
-          echo "Stack exists. Deleting it so eksctl can recreate the SA..."
-          aws cloudformation delete-stack --stack-name "$STACK"
-          aws cloudformation wait stack-delete-complete --stack-name "$STACK"
-          echo "Stack deleted."
-          else
-          echo "Stack does not exist."
-          fi
-
-      - name: Create service account for AWS Load Balancer Controller (IRSA)
+      - name: Ensure IRSA ServiceAccount for AWS Load Balancer Controller
         shell: bash
         run: |
          set -euo pipefail
+
+         STACK="eksctl-${AWS_CLUSTER_NAME}-addon-iamserviceaccount-kube-system-aws-load-balancer-controller"
+         SA="aws-load-balancer-controller"
+         NS="kube-system"
+
+         echo "Trying to reuse existing eksctl IRSA stack (if present): $STACK"
+
+         ROLE_ARN=""
+
+         # Try to read role ARN from existing stack, but DO NOT fail the job if this doesn't work
+         if aws cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
+         echo "Stack exists. Trying to read role ARN from Outputs..."
+         ROLE_ARN="$(aws cloudformation describe-stacks \
+         --stack-name "$STACK" \
+         --query "Stacks[0].Outputs[?contains(OutputValue, ':role/')].OutputValue | [0]" \
+         --output text 2>/dev/null || true)"
+         if [ "$ROLE_ARN" = "None" ]; then ROLE_ARN=""; fi
+         else
+         echo "Stack not found (or not accessible). Will create IRSA via eksctl."
+         fi
+
+         if [ -n "$ROLE_ARN" ]; then
+         echo "✅ Using existing IRSA role: $ROLE_ARN"
+         kubectl apply -f - <<EOF
+         apiVersion: v1
+         kind: ServiceAccount
+         metadata:
+         name: ${SA}
+         namespace: ${NS}
+         annotations:
+         eks.amazonaws.com/role-arn: ${ROLE_ARN}
+         EOF
+         else
+         echo "⚠️ Could not get ROLE_ARN from stack. Creating/repairing IRSA via eksctl..."
          echo "Using policy ARN: $ALB_POLICY_ARN"
 
          eksctl create iamserviceaccount \
          --cluster "$AWS_CLUSTER_NAME" \
-         --namespace kube-system \
-         --name aws-load-balancer-controller \
+         --namespace "$NS" \
+         --name "$SA" \
          --attach-policy-arn "$ALB_POLICY_ARN" \
          --override-existing-serviceaccounts \
          --region "$AWS_REGION" \
          --approve
+         fi
+
+         echo "Verifying ServiceAccount exists..."
+         kubectl -n "$NS" get sa "$SA" -o yaml
+          kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+
+      # - name: Create service account for AWS Load Balancer Controller (IRSA)
+      #   shell: bash
+      #   run: |
+      #    set -euo pipefail
+      #    echo "Using policy ARN: $ALB_POLICY_ARN"
+
+      #    eksctl create iamserviceaccount \
+      #    --cluster "$AWS_CLUSTER_NAME" \
+      #    --namespace kube-system \
+      #    --name aws-load-balancer-controller \
+      #    --attach-policy-arn "$ALB_POLICY_ARN" \
+      #    --override-existing-serviceaccounts \
+      #    --region "$AWS_REGION" \
+      #    --approve
 
       - name: Verify ServiceAccount + annotation
         shell: bash
