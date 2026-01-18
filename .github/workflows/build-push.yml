@@ -480,6 +480,7 @@ jobs:
           --query "cluster.resourcesVpcConfig.vpcId" --output text)
           echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
 
+          
       - name: Cleanup stuck AWS Load Balancer Controller (safe)
         run: |
          set +e
