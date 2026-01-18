@@ -566,50 +566,50 @@ jobs:
          SA="aws-load-balancer-controller"
          NS="kube-system"
 
-         echo "Trying to reuse existing eksctl IRSA stack (if present): $STACK"
+         echo "Ensuring kube-system namespace exists..."
+         kubectl get ns "$NS" >/dev/null 2>&1 || kubectl create ns "$NS"
 
-         ROLE_ARN=""
-
-         # Try to read role ARN from existing stack, but DO NOT fail the job if this doesn't work
-         if aws cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
-         echo "Stack exists. Trying to read role ARN from Outputs..."
-         ROLE_ARN="$(aws cloudformation describe-stacks \
-         --stack-name "$STACK" \
-         --query "Stacks[0].Outputs[?contains(OutputValue, ':role/')].OutputValue | [0]" \
-         --output text 2>/dev/null || true)"
-         if [ "$ROLE_ARN" = "None" ]; then ROLE_ARN=""; fi
-         else
-         echo "Stack not found (or not accessible). Will create IRSA via eksctl."
+         echo "Checking if ServiceAccount already exists..."
+         if kubectl -n "$NS" get sa "$SA" >/dev/null 2>&1; then
+         echo "✅ ServiceAccount exists already."
+         kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+         exit 0
          fi
 
-         if [ -n "$ROLE_ARN" ]; then
-         echo "✅ Using existing IRSA role: $ROLE_ARN"
+         echo "ServiceAccount missing. Discovering IRSA role from CloudFormation stack resources: $STACK"
+
+         ROLE_NAME="$(aws cloudformation list-stack-resources \
+         --stack-name "$STACK" \
+         --query "StackResourceSummaries[?ResourceType=='AWS::IAM::Role'].PhysicalResourceId | [0]" \
+         --output text)"
+
+         if [ -z "$ROLE_NAME" ] || [ "$ROLE_NAME" = "None" ]; then
+         echo "❌ Could not find IAM Role resource in stack. Showing resources for debugging:"
+         aws cloudformation list-stack-resources --stack-name "$STACK" --output table
+         exit 1
+         fi
+
+         ROLE_ARN="$(aws iam get-role \
+         --role-name "$ROLE_NAME" \
+         --query "Role.Arn" \
+         --output text)"
+
+         echo "✅ Using IRSA role: $ROLE_ARN"
+
          kubectl apply -f - <<EOF
          apiVersion: v1
          kind: ServiceAccount
          metadata:
-          name: ${SA}
-          namespace: ${NS}
-          annotations:
-         eks.amazonaws.com/role-arn: ${ROLE_ARN}
+           name: ${SA}
+           namespace: ${NS}
+           annotations:
+            eks.amazonaws.com/role-arn: ${ROLE_ARN}
          EOF
-         else
-         echo "⚠️ Could not get ROLE_ARN from stack. Creating/repairing IRSA via eksctl..."
-         echo "Using policy ARN: $ALB_POLICY_ARN"
-
-         eksctl create iamserviceaccount \
-         --cluster "$AWS_CLUSTER_NAME" \
-         --namespace "$NS" \
-         --name "$SA" \
-         --attach-policy-arn "$ALB_POLICY_ARN" \
-         --override-existing-serviceaccounts \
-         --region "$AWS_REGION" \
-         --approve
-         fi
 
          echo "Verifying ServiceAccount exists..."
          kubectl -n "$NS" get sa "$SA" -o yaml
-          kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+         kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+
 
       # - name: Create service account for AWS Load Balancer Controller (IRSA)
       #   shell: bash
