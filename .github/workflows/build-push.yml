@@ -21,7 +21,7 @@ env:
   
 
   # GCP
-  GCP_CLUSTER_NAME:  my-gcp-cluster-19931c57946d
+  GCP_CLUSTER_NAME:  my-gcp-cluster-207edd02bd89
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -480,7 +480,7 @@ jobs:
           --query "cluster.resourcesVpcConfig.vpcId" --output text)
           echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
 
-          
+
       - name: Cleanup stuck AWS Load Balancer Controller (safe)
         run: |
          set +e
