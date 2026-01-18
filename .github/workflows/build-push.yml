@@ -452,7 +452,12 @@ jobs:
         run: |
           echo "IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest" >> $GITHUB_ENV 
           
-                  
+      - name: Update kubeconfig AWS
+        run: |
+          aws eks update-kubeconfig --name "$AWS_CLUSTER_NAME" --region "$AWS_REGION"
+          kubectl config current-context
+          kubectl get nodes -o wide
+          
       - name: Create ECR Pull Secret
         run: |
           kubectl create secret docker-registry ecr-creds \
@@ -461,11 +466,7 @@ jobs:
           --docker-password=$(aws ecr get-login-password --region $AWS_REGION) \
           -n default || true 
 
-      - name: Update kubeconfig AWS
-        run: |
-          aws eks update-kubeconfig --name "$AWS_CLUSTER_NAME" --region "$AWS_REGION"
-          kubectl config current-context
-          kubectl get nodes -o wide
+      
 
           
       - name: Install Helm
@@ -587,9 +588,9 @@ jobs:
          apiVersion: v1
          kind: ServiceAccount
          metadata:
-         name: ${SA}
-         namespace: ${NS}
-         annotations:
+          name: ${SA}
+          namespace: ${NS}
+          annotations:
          eks.amazonaws.com/role-arn: ${ROLE_ARN}
          EOF
          else
