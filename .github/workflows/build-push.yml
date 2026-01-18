@@ -561,6 +561,12 @@ jobs:
 
           STACK="eksctl-${AWS_CLUSTER_NAME}-addon-iamserviceaccount-kube-system-aws-load-balancer-controller"
 
+          
+          echo "Disabling termination protection on $STACK..."
+          aws cloudformation update-termination-protection \
+          --stack-name "$STACK" \
+           --no-enable-termination-protection
+
           echo "Checking for existing eksctl stack: $STACK"
           if aws cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
           echo "Stack exists. Deleting it so eksctl can recreate the SA..."
