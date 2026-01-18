@@ -555,7 +555,21 @@ jobs:
 
           echo "ALB_POLICY_ARN=$POLICY_ARN" >> "$GITHUB_ENV"
 
+      - name: Checking for existing eks stack
+        run: |
+          set -euo pipefail
 
+          STACK="eksctl-${AWS_CLUSTER_NAME}-addon-iamserviceaccount-kube-system-aws-load-balancer-controller"
+
+          echo "Checking for existing eksctl stack: $STACK"
+          if aws cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
+          echo "Stack exists. Deleting it so eksctl can recreate the SA..."
+          aws cloudformation delete-stack --stack-name "$STACK"
+          aws cloudformation wait stack-delete-complete --stack-name "$STACK"
+          echo "Stack deleted."
+          else
+          echo "Stack does not exist."
+          fi
 
       - name: Create service account for AWS Load Balancer Controller (IRSA)
         shell: bash
