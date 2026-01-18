@@ -557,6 +557,7 @@ jobs:
 
           echo "ALB_POLICY_ARN=$POLICY_ARN" >> "$GITHUB_ENV"
 
+          
       - name: Ensure IRSA ServiceAccount for AWS Load Balancer Controller
         shell: bash
         run: |
