@@ -815,17 +815,7 @@ jobs:
 
          argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
 
-         argocd app create flask-app \
-         --repo https://github.com/${{ github.repository }} \ 
-         --path argocd/aws \
-         --dest-server https://kubernetes.default.svc \
-         --dest-namespace default \
-         --project default \
-         --sync-policy automated \
-         --auto-prune \
-         --self-heal \
-         --upsert \
-         --revision gitop
+          argocd app create flask-app --repo "https://github.com/${{ github.repository }}" --path "argocd/aws" --dest-server "https://kubernetes.default.svc" --dest-namespace "default" --project "default" --sync-policy automated --auto-prune --self-heal --upsert --revision gitop
  
 
       # - name: Create or upsert argocd cluster AWS
@@ -843,6 +833,14 @@ jobs:
       #      --self-heal \
       #      --upsert \
       #      --revision gitop
+
+
+      - name: Verify ArgoCD app
+        shell: bash
+        run: |
+          set -euo pipefail
+          argocd app get flask-app
+          argocd app list
 
       - name: Update ArgoCD image
         run: |
