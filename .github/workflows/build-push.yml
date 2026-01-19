@@ -1037,7 +1037,7 @@ jobs:
           git fetch origin gitop
           git checkout gitop  
           cd argocd/gcp
-          kubectl apply -f flask-app-rollout.yaml -n argocd   
+          kubectl apply -f flask-app-rollout.yaml -n default  
           
       - name: deploy ingress-gcp and service-gcp
         run: |
