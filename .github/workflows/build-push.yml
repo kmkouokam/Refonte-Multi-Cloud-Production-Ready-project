@@ -51,12 +51,57 @@ jobs:
          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
         # echo "AWS_SHARED_CREDENTIALS_FILE=$RUNNER_TEMP/aws-config" >> "$GITHUB_ENV"
 
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+         role-to-assume: arn:aws:iam::435329769674:role/github_runner_role
+         aws-region: ${{ env.AWS_REGION }}
+  
+
+      - name: Verify AWS Identity (Self-Hosted Runner)
+        run: aws sts get-caller-identity
 
       - name: Configure EKS kubeconfig
+        shell: bash
         run: |
-          aws eks update-kubeconfig \
-            --name $AWS_CLUSTER_NAME \
-            --region $AWS_REGION
+         set -euo pipefail
+
+         # Ensure dirs exist
+         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+          mkdir -p "$(dirname "$KUBECONFIG")"
+
+         # Try writing kubeconfig directly to the job-scoped file
+         if sudo -u ec2-user aws eks update-kubeconfig \
+         --region "$AWS_REGION" \
+         --name "$AWS_CLUSTER_NAME" \
+         --kubeconfig "$KUBECONFIG"; then
+
+          echo "EKS kubeconfig written to job-scoped KUBECONFIG: $KUBECONFIG"
+
+          # Also copy to default location for SSH convenience
+         sudo cp -f "$KUBECONFIG" /home/ec2-user/.kube/config
+         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+
+         else
+          echo "fallback: root kubeconfig -> job-scoped + ec2-user"
+
+          # Root writes its kubeconfig (only if needed)
+          sudo aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$AWS_CLUSTER_NAME" \
+          --kubeconfig /root/.kube/config
+
+          # 1) Job-scoped kubeconfig for CI
+         sudo cp -f /root/.kube/config "$KUBECONFIG"
+  
+           # 2) Default kubeconfig for SSH convenience
+           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+         fi
+
+         # Verify using job-scoped kubeconfig
+         kubectl --kubeconfig "$KUBECONFIG" config current-context
+         kubectl --kubeconfig "$KUBECONFIG" get ns
 
       - name: Verify AWS kubeconfig
         run: kubectl config get-contexts      
@@ -132,10 +177,7 @@ jobs:
 
           
 
-          # argocd login localhost:8080 \
-          #   --username admin \
-          #   --password "$ARGO_PWD" \
-          #   --insecure
+           
 
       - name: Register AWS cluster (via ArgoCD port-forward)
         shell: bash
@@ -265,13 +307,72 @@ jobs:
 
        
 
+      # - name: Update kubeconfig GCP
+      #   run: |
+      #     sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+
+      #     if sudo -u ec2-user gcloud container clusters update "$GCP_CLUSTER_NAME" \
+      #       --region "$GCP_REGION" \
+      #       --project "$GCP_PROJECT_ID" \
+      #       --enable-master-authorized-networks \
+      #       --master-authorized-networks 0.0.0.0/0; then
+      #       echo "GKE kubeconfig written for ec2-user"
+      #     else
+      #       echo "fallback: running as root then copying kubeconfig"
+
+      #        # root writes to /root/.kube/config
+      #        sudo gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+      #         --region "$GCP_REGION" \
+      #         --project "$GCP_PROJECT_ID" \
+      #         --enable-master-authorized-networks \
+      #         --master-authorized-networks 0.0.0.0/0
+
+      #          sudo mkdir -p /home/ec2-user/.kube
+      #          sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+      #         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+          
+      #     fi
+
       - name: Update kubeconfig GCP
+        shell: bash
         run: |
-          gcloud container clusters update "$GCP_CLUSTER_NAME" \
-            --region "$GCP_REGION" \
-            --project "$GCP_PROJECT_ID" \
-            --enable-master-authorized-networks \
-            --master-authorized-networks 0.0.0.0/0     
+         set -euo pipefail
+         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+         sudo -u ec2-user mkdir -p "$CLOUDSDK_CONFIG"
+         sudo -u ec2-user mkdir -p "$(dirname "$KUBECONFIG")"
+
+         
+
+         if sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
+         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --kubeconfig "KUBECONFIG" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks 0.0.0.0/0 ; then
+          echo "GKE kubeconfig written for ec2-user"
+         else
+          echo "fallback: running as root then copying kubeconfig"
+
+         sudo env KUBECONFIG="$KUBECONFIG"  CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
+         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks 0.0.0.0/0
+
+          #  sudo mkdir -p /home/ec2-user/.kube
+          #  # 1) Job-scoped kubeconfig for the CI job
+          #  sudo cp -f /root/.kube/config "$KUBECONFIG"
+
+           # 2) Also keep ec2-user default kubeconfig for SSH convenience
+           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+         fi
+
+         sudo -u ec2-user kubectl config current-context
+         sudo -u ec2-user kubectl get ns
+
 
       - name: Update GKE kubeconfig
         run: |
@@ -429,8 +530,59 @@ jobs:
          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
            
 
-      - name: Check AWS Identity (Self-Hosted Runner)
+       
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+         role-to-assume: arn:aws:iam::435329769674:role/github_runner_role
+         aws-region: ${{ env.AWS_REGION }}
+  
+
+      - name: Verify AWS Identity (Self-Hosted Runner)
         run: aws sts get-caller-identity
+
+      - name: Configure EKS kubeconfig
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         # Ensure dirs exist
+         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+          mkdir -p "$(dirname "$KUBECONFIG")"
+
+         # Try writing kubeconfig directly to the job-scoped file
+         if sudo -u ec2-user aws eks update-kubeconfig \
+         --region "$AWS_REGION" \
+         --name "$AWS_CLUSTER_NAME" \
+         --kubeconfig "$KUBECONFIG"; then
+
+          echo "EKS kubeconfig written to job-scoped KUBECONFIG: $KUBECONFIG"
+
+          # Also copy to default location for SSH convenience
+         sudo cp -f "$KUBECONFIG" /home/ec2-user/.kube/config
+         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+
+         else
+          echo "fallback: root kubeconfig -> job-scoped + ec2-user"
+
+          # Root writes its kubeconfig (only if needed)
+          sudo aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$AWS_CLUSTER_NAME" \
+          --kubeconfig /root/.kube/config
+
+          # 1) Job-scoped kubeconfig for CI
+         sudo cp -f /root/.kube/config "$KUBECONFIG"
+  
+           # 2) Default kubeconfig for SSH convenience
+           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+         fi
+
+         # Verify using job-scoped kubeconfig
+         kubectl --kubeconfig "$KUBECONFIG" config current-context
+         kubectl --kubeconfig "$KUBECONFIG" get ns
+
 
       - name: Login to ECR
         run: |
@@ -980,13 +1132,56 @@ jobs:
         run: |
           echo "IMAGE_URI=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/${IMAGE_NAME}:latest" >> $GITHUB_ENV
 
+
       - name: Update kubeconfig GCP
+        shell: bash
         run: |
-          gcloud container clusters update "$GCP_CLUSTER_NAME" \
-            --region "$GCP_REGION" \
-            --project "$GCP_PROJECT_ID" \
-            --enable-master-authorized-networks \
-            --master-authorized-networks 0.0.0.0/0   
+         set -euo pipefail
+         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+         sudo -u ec2-user mkdir -p "$CLOUDSDK_CONFIG"
+         sudo -u ec2-user mkdir -p "$(dirname "$KUBECONFIG")"
+
+         
+
+         if sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
+         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --kubeconfig "KUBECONFIG" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks 0.0.0.0/0 ; then
+          echo "GKE kubeconfig written for ec2-user"
+         else
+          echo "fallback: running as root then copying kubeconfig"
+
+         sudo env KUBECONFIG="$KUBECONFIG"  CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
+         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks 0.0.0.0/0
+
+          #  sudo mkdir -p /home/ec2-user/.kube
+          #  # 1) Job-scoped kubeconfig for the CI job
+          #  sudo cp -f /root/.kube/config "$KUBECONFIG"
+
+           # 2) Also keep ec2-user default kubeconfig for SSH convenience
+           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+         fi
+
+         sudo -u ec2-user kubectl config current-context
+         sudo -u ec2-user kubectl get ns
+
+
+
+      # - name: Update kubeconfig GCP
+      #   run: |
+      #     gcloud container clusters update "$GCP_CLUSTER_NAME" \
+      #       --region "$GCP_REGION" \
+      #       --project "$GCP_PROJECT_ID" \
+      #       --enable-master-authorized-networks \
+      #       --master-authorized-networks 0.0.0.0/0   
 
       - name: Update kubeconfig GCP
         run: |
