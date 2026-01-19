@@ -822,7 +822,6 @@ jobs:
       #   run: |
       #      set -euo pipefail
       #      argocd app create flask-app \
-    
       #      --repo https://github.com/${{ github.repository }} \
       #      --path argocd/aws \
       #      --dest-server https://kubernetes.default.svc \
@@ -835,12 +834,12 @@ jobs:
       #      --revision gitop
 
 
-      - name: Verify ArgoCD app
-        shell: bash
-        run: |
-          set -euo pipefail
-          argocd app get flask-app
-          argocd app list
+      # - name: Verify ArgoCD app
+      #   shell: bash
+      #   run: |
+      #     set -euo pipefail
+      #     argocd app get flask-app
+      #     argocd app list
 
       - name: Update ArgoCD image
         run: |
