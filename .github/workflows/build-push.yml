@@ -1005,6 +1005,7 @@ jobs:
            --docker-username=_json_key \
            --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
            --dry-run=client -o yaml | kubectl apply -f -     
+       
            
       - name: Tecth DB credentials from terraform outputs
         run: |
