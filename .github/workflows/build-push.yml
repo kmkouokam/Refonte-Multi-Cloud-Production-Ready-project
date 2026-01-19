@@ -712,15 +712,25 @@ jobs:
         run: |
          set -euo pipefail
 
-         # show status while waiting (every 15s)
          for i in {1..40}; do
-         kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o wide || true
-         kubectl -n kube-system get events --sort-by=.lastTimestamp | tail -n 10 || true
+         echo "=== Attempt $i/40 ==="
+
+         # Exit early if ready
+         if kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=10s; then
+         echo "✅ AWS Load Balancer Controller is healthy."
+          kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o wide
+         exit 0
+         fi
+
+         # If not ready yet, show useful debug then wait
+          kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o wide || true
+          kubectl -n kube-system get events --sort-by=.lastTimestamp | tail -n 10 || true
          sleep 15
          done
 
-         # final hard wait
-         kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=10m
+         echo "❌ Timed out waiting for AWS Load Balancer Controller."
+         kubectl -n kube-system describe deploy aws-load-balancer-controller || true
+          exit 1
 
 
       # Fetch db credentials from terraform outputs
