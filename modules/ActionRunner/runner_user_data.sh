@@ -28,6 +28,7 @@ DOCKER_HOME="${EC2_HOME}/.docker"
 #--------------------------------
 
 sudo mkdir -p /home/ec2-user/.kube
+sudo cp -r /root/.kube/config /home/ec2-user/.kube/config
 sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
 
 
@@ -56,6 +57,15 @@ DIAG_DIR="/home/ec2-user/actions-runner/_diag"
 sudo mkdir -p "${DIAG_DIR}"
 sudo chown -R ec2-user:ec2-user "${DIAG_DIR}"
 sudo chmod -R u+rwx "${DIAG_DIR}"
+
+#----------------------------------
+# Preparing Working Dir
+#----------------------------------
+
+WORK_DIR="home/ec2-user/actions-runner/_work"
+sudo mkdir  -p "${WORK_DIR}" 
+sudo chown -R ec2-user:ec2-user "${WORK_DIR}" 
+sudo chmod -R u+rwx "${WORK_DIR}"
 
 # # Write GitHub runner token securely
  sudo echo "${GITHUB_RUNNER_TOKEN}" | sudo tee /tmp/runner_token >/dev/null
@@ -134,7 +144,7 @@ sudo  mkdir -p "${RUNNER_DIR}"
 # -------------------------------
 # Install GitHub Actions Runner
 # -------------------------------
-RUNNER_VERSION="2.329.0"
+RUNNER_VERSION="2.330.0"
 sudo -u ec2-user curl -o "${RUNNER_DIR}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" -L \
   https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
@@ -173,6 +183,9 @@ if [ -f /tmp/runner_token ]; then
 # -------------------------------
 # Configure GitHub Runner
 # -------------------------------
+cd "${WORK_DIR}"
+
+
 sudo -u ec2-user ./config.sh --unattended \
   --url "https://github.com/kmkouokam/Refonte-Multi-Cloud-Production-Ready-project" \
   --token "${GITHUB_RUNNER_TOKEN}" \

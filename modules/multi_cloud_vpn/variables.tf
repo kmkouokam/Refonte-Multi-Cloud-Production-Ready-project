@@ -43,6 +43,12 @@ variable "vpn_shared_secret" {
   description = "PSK used by both tunnels"
   type        = string
   sensitive   = true
+  default = null
+
+  validation {
+    condition     = length(var.vpn_shared_secret) >= 8 && length(var.vpn_shared_secret) <= 64 && !startswith(var.vpn_shared_secret, "0")
+    error_message = "vpn_shared_secret must be 8-64 chars and must not start with '0'."
+  }
 }
 
 # Optional: set Amazon-side ASN(Autonomous System Number) for VGW (default 64512)
@@ -74,3 +80,7 @@ variable "gcp_private_subnet_cidrs" {
   type        = list(string)
 }
 
+variable "gke_master_cidr" {
+  type    = string
+  default = "172.16.0.0/28"
+}

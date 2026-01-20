@@ -1,11 +1,22 @@
 #################################
 # Providers are inherited from root
 #################################
+resource "random_password" "vpn_psk" {
+  length           = 32
+  special          = false
+  # override_special = "!@#$%^&*()-_=+[]{}"
+}
+
 
 locals {
   gcp_labels = {
     app = var.vpn_name
   }
+
+   vpn_psk_raw = random_password.vpn_psk.result
+
+  
+  vpn_psk_safe = replace(local.vpn_psk_raw, "^0", "A")
 }
 
 resource "random_id" "suffix" {
@@ -39,8 +50,15 @@ resource "google_compute_router" "gcp_router" {
 
   bgp {
     asn               = var.gcp_router_asn
-    advertise_mode    = var.gcp_router_advertise_all_subnets ? "CUSTOM" : "DEFAULT"
+    advertise_mode    = "CUSTOM"
+
     advertised_groups = var.gcp_router_advertise_all_subnets ? ["ALL_SUBNETS"] : null
+     # 🔑 Explicitly advertise the GKE master CIDR
+  advertised_ip_ranges {
+    range       = var.gke_master_cidr
+    description = "GKE master CIDR"
+  }
+    
   }
 
   depends_on = [google_compute_vpn_gateway.gcp_vpn_gateway]
@@ -89,8 +107,8 @@ resource "aws_vpn_connection" "aws_to_gcp" {
   tunnel1_ike_versions = ["ikev2"]
   tunnel2_ike_versions = ["ikev2"]
 
-  tunnel1_preshared_key = var.vpn_shared_secret
-  tunnel2_preshared_key = var.vpn_shared_secret
+  tunnel1_preshared_key = local.vpn_psk_safe
+  tunnel2_preshared_key = local.vpn_psk_safe
 
   tags = {
     Name = "${var.vpn_name}-aws-vpn-${random_id.suffix.hex}"
@@ -120,10 +138,10 @@ resource "google_compute_vpn_tunnel" "tunnel1" {
   region             = var.gcp_region
   target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gateway.id
   peer_ip            = aws_vpn_connection.aws_to_gcp.tunnel1_address
-  shared_secret      = var.vpn_shared_secret
+  shared_secret      = local.vpn_psk_safe
   ike_version        = 2
 
-  local_traffic_selector  = var.gcp_private_subnet_cidrs
+  local_traffic_selector  = concat(var.gcp_private_subnet_cidrs, ["172.16.0.0/28"])
   remote_traffic_selector = var.aws_private_subnet_cidrs
 
   depends_on = [aws_vpn_connection.aws_to_gcp, google_compute_vpn_gateway.gcp_vpn_gateway]
@@ -157,10 +175,10 @@ resource "google_compute_vpn_tunnel" "tunnel2" {
   region             = var.gcp_region
   target_vpn_gateway = google_compute_vpn_gateway.gcp_vpn_gateway.id
   peer_ip            = aws_vpn_connection.aws_to_gcp.tunnel2_address
-  shared_secret      = var.vpn_shared_secret
+  shared_secret      = local.vpn_psk_safe
   ike_version        = 2
 
-  local_traffic_selector  = var.gcp_private_subnet_cidrs
+  local_traffic_selector  = concat(var.gcp_private_subnet_cidrs, ["172.16.0.0/28"])
   remote_traffic_selector = var.aws_private_subnet_cidrs
 
   depends_on = [aws_vpn_connection.aws_to_gcp,

@@ -22,21 +22,74 @@ resource "aws_iam_role" "github_runner_role" {
         },
         Action = "sts:AssumeRole"
       },
-      # {
-        # Effect = "Allow",
-        # Principal = {
-        #   Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
-        # },
-        # Action = "sts:AssumeRoleWithWebIdentity",
-        # Condition = {
-        #   StringEquals = {
-        #     "token.actions.githubusercontent.com:sub" = "repo:kmkouokam/Refonte-Multi-Cloud-Production-Ready-project:ref:refs/heads/main"
-        #   }
-        # }
-      # }
+
+       
     ]
   })
 }
+
+resource "aws_iam_role_policy" "github_runner_permissions" {
+  name = "github-runner-permissions"
+  role = aws_iam_role.github_runner_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "iam:GetOpenIDConnectProvider",
+           "iam:CreateOpenIDConnectProvider",
+            "iam:DeleteOpenIDConnectProvider",
+            "iam:TagOpenIDConnectProvider",
+            "iam:UntagOpenIDConnectProvider",
+            "iam:GetOpenIDConnectProvider",
+          "iam:ListOpenIDConnectProviders",
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:UpdateAssumeRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:AttachRolePolicy",
+          "iam:TagRole",
+          "iam:UntagRole",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:ListPolicies",
+          "iam:CreatePolicy",
+          "iam:DeleteRole",
+          "iam:ListRoles",
+          "eks:DescribeCluster",
+          "eks:ListClusters",
+          "eks:TagResource",
+          "cloudformation:ListStacks",
+          "cloudformation:DescribeStacks",
+          "cloudformation:CreateStack",
+          "cloudformation:DeleteStack",
+          "cloudformation:UpdateStack",
+          "cloudformation:DescribeStackEvents",
+          "cloudformation:TagResource",
+          "cloudformation:UntagResource",
+          "cloudformation:UpdateTerminationProtection",
+          "cloudformation:ListStackResources",
+          "cloudformation:GetTemplate",
+          "cloudformation:Describe*",
+          "cloudformation:List*",
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "eks:DescribeCluster"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 
 # policy granting required ECR/EKS basics and STS GetCallerIdentity
 resource "aws_iam_role_policy" "github_runner_ecr_policy" {
@@ -212,6 +265,13 @@ resource "aws_instance" "github_runner" {
   vpc_security_group_ids = [aws_security_group.runner_sg.id]
   key_name               = var.ssh_key
 
+  # Root volume configuration
+  root_block_device {
+    volume_size           = 30     # Desired size in GB
+    volume_type           = "gp3"   # or "gp2"
+    delete_on_termination = true
+  }
+
   tags = {
     Name = "GitHubActionsRunner"
   }
@@ -227,5 +287,6 @@ resource "aws_instance" "github_runner" {
     RUNNER_VERSION = "2.329.0" 
     RUNNER_WORK_DIR = "/home/ec2-user/actions-runner/_work"
     RUNNER_LOG = "/home/ec2-user/actions-runner/_diag/runner.log"
+    WORK_DIR = "/home/ec2-user/actions-runner/_diag"
   })
 }

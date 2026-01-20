@@ -1,4 +1,16 @@
 
+
+resource "random_password" "vpn_psk" {
+  length           = 32
+  special          = false
+  # override_special = "!@#$%^&*()-_=+[]{}"
+}
+
+locals {
+  vpn_psk_raw  = random_password.vpn_psk.result
+  vpn_psk_safe = replace(local.vpn_psk_raw, "^0", "A")
+}
+
  
 
 
@@ -36,16 +48,16 @@ module "aws_env" {
 
 }
 
-resource "random_string" "vpn_shared_secret" {
-  length  = 32
-  special = false
-}
+# resource "random_string" "vpn_shared_secret" {
+#   length  = 32
+#   special = false
+# }
 
 module "aws_gcp_vpn" {
   source = "./modules/multi_cloud_vpn"
 
   vpn_name          = var.vpn_name
-  vpn_shared_secret = coalesce(var.vpn_shared_secret, random_string.vpn_shared_secret.result)
+  vpn_shared_secret = local.vpn_psk_safe
 
   # GCP
   gcp_project_id        = var.gcp_project_id

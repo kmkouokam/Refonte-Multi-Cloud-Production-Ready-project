@@ -154,17 +154,21 @@ data "google_container_cluster" "gke" {
 }
 
 module "argo-rollouts-binding-gcp" {
+   
    source = "../../modules/argo-rollouts-binding-gcp"
   gke_service_account_name = module.k8s[0].gke_service_account_name
   service_account_namespace = var.service_account_namespace
   argo_rollouts_role_name   = module.argo-rollouts-role.argo_rollouts_role_name
   gke_ca_certificate = module.k8s[0].gke_ca_certificate
   gke_endpoint      = data.google_container_cluster.gke.endpoint
-   
+
+  #  providers = {
+  #   kubernetes = kubernetes.gcp
+  # }
 
   gke_dependency = module.k8s
 
-
+  
 
 }
 

@@ -1,10 +1,11 @@
-provider "kubernetes" {
-  alias                   = "bootstrap"
-  host                    = "https://${var.gke_endpoint}"
-  cluster_ca_certificate  = base64decode(var.gke_ca_certificate)
-  # client_key = base64decode(var.gke_client_key)
-  token                   = data.google_client_config.default.access_token
-}
+# provider "kubernetes" {
+#   alias                   = "bootstrap"
+#   host                    = "https://${var.gke_endpoint}"
+#   cluster_ca_certificate  = base64decode(var.gke_ca_certificate)
+#   # client_key = base64decode(var.gke_client_key)
+#   token                   = data.google_client_config.default.access_token
+  
+# }
 
 data "google_client_config" "default" {}
 
@@ -31,7 +32,7 @@ data "google_client_config" "default" {}
 # ------------------------------
 resource "kubernetes_cluster_role_binding" "argo_rollouts_sa_binding" {
   count = var.is_gcp ? 1 : 0
-  provider = kubernetes.bootstrap
+  # provider = kubernetes.bootstrap
   metadata {
     name = "argo-rollouts-binding-sa"
   }
@@ -57,7 +58,7 @@ resource "kubernetes_cluster_role_binding" "argo_rollouts_sa_binding" {
 
 resource "kubernetes_service" "flask_app_gcp_active" {
   count = var.is_gcp ? 1 : 0
-  provider = kubernetes.bootstrap
+  # provider = kubernetes.bootstrap
   metadata {
     name      = "flask-app-gcp-active"
     namespace = "default"
@@ -73,7 +74,7 @@ resource "kubernetes_service" "flask_app_gcp_active" {
 
 resource "kubernetes_service" "flask_app_gcp_preview" {
   count = var.is_gcp ? 1 : 0
-  provider = kubernetes.bootstrap
+  # provider = kubernetes.bootstrap
   metadata {
     name      = "flask-app-gcp-preview"
     namespace = "default"

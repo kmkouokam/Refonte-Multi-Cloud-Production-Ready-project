@@ -6,6 +6,7 @@
 # Terraform state files (often contain sensitive info)
 terraform.tfstate
 terraform.tfstate.backup
+*.tfstate.backup
 *.yml
 *.yaml
 tfplan
