@@ -476,7 +476,20 @@ jobs:
           kubectl -n argocd get endpoints argocd-server -o yaml || true
           kubectl -n argocd get pods -o wide || true
 
-      
+          
+      - name: Verify GKE API reachable (ArgoCD prereq)
+        run: |
+         set -euo pipefail
+           echo "Runner public IP: $(curl -s https://api.ipify.org)"
+         echo "K8s API server: $(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+
+         # Raw network test
+         timeout 10 bash -lc 'curl -vk https://35.221.36.123/version --max-time 8 || true'
+
+         # Kubernetes-level test
+         kubectl get --raw=/version --request-timeout=10s || true
+         kubectl cluster-info || true
+
       - name: Login ArgoCD
         shell: bash
         run: |
