@@ -253,7 +253,7 @@ jobs:
          gcloud version
          kubectl version --client    
 
-      - 
+    
 
       # --- Install gcloud ---
       # - name: Install Google Cloud SDK
