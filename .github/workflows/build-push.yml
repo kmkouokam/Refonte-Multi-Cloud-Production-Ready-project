@@ -253,6 +253,8 @@ jobs:
          gcloud version
          kubectl version --client    
 
+      - 
+
       # --- Install gcloud ---
       # - name: Install Google Cloud SDK
       #   run: |
@@ -336,42 +338,23 @@ jobs:
 
          GCLOUD_BIN="$(command -v gcloud)"
          GCLOUD_DIR="$(dirname "$GCLOUD_BIN")"
-         echo "gcloud is at: $GCLOUD_BIN"
-         echo "gcloud bin dir is: $GCLOUD_DIR"
+         export PATH="$GCLOUD_DIR:$PATH"
 
-         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
-         sudo -u ec2-user mkdir -p "$CLOUDSDK_CONFIG"
-         sudo -u ec2-user mkdir -p "$(dirname "$KUBECONFIG")"
+         # Use job-scoped config dirs to avoid collisions
+         export CLOUDSDK_CONFIG="${RUNNER_TEMP}/gcloud"
+         export KUBECONFIG="${RUNNER_TEMP}/kubeconfig-gcp"
 
-         
+         mkdir -p "$CLOUDSDK_CONFIG" "$(dirname "$KUBECONFIG")"
 
-         sudo -u ec2-user env \
-         PATH="$GCLOUD_DIR:$PATH" \
-         KUBECONFIG="$KUBECONFIG" \
-         CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
-         "$GCLOUD_BIN" container clusters get-credentials "$GCP_CLUSTER_NAME" \
+         # Confirm auth is present
+         gcloud auth list
+         gcloud config set project "$GCP_PROJECT_ID"
+
+         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
          --region "$GCP_REGION" \
-         --project "$GCP_PROJECT_ID" \
-           
-          # --enable-master-authorized-networks \
-          # --master-authorized-networks 0.0.0.0/0  
+         --project "$GCP_PROJECT_ID"
 
-           # Verify plugin is visible + cluster access works
-           sudo -u ec2-user env \
-           PATH="$GCLOUD_DIR:$PATH" \
-           KUBECONFIG="$KUBECONFIG" \
-           gke-gcloud-auth-plugin --version || true
-
-           sudo -u ec2-user env \
-           PATH="$GCLOUD_DIR:$PATH" \
-           KUBECONFIG="$KUBECONFIG" \
-           kubectl config current-context
-
-           sudo -u ec2-user env \
-           PATH="$GCLOUD_DIR:$PATH" \
-           KUBECONFIG="$KUBECONFIG" \
-           kubectl get ns
-
+         kubectl get ns
 
       - name: Update GKE kubeconfig
         run: |
