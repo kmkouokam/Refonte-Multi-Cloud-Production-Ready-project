@@ -329,7 +329,18 @@ jobs:
           
       #     fi
       #
+      - name: Allow runner IP (Master Authorized Networks)
+        shell: bash
+        run: |
+         set -euo pipefail
+         MY_IP="$(curl -s https://api.ipify.org)"
+          echo "Runner IP: $MY_IP"
 
+          gcloud container clusters update "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks "${MY_IP}/32" 
 
 
       - name: Update kubeconfig GCP
@@ -337,20 +348,13 @@ jobs:
         run: |
          set -euo pipefail
 
-         echo "CLOUDSDK_CONFIG=$CLOUDSDK_CONFIG"
-         echo "KUBECONFIG=$KUBECONFIG"
+        
 
-         # This should NOT say "No credentialed accounts"
-         gcloud auth list
-         gcloud config set project "$GCP_PROJECT_ID"
-
-         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
-          --enable-master-authorized-networks \
-          --master-authorized-networks "172.59.82.34/32"
-
-         kubectl get ns
+           
+          kubectl get ns
 
       - name: Update GKE kubeconfig
         run: |
