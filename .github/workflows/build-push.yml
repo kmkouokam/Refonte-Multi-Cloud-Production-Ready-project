@@ -402,7 +402,7 @@ jobs:
             || (echo "❌ 443 NOT reachable"; exit 1)
 
           echo "Testing /version via kubectl..."
-          kubectl version --short    
+          kubectl version    
            
       # # ✅ Gate: fail early if API not reachable (prevents ArgoCD deadline exceeded)
       # - name: Verify GKE API reachable
