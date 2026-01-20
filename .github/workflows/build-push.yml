@@ -329,29 +329,7 @@ jobs:
           
       #     fi
       
-      - name: Verify GKE API reachable (ArgoCD prereq)
-        shell: bash
-        run: |
-         set -euo pipefail
-
-         echo "Runner public IP: $(curl -s https://api.ipify.org)"
-
-         CONTEXT="$(kubectl config current-context)"
-          echo "kubectl context: $CONTEXT"
-
-          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
-          echo "K8s API server: $SERVER"
-
-           HOST="${SERVER#https://}"
-           HOST="${HOST%%:*}"
-
-          echo "Testing TCP 443 to $HOST..."
-          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
-          && echo "✅ 443 reachable" \
-            || (echo "❌ 443 NOT reachable"; exit 1)
-
-          echo "Testing /version via kubectl..."
-          kubectl version --short
+      
    
 
 
@@ -399,23 +377,48 @@ jobs:
 
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
-          --project "$GCP_PROJECT_ID" \
-           
-      # ✅ Gate: fail early if API not reachable (prevents ArgoCD deadline exceeded)
-      - name: Verify GKE API reachable
+          --project "$GCP_PROJECT_ID" 
+
+
+      - name: Verify GKE API reachable (ArgoCD prereq)
         shell: bash
         run: |
-          set -euo pipefail
-          kubectl config current-context
+         set -euo pipefail
+
+         echo "Runner public IP: $(curl -s https://api.ipify.org)"
+
+         CONTEXT="$(kubectl config current-context)"
+          echo "kubectl context: $CONTEXT"
+
           SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
           echo "K8s API server: $SERVER"
-          HOST="${SERVER#https://}"
-          HOST="${HOST%%:*}"
+
+           HOST="${SERVER#https://}"
+           HOST="${HOST%%:*}"
 
           echo "Testing TCP 443 to $HOST..."
-          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" && echo "✅ 443 reachable" || (echo "❌ 443 NOT reachable"; exit 1)
+          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
+          && echo "✅ 443 reachable" \
+            || (echo "❌ 443 NOT reachable"; exit 1)
 
-          kubectl get ns  
+          echo "Testing /version via kubectl..."
+          kubectl version --short    
+           
+      # # ✅ Gate: fail early if API not reachable (prevents ArgoCD deadline exceeded)
+      # - name: Verify GKE API reachable
+      #   shell: bash
+      #   run: |
+      #     set -euo pipefail
+      #     kubectl config current-context
+      #     SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+      #     echo "K8s API server: $SERVER"
+      #     HOST="${SERVER#https://}"
+      #     HOST="${HOST%%:*}"
+
+      #     echo "Testing TCP 443 to $HOST..."
+      #     timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" && echo "✅ 443 reachable" || (echo "❌ 443 NOT reachable"; exit 1)
+
+      #     kubectl get ns  
 
       
             
