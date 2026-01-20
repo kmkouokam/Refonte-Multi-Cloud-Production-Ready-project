@@ -349,8 +349,8 @@ jobs:
          "$GCLOUD_BIN" container clusters get-credentials "$GCP_CLUSTER_NAME" \
          --region "$GCP_REGION" \
          --project "$GCP_PROJECT_ID"
-          --enable-master-authorized-networks \
-          --master-authorized-networks 0.0.0.0/0  
+          # --enable-master-authorized-networks \
+          # --master-authorized-networks 0.0.0.0/0  
 
           sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" kubectl config current-context
           sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" kubectl get ns
