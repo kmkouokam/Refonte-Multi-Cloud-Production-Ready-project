@@ -337,23 +337,16 @@ jobs:
         run: |
          set -euo pipefail
 
-         GCLOUD_BIN="$(command -v gcloud)"
-         GCLOUD_DIR="$(dirname "$GCLOUD_BIN")"
-         export PATH="$GCLOUD_DIR:$PATH"
+         echo "CLOUDSDK_CONFIG=$CLOUDSDK_CONFIG"
+         echo "KUBECONFIG=$KUBECONFIG"
 
-         # Use job-scoped config dirs to avoid collisions
-         export CLOUDSDK_CONFIG="${RUNNER_TEMP}/gcloud"
-         export KUBECONFIG="${RUNNER_TEMP}/kubeconfig-gcp"
-
-         mkdir -p "$CLOUDSDK_CONFIG" "$(dirname "$KUBECONFIG")"
-
-         # Confirm auth is present
+         # This should NOT say "No credentialed accounts"
          gcloud auth list
          gcloud config set project "$GCP_PROJECT_ID"
 
          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-         --region "$GCP_REGION" \
-         --project "$GCP_PROJECT_ID"
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID"
 
          kubectl get ns
 
