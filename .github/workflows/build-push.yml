@@ -352,7 +352,7 @@ jobs:
          "$GCLOUD_BIN" container clusters get-credentials "$GCP_CLUSTER_NAME" \
          --region "$GCP_REGION" \
          --project "$GCP_PROJECT_ID" \
-          --kubeconfig "$KUBECONFIG"
+           
           # --enable-master-authorized-networks \
           # --master-authorized-networks 0.0.0.0/0  
 
