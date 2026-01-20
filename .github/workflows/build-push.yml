@@ -336,11 +336,30 @@ jobs:
          MY_IP="$(curl -s https://api.ipify.org)"
           echo "Runner IP: $MY_IP"
 
+          
+         EXISTING="$(gcloud container clusters describe "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | tr '\n' ',' | sed 's/,$//')"
+
+         if echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
+          echo "Runner IP already authorized."
+          CIDRS="$EXISTING"
+         else
+          if [ -n "$EXISTING" ]; then
+            CIDRS="${EXISTING},${MY_IP}/32"
+          else
+            CIDRS="${MY_IP}/32"
+          fi
+         fi
+
+         echo "Authorized CIDRs: $CIDRS"
+ 
           gcloud container clusters update "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
           --enable-master-authorized-networks \
-          --master-authorized-networks "${MY_IP}/32" 
+          --master-authorized-networks "$CIDRS" 
 
 
       - name: Update kubeconfig GCP
@@ -354,28 +373,29 @@ jobs:
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
            
-          kubectl get ns
-
-      - name: Update GKE kubeconfig
+      # ✅ Gate: fail early if API not reachable (prevents ArgoCD deadline exceeded)
+      - name: Verify GKE API reachable
+        shell: bash
         run: |
-          echo "Cluster: $GCP_CLUSTER_NAME, Region: $GCP_REGION, Project: $GCP_PROJECT_ID"
-          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-            --region "$GCP_REGION" \
-            --project "$GCP_PROJECT_ID" \
+          set -euo pipefail
+          kubectl config current-context
+          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          echo "K8s API server: $SERVER"
+          HOST="${SERVER#https://}"
+          HOST="${HOST%%:*}"
+
+          echo "Testing TCP 443 to $HOST..."
+          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" && echo "✅ 443 reachable" || (echo "❌ 443 NOT reachable"; exit 1)
+
+          kubectl get ns  
+
+      
             
 
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
         
-      # --- Optional: Check connectivity ---
-      - name: Check Kubernetes API connectivity
-        run: |
-         INTERNAL_IP=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|https://||')
-         if ! curl -k -m 5 https://$INTERNAL_IP; then
-          echo "Cannot reach Kubernetes API via internal IP. Check VPC/firewall!"
-          exit 1
-         fi  
-
+       
       
 
       - name: Install ArgoCD on GCP
@@ -458,7 +478,7 @@ jobs:
 
          #Register GCP cluster
            CONTEXT=$(kubectl config current-context)
-           argocd cluster add "$CONTEXT" --label cloud=gcp --upsert
+           argocd cluster add "$CONTEXT" --label cloud=gcp --upsert --port-forward --port-forward-namespace argocd --insecure
      
 
       - name: Clean up runner (safe)
