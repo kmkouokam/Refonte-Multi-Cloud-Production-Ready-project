@@ -328,7 +328,35 @@ jobs:
       #         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
           
       #     fi
-      #
+      
+      - name: Verify GKE API reachable (ArgoCD prereq)
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         echo "Runner public IP: $(curl -s https://api.ipify.org)"
+
+         CONTEXT="$(kubectl config current-context)"
+          echo "kubectl context: $CONTEXT"
+
+          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          echo "K8s API server: $SERVER"
+
+           HOST="${SERVER#https://}"
+           HOST="${HOST%%:*}"
+
+          echo "Testing TCP 443 to $HOST..."
+          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
+          && echo "✅ 443 reachable" \
+            || (echo "❌ 443 NOT reachable"; exit 1)
+
+          echo "Testing /version via kubectl..."
+          kubectl version --short
+   
+
+
+
+
       - name: Allow runner IP (Master Authorized Networks)
         shell: bash
         run: |
@@ -445,32 +473,7 @@ jobs:
           kubectl -n argocd get endpoints argocd-server -o yaml || true
           kubectl -n argocd get pods -o wide || true
 
-      - name: Verify GKE API reachable (ArgoCD prereq)
-        shell: bash
-        run: |
-         set -euo pipefail
-
-         echo "Runner public IP: $(curl -s https://api.ipify.org)"
-
-         CONTEXT="$(kubectl config current-context)"
-          echo "kubectl context: $CONTEXT"
-
-          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
-          echo "K8s API server: $SERVER"
-
-           HOST="${SERVER#https://}"
-           HOST="${HOST%%:*}"
-
-          echo "Testing TCP 443 to $HOST..."
-          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
-          && echo "✅ 443 reachable" \
-            || (echo "❌ 443 NOT reachable"; exit 1)
-
-          echo "Testing /version via kubectl..."
-          kubectl version --short
-   
-
-
+      
       - name: Login ArgoCD
         shell: bash
         run: |
@@ -503,7 +506,7 @@ jobs:
 
          #Register GCP cluster
            CONTEXT=$(kubectl config current-context)
-           argocd cluster add "$CONTEXT" --label cloud=gcp --upsert --port-forward --port-forward-namespace argocd --insecure
+           argocd cluster add "$CONTEXT" --label cloud=gcp --upsert --port-forward --port-forward-namespace argocd --insecure --yes
      
 
       - name: Clean up runner (safe)
