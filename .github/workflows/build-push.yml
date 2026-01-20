@@ -51,12 +51,7 @@ jobs:
          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
         # echo "AWS_SHARED_CREDENTIALS_FILE=$RUNNER_TEMP/aws-config" >> "$GITHUB_ENV"
 
-      # - name: Configure AWS credentials (OIDC)
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #    role-to-assume: arn:aws:iam::435329769674:role/github_runner_role
-      #    aws-region: ${{ env.AWS_REGION }}
-  
+   
 
       - name: Verify AWS Identity (Self-Hosted Runner)
         run: aws sts get-caller-identity
@@ -332,45 +327,33 @@ jobs:
           
       #     fi
 
+
+
       - name: Update kubeconfig GCP
         shell: bash
         run: |
          set -euo pipefail
+
+         GCLOUD_BIN="$(command -v gcloud)"
+         echo "gcloud is at: $GCLOUD_BIN"
          sudo -u ec2-user mkdir -p /home/ec2-user/.kube
          sudo -u ec2-user mkdir -p "$CLOUDSDK_CONFIG"
          sudo -u ec2-user mkdir -p "$(dirname "$KUBECONFIG")"
 
          
 
-         if sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
-         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-          --region "$GCP_REGION" \
-          --project "$GCP_PROJECT_ID" \
-          --kubeconfig "KUBECONFIG" \
+         sudo -u ec2-user env \
+         PATH="$PATH" \
+         KUBECONFIG="$KUBECONFIG" \
+         CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
+         "$GCLOUD_BIN" container clusters get-credentials "$GCP_CLUSTER_NAME" \
+         --region "$GCP_REGION" \
+         --project "$GCP_PROJECT_ID"
           --enable-master-authorized-networks \
-          --master-authorized-networks 0.0.0.0/0 ; then
-          echo "GKE kubeconfig written for ec2-user"
-         else
-          echo "fallback: running as root then copying kubeconfig"
+          --master-authorized-networks 0.0.0.0/0  
 
-         sudo env KUBECONFIG="$KUBECONFIG"  CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
-         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-          --region "$GCP_REGION" \
-          --project "$GCP_PROJECT_ID" \
-          --enable-master-authorized-networks \
-          --master-authorized-networks 0.0.0.0/0
-
-          #  sudo mkdir -p /home/ec2-user/.kube
-          #  # 1) Job-scoped kubeconfig for the CI job
-          #  sudo cp -f /root/.kube/config "$KUBECONFIG"
-
-           # 2) Also keep ec2-user default kubeconfig for SSH convenience
-           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
-           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
-         fi
-
-         sudo -u ec2-user kubectl config current-context
-         sudo -u ec2-user kubectl get ns
+          sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" kubectl config current-context
+          sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" kubectl get ns
 
 
       - name: Update GKE kubeconfig
@@ -528,15 +511,8 @@ jobs:
 
          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
            
-
-       
-      # - name: Configure AWS credentials (OIDC)
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #    role-to-assume: arn:aws:iam::435329769674:role/github_runner_role
-      #    aws-region: ${{ env.AWS_REGION }}
+      
   
-
       - name: Verify AWS Identity (Self-Hosted Runner)
         run: aws sts get-caller-identity
 
@@ -816,9 +792,7 @@ jobs:
          https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml
          kubectl apply -f crds.yaml
     
-
-      
-         
+     
 
 
       - name: Install AWS Load Balancer Controller
@@ -848,12 +822,6 @@ jobs:
          if [ -n "$POD" ]; then
          kubectl -n kube-system logs "$POD" --tail=200 || true
          fi
-
-
-
-
-
-        
           
        
 
