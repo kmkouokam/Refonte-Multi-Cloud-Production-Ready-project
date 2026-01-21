@@ -311,7 +311,7 @@ jobs:
           gcloud container clusters describe "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
-          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[])"    
+           --format="json(masterAuthorizedNetworksConfig)" | cat
 
 
       - name: Update kubeconfig GCP get credentials
