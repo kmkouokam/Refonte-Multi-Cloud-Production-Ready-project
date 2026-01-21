@@ -391,19 +391,18 @@ jobs:
 
          # Wait up to 4 minutes for MAN propagation / connectivity
          for i in {1..24}; do
-         echo "Attempt $i: TCP 443 to $HOST..."
-         if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" 2>/dev/null; then
-           echo "✅ 443 reachable"
-           break
+           echo "Attempt $i: testing Kubernetes API..."
+           if kubectl get --raw=/version --request-timeout=5s >/dev/null 2>&1; then
+           echo "✅ GKE API reachable"
+           exit 0
          fi
-          echo "⏳ Not reachable yet. Sleeping 10s..."
-          sleep 10
+           echo "⏳ API not reachable yet, sleeping 10s..."
+             sleep 10
          done
 
-         echo "Testing Kubernetes /version (with timeout)..."
-         kubectl get --raw=/version --request-timeout=10s
-         kubectl get ns --request-timeout=10s
-
+         echo "❌ GKE API never became reachable"
+          exit 1
+          
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
         
