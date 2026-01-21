@@ -40,6 +40,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug workflow context + env
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "GITHUB_WORKFLOW=$GITHUB_WORKFLOW"
+         echo "GITHUB_REF=$GITHUB_REF"
+         echo "GITHUB_SHA=$GITHUB_SHA"
+         echo "Runner: $RUNNER_NAME"
+         echo "File checkout branch (git):"
+         git rev-parse --abbrev-ref HEAD || true
+         git rev-parse HEAD || true
+
+         echo "=== ENV CHECK ==="
+         echo "GCP_CLUSTER_NAME=${GCP_CLUSTER_NAME:-<empty>}"
+         echo "GCP_REGION=${GCP_REGION:-<empty>}"
+         echo "GCP_PROJECT_ID=${GCP_PROJECT_ID:-<empty>}"
+         echo "AWS_REGION=${AWS_REGION:-<empty>}"
+         echo "IMAGE_NAME=${IMAGE_NAME:-<empty>}"
+
+
+
       - name: Set job-scoped configs (AWS)
         shell: bash
         run: |
@@ -218,6 +239,25 @@ jobs:
 
       steps:
       - uses: actions/checkout@v4
+
+      - name: Debug workflow context + env
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "GITHUB_WORKFLOW=$GITHUB_WORKFLOW"
+         echo "GITHUB_REF=$GITHUB_REF"
+         echo "GITHUB_SHA=$GITHUB_SHA"
+         echo "Runner: $RUNNER_NAME"
+         echo "File checkout branch (git):"
+         git rev-parse --abbrev-ref HEAD || true
+         git rev-parse HEAD || true
+
+         echo "=== ENV CHECK ==="
+         echo "GCP_CLUSTER_NAME=${GCP_CLUSTER_NAME:-<empty>}"
+         echo "GCP_REGION=${GCP_REGION:-<empty>}"
+         echo "GCP_PROJECT_ID=${GCP_PROJECT_ID:-<empty>}"
+         echo "AWS_REGION=${AWS_REGION:-<empty>}"
+         echo "IMAGE_NAME=${IMAGE_NAME:-<empty>}"
 
       - name: Set job scoped KUBECONFIG
         shell: bash
