@@ -354,6 +354,14 @@ jobs:
            --format="json(masterAuthorizedNetworksConfig)" | cat
 
 
+      - name: Wait for Master Authorized Networks propagation
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "Waiting 120s for GKE MAN propagation..."
+          sleep 120
+
+
       - name: Update kubeconfig GCP get credentials
         shell: bash
         run: |
