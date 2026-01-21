@@ -21,7 +21,7 @@ env:
   
 
   # GCP
-  GCP_CLUSTER_NAME:  my-gcp-cluster-a1903a66a8c3
+  GCP_CLUSTER_NAME:  my-gcp-cluster-597642c0b50d
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -170,8 +170,7 @@ jobs:
 
          argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
 
-          
-#        
+        
 
       - name: Register AWS cluster (via ArgoCD port-forward)
         shell: bash
@@ -330,11 +329,6 @@ jobs:
       #     fi
       
       
-   
-
-
-
-
       - name: Allow runner IP (Master Authorized Networks)
         shell: bash
         run: |
@@ -1164,62 +1158,68 @@ jobs:
           echo "IMAGE_URI=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/${IMAGE_NAME}:latest" >> $GITHUB_ENV
 
 
-      - name: Update kubeconfig GCP
+      - name: Allow runner IP (Master Authorized Networks)
         shell: bash
         run: |
          set -euo pipefail
-         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
-         sudo -u ec2-user mkdir -p "$CLOUDSDK_CONFIG"
-         sudo -u ec2-user mkdir -p "$(dirname "$KUBECONFIG")"
+         MY_IP="$(curl -s https://api.ipify.org)"
+          echo "Runner IP: $MY_IP"
 
-         
-
-         if sudo -u ec2-user env KUBECONFIG="$KUBECONFIG" CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
-         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          
+         EXISTING="$(gcloud container clusters describe "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
-          --kubeconfig "KUBECONFIG" \
-          --enable-master-authorized-networks \
-          --master-authorized-networks 0.0.0.0/0 ; then
-          echo "GKE kubeconfig written for ec2-user"
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | tr '\n' ',' | sed 's/,$//')"
+
+         if echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
+          echo "Runner IP already authorized."
+          CIDRS="$EXISTING"
          else
-          echo "fallback: running as root then copying kubeconfig"
-
-         sudo env KUBECONFIG="$KUBECONFIG"  CLOUDSDK_CONFIG="$CLOUDSDK_CONFIG" \
-         gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-          --region "$GCP_REGION" \
-          --project "$GCP_PROJECT_ID" \
-          --enable-master-authorized-networks \
-          --master-authorized-networks 0.0.0.0/0
-
-          #  sudo mkdir -p /home/ec2-user/.kube
-          #  # 1) Job-scoped kubeconfig for the CI job
-          #  sudo cp -f /root/.kube/config "$KUBECONFIG"
-
-           # 2) Also keep ec2-user default kubeconfig for SSH convenience
-           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
-           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+          if [ -n "$EXISTING" ]; then
+            CIDRS="${EXISTING},${MY_IP}/32"
+          else
+            CIDRS="${MY_IP}/32"
+          fi
          fi
 
-         sudo -u ec2-user kubectl config current-context
-         sudo -u ec2-user kubectl get ns
+         echo "Authorized CIDRs: $CIDRS"
+ 
+          gcloud container clusters update "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks "$CIDRS" 
 
-
-
-      # - name: Update kubeconfig GCP
-      #   run: |
-      #     gcloud container clusters update "$GCP_CLUSTER_NAME" \
-      #       --region "$GCP_REGION" \
-      #       --project "$GCP_PROJECT_ID" \
-      #       --enable-master-authorized-networks \
-      #       --master-authorized-networks 0.0.0.0/0   
 
       - name: Update kubeconfig GCP
         run: |
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
             --region "$GCP_REGION" \
             --project "$GCP_PROJECT_ID"
-             
+      
+      - name: Verify GKE API reachable (ArgoCD prereq)
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         echo "Runner public IP: $(curl -s https://api.ipify.org)"
+
+         CONTEXT="$(kubectl config current-context)"
+          echo "kubectl context: $CONTEXT"
+
+          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          echo "K8s API server: $SERVER"
+
+           HOST="${SERVER#https://}"
+           HOST="${HOST%%:*}"
+
+          echo "Testing TCP 443 to $HOST..."
+          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
+          && echo "✅ 443 reachable" \
+            || (echo "❌ 443 NOT reachable"; exit 1)
+
+          echo "Testing /version via kubectl..."
+          kubectl version          
 
       - name: Create GCR Pull Secret
         run: |
