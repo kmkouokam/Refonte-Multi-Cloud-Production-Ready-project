@@ -375,34 +375,7 @@ jobs:
             kubectl config current-context
 
 
-      - name: Verify GKE API reachable (ArgoCD prereq)
-        shell: bash
-        run: |
-         set -euo pipefail
-
-          echo "Using frozen Runner IP: ${MY_IP:-unset}"
-         kubectl config current-context || true
-
-         SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
-         echo "K8s API server: $SERVER"
-
-         HOST="${SERVER#https://}"
-         HOST="${HOST%%:*}"
-
-         # Wait up to 4 minutes for MAN propagation / connectivity
-         for i in {1..24}; do
-           echo "Attempt $i: testing Kubernetes API..."
-           if kubectl get --raw=/version --request-timeout=5s >/dev/null 2>&1; then
-           echo "✅ GKE API reachable"
-           exit 0
-         fi
-           echo "⏳ API not reachable yet, sleeping 10s..."
-             sleep 10
-         done
-
-         echo "❌ GKE API never became reachable"
-          exit 1
-          
+      
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
         
@@ -455,19 +428,35 @@ jobs:
           kubectl -n argocd get endpoints argocd-server -o yaml || true
           kubectl -n argocd get pods -o wide || true
 
+      - name: Verify GKE API reachable (ArgoCD prereq)
+        shell: bash
+        run: |
+         set -euo pipefail
 
-      # - name: Verify GKE API reachable (ArgoCD prereq)
-      #   run: |
-      #    set -euo pipefail
-      #      echo "Runner public IP: $(curl -s https://api.ipify.org)"
-      #    echo "K8s API server: $(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          echo "Using frozen Runner IP: ${MY_IP:-unset}"
+         kubectl config current-context || true
 
-      #    # Raw network test
-      #    timeout 10 bash -lc 'curl -vk https://35.221.36.123/version --max-time 8 || true'
+         SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+         echo "K8s API server: $SERVER"
 
-      #    # Kubernetes-level test
-      #    kubectl get --raw=/version --request-timeout=10s || true
-      #    kubectl cluster-info || true
+         HOST="${SERVER#https://}"
+         HOST="${HOST%%:*}"
+
+         # Wait up to 4 minutes for MAN propagation / connectivity
+         for i in {1..24}; do
+           echo "Attempt $i: testing Kubernetes API..."
+           if kubectl get --raw=/version --request-timeout=5s >/dev/null 2>&1; then
+           echo "✅ GKE API reachable"
+           exit 0
+         fi
+           echo "⏳ API not reachable yet, sleeping 10s..."
+             sleep 10
+         done
+
+         echo "❌ GKE API never became reachable"
+          exit 1
+
+
 
       - name: Login ArgoCD
         shell: bash
@@ -499,10 +488,28 @@ jobs:
 
          argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
 
-         #Register GCP cluster
-           CONTEXT=$(kubectl config current-context)
-           argocd cluster add "$CONTEXT" --label cloud=gcp --upsert --port-forward --port-forward-namespace argocd --insecure --yes
-     
+          
+      - name: Gate + ArgoCD cluster add (force kubeconfig)
+        shell: bash
+        env:
+         KUBECONFIG: ${{ env.KUBECONFIG }}
+        run: |
+          set -euo pipefail
+
+          echo "Public IP now: $(curl -s https://api.ipify.org)"
+           kubectl get --raw=/version --request-timeout=8s
+
+           CONTEXT="$(kubectl config current-context)"
+            echo "Using context: $CONTEXT"
+
+           argocd cluster add "$CONTEXT" \
+             --label cloud=gcp \
+             --upsert \
+             --port-forward \
+             --port-forward-namespace argocd \
+             --insecure \
+             --yes
+
 
       - name: Clean up runner (safe)
         if: always()
@@ -782,20 +789,7 @@ jobs:
          kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
 
 
-      # - name: Create service account for AWS Load Balancer Controller (IRSA)
-      #   shell: bash
-      #   run: |
-      #    set -euo pipefail
-      #    echo "Using policy ARN: $ALB_POLICY_ARN"
-
-      #    eksctl create iamserviceaccount \
-      #    --cluster "$AWS_CLUSTER_NAME" \
-      #    --namespace kube-system \
-      #    --name aws-load-balancer-controller \
-      #    --attach-policy-arn "$ALB_POLICY_ARN" \
-      #    --override-existing-serviceaccounts \
-      #    --region "$AWS_REGION" \
-      #    --approve
+      
 
       - name: Verify ServiceAccount + annotation
         shell: bash
