@@ -299,6 +299,20 @@ jobs:
           --enable-master-authorized-networks \
           --master-authorized-networks "$CIDRS" 
 
+      - name: Master authorized Networks - verify
+        shell: bash
+        run: |
+         set -euo pipefail
+
+          echo "Frozen MY_IP=${MY_IP}"
+
+          echo "Master Authorized Networks currently set to:"
+
+          gcloud container clusters describe "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[])"    
+
 
       - name: Update kubeconfig GCP get credentials
         shell: bash
@@ -310,7 +324,7 @@ jobs:
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" 
-            --format="json(masterAuthorizedNetworksConfig)" | cat
+            kubectl config current-context
 
 
       - name: Verify GKE API reachable (ArgoCD prereq)
