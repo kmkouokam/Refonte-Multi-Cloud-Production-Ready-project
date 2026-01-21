@@ -489,27 +489,7 @@ jobs:
          argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
 
           
-      - name: Gate + ArgoCD cluster add (force kubeconfig)
-        shell: bash
-        env:
-         KUBECONFIG: ${{ env.KUBECONFIG }}
-        run: |
-          set -euo pipefail
-
-          echo "Public IP now: $(curl -s https://api.ipify.org)"
-           kubectl get --raw=/version --request-timeout=8s
-
-           CONTEXT="$(kubectl config current-context)"
-            echo "Using context: $CONTEXT"
-
-           argocd cluster add "$CONTEXT" \
-             --label cloud=gcp \
-             --upsert \
-             --port-forward \
-             --port-forward-namespace argocd \
-             --insecure \
-             --yes
-
+       
 
       - name: Clean up runner (safe)
         if: always()
