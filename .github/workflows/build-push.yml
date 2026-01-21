@@ -251,89 +251,27 @@ jobs:
          gcloud auth list
          gcloud version
          kubectl version --client    
-
-    
-
-      # --- Install gcloud ---
-      # - name: Install Google Cloud SDK
-      #   run: |
-      #     # Create safe directory
-      #     mkdir -p /home/ec2-user/gcloud
-      #     cd /home/ec2-user/gcloud
-      #     # Detect package manager
-      #     if command -v apt-get >/dev/null 2>&1; then
-      #      sudo apt-get update -y
-      #      sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-      #     elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then
-      #      sudo yum update -y || sudo dnf update -y
-      #      sudo yum install -y curl ca-certificates || sudo dnf install -y curl ca-certificates
-      #     else
-      #       echo "No supported package manager found"
-      #      exit 1
-      #     fi
-
-      #      # If using apt-get, install Google Cloud SDK via apt repo
-      #     if command -v apt-get >/dev/null 2>&1; then
-      #       curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-      #       echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-      #       sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-      #       sudo apt-get update
-      #       sudo apt-get install -y google-cloud-sdk
-
-      #       # Install GKE auth plugin
-      #      sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
-      #     else
-      #     # For Amazon Linux 2023 or other yum/dnf distros, use Google's install script
-      #       sudo -u ec2-user bash
-      #       cd ~
-      #       curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz  
-      #       tar -xf google-cloud-cli-linux-x86_64.tar.gz
-      #        ./google-cloud-sdk/install.sh --quiet
-      #       echo 'source $HOME/google-cloud-sdk/path.bash.inc' >> ~/.bashrc
-      #       echo 'source $HOME/google-cloud-sdk/completion.bash.inc' >> ~/.bashrc
-      #       source ~/.bashrc
+      
 
             # Install GKE auth plugin
       - name: Ensure GKE auth plugin is installed
         run: |
            gcloud components install gke-gcloud-auth-plugin --quiet
           
-    
-
-       
-
-      # - name: Update kubeconfig GCP
-      #   run: |
-      #     sudo -u ec2-user mkdir -p /home/ec2-user/.kube
-
-      #     if sudo -u ec2-user gcloud container clusters update "$GCP_CLUSTER_NAME" \
-      #       --region "$GCP_REGION" \
-      #       --project "$GCP_PROJECT_ID" \
-      #       --enable-master-authorized-networks \
-      #       --master-authorized-networks 0.0.0.0/0; then
-      #       echo "GKE kubeconfig written for ec2-user"
-      #     else
-      #       echo "fallback: running as root then copying kubeconfig"
-
-      #        # root writes to /root/.kube/config
-      #        sudo gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
-      #         --region "$GCP_REGION" \
-      #         --project "$GCP_PROJECT_ID" \
-      #         --enable-master-authorized-networks \
-      #         --master-authorized-networks 0.0.0.0/0
-
-      #          sudo mkdir -p /home/ec2-user/.kube
-      #          sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
-      #         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
-          
-      #     fi
-      
+      - name: Capture runner public IP (freeze for job)
+        shell: bash
+        run: |
+         set -euo pipefail
+         MY_IP="$(curl -s https://api.ipify.org)"
+         echo "MY_IP=$MY_IP" >> "$GITHUB_ENV"
+         echo "Runner public IP: $MY_IP"
+   
       
       - name: Allow runner IP (Master Authorized Networks)
         shell: bash
         run: |
          set -euo pipefail
-         MY_IP="$(curl -s https://api.ipify.org)"
+          : "${MY_IP:?MY_IP not set}"
           echo "Runner IP: $MY_IP"
 
           
@@ -362,7 +300,7 @@ jobs:
           --master-authorized-networks "$CIDRS" 
 
 
-      - name: Update kubeconfig GCP
+      - name: Update kubeconfig GCP get credentials
         shell: bash
         run: |
          set -euo pipefail
@@ -372,6 +310,7 @@ jobs:
           gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" 
+            kubectl config current-context
 
 
       - name: Verify GKE API reachable (ArgoCD prereq)
@@ -379,50 +318,35 @@ jobs:
         run: |
          set -euo pipefail
 
-         echo "Runner public IP: $(curl -s https://api.ipify.org)"
+          echo "Using frozen Runner IP: ${MY_IP:-unset}"
+         kubectl config current-context || true
 
-         CONTEXT="$(kubectl config current-context)"
-          echo "kubectl context: $CONTEXT"
+         SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+         echo "K8s API server: $SERVER"
 
-          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
-          echo "K8s API server: $SERVER"
+         HOST="${SERVER#https://}"
+         HOST="${HOST%%:*}"
 
-           HOST="${SERVER#https://}"
-           HOST="${HOST%%:*}"
+         # Wait up to 4 minutes for MAN propagation / connectivity
+         for i in {1..24}; do
+         echo "Attempt $i: TCP 443 to $HOST..."
+         if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" 2>/dev/null; then
+           echo "✅ 443 reachable"
+           break
+         fi
+          echo "⏳ Not reachable yet. Sleeping 10s..."
+          sleep 10
+         done
 
-          echo "Testing TCP 443 to $HOST..."
-          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
-          && echo "✅ 443 reachable" \
-            || (echo "❌ 443 NOT reachable"; exit 1)
-
-          echo "Testing /version via kubectl..."
-          kubectl version    
-           
-      # # ✅ Gate: fail early if API not reachable (prevents ArgoCD deadline exceeded)
-      # - name: Verify GKE API reachable
-      #   shell: bash
-      #   run: |
-      #     set -euo pipefail
-      #     kubectl config current-context
-      #     SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
-      #     echo "K8s API server: $SERVER"
-      #     HOST="${SERVER#https://}"
-      #     HOST="${HOST%%:*}"
-
-      #     echo "Testing TCP 443 to $HOST..."
-      #     timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" && echo "✅ 443 reachable" || (echo "❌ 443 NOT reachable"; exit 1)
-
-      #     kubectl get ns  
-
-      
-            
+         echo "Testing Kubernetes /version (with timeout)..."
+         kubectl get --raw=/version --request-timeout=10s
+         kubectl get ns --request-timeout=10s
 
       - name: Verify GCP kubeconfig
         run: kubectl config get-contexts   
         
        
       
-
       - name: Install ArgoCD on GCP
         run: |
            kubectl create namespace argocd || true
