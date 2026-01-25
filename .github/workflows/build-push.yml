@@ -958,20 +958,27 @@ jobs:
            argocd app list
  
 
-      # - name: Create or upsert argocd cluster AWS
-      #   run: |
-      #      set -euo pipefail
-      #      argocd app create flask-app \
-      #      --repo https://github.com/${{ github.repository }} \
-      #      --path argocd/aws \
-      #      --dest-server https://kubernetes.default.svc \
-      #      --dest-namespace default \
-      #      --project default \
-      #      --sync-policy automated \
-      #      --auto-prune \
-      #      --self-heal \
-      #      --upsert \
-      #      --revision gitop
+      - name: Create or upsert argocd cluster AWS
+        run: |
+            set -euo pipefail
+            argocd app create flask-app-aws \
+            --repo https://github.com/${{ github.repository }} \
+            --path argocd/aws \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace default \
+            --project default \
+            --sync-policy automated \
+            --auto-prune \
+            --self-heal \
+            --upsert \
+            --revision gitop
+
+
+      - name: Sync ArgoCD app AWS
+        run: |
+            argocd app sync flask-app-aws
+            argocd app get flask-app-aws   
+            argocd app wait flask-app-aws --timeout 300s 
 
 
       # - name: Verify ArgoCD app
@@ -1060,18 +1067,7 @@ jobs:
          gcloud version
          kubectl version --client      
 
-      # - name: Authenticate to GCP and Install GKE auth plugin
-      #   run: |
-      #     # Install gke plugin
-      #      gcloud components install gke-gcloud-auth-plugin --quiet 
-          
-      #     echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > key.json
-      #     gcloud auth activate-service-account --key-file=key.json  --quiet
-      #     # Verify
-      #       gcloud version
-      #       kubectl version --client    
-
-       #  Clean and reconfigure Docker auth for Artifact Registry
+      
       - name: Clean old Docker logins (optional safeguard)
         run: |
            docker logout https://${{ env.GCP_REGION }}-docker.pkg.dev || true 
@@ -1262,7 +1258,31 @@ jobs:
          echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> "$GITHUB_ENV"
 
          argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure 
-          
+
+
+        # Create or upsert argocd cluster GCP
+      - name: Create or upsert argocd cluster GCP
+        run: |
+            set -euo pipefail
+            argocd app create flask-app-gcp \
+            --repo https://github.com/${{ github.repository }} \
+            --path argocd/gcp \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace default
+            --project default \
+            --sync-policy automated \
+            --auto-prune \
+            --self-heal \
+            --upsert \
+            --revision gitop
+
+      - name: Sync ArgoCD app GCP
+        run: |
+            argocd app sync flask-app-gcp
+            argocd app get flask-app-gcp   
+            argocd app wait flask-app-gcp --timeout 300s
+
+
       - name: Clean up runner (safe)
         if: always()
         run: |
