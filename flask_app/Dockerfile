@@ -19,8 +19,8 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install dependencies
 COPY flask_app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir gunicorn==21.2.0
+RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt \
+    && pip install --no-cache-dir --root-user-action=ignore gunicorn==21.2.0
 
 # Copy all project files
 COPY flask_app/ .
