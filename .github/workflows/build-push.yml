@@ -21,7 +21,7 @@ env:
   
 
   # GCP
-  GCP_CLUSTER_NAME:   my-gcp-cluster-238c9042f3d0
+  GCP_CLUSTER_NAME:   my-gcp-cluster-78047cd77507
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -1058,7 +1058,7 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+          credentials_json: ${{ env.GCP_CREDENTIALS_JSON }}
           project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Fix gcloud install location
@@ -1156,6 +1156,21 @@ jobs:
           --enable-master-authorized-networks \
           --master-authorized-networks "$CIDRS" 
 
+      # - name: Fetch GCP cluster name from Terraform
+      #   shell: bash
+      #   run: |
+      #    set -euo pipefail
+      #    git fetch origin master
+      #    git checkout master
+
+      #     # Make sure backend/state is available
+      #     terraform init -input=false
+
+      #    GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
+      #    echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
+      #    echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
+     
+
 
       - name: Update kubeconfig GCP
         run: |
@@ -1190,12 +1205,12 @@ jobs:
       - name: Create GCR Pull Secret
         run: |
           # Full registry URL
-            REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPO}"
+            REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_REPO}"
            kubectl create secret docker-registry gcp-creds \
-           --docker-server="${REGISTRY_URL}" \
+            --docker-server="${GCP_REGION}-docker.pkg.dev" \
            --namespace default \
            --docker-username=_json_key \
-           --docker-password="$(echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode)" \
+           --docker-password="$(echo "$GCP_CREDENTIALS_JSON" | base64 --decode)" \
            --dry-run=client -o yaml | kubectl apply -f -     
        
            
