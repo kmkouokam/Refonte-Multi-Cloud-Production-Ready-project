@@ -390,11 +390,11 @@ jobs:
       - name: Install ArgoCD on GCP
         run: |
            kubectl create namespace argocd || true
-           kubectl apply  --server-side=true --force-conflicts=true
+           kubectl apply  --server-side=true --force-conflicts=true \
              -n argocd \
              -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --validate=false    
 
-            kubectl apply  --server-side=true --force-conflicts=true\
+            kubectl apply  --server-side=true --force-conflicts=true \ 
              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
@@ -898,7 +898,7 @@ jobs:
           echo "AWS_DB_NAME=$AWS_DB_NAME" >> $GITHUB_ENV 
           
           # Apply Kubernetes Secret and RBAC
-          
+
       - name: Apply Kubernetes Secret
         run: |
           git fetch origin gitop
