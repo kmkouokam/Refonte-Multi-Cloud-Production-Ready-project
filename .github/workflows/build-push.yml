@@ -898,6 +898,7 @@ jobs:
           echo "AWS_DB_NAME=$AWS_DB_NAME" >> $GITHUB_ENV 
           
           # Apply Kubernetes Secret and RBAC
+          
       - name: Apply Kubernetes Secret
         run: |
           git fetch origin gitop
