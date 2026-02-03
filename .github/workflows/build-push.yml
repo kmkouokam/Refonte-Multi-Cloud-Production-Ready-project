@@ -390,14 +390,18 @@ jobs:
       - name: Install ArgoCD on GCP
         run: |
            kubectl create namespace argocd || true
-           kubectl apply -n argocd \
+           kubectl apply  --server-side=true --force-conflicts=true
+             -n argocd \
              -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --validate=false    
 
-            kubectl apply \
+            kubectl apply  --server-side=true --force-conflicts=true\
              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
-            
+            # Wait for Argo CD components
+           kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+           kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=300s
+            kubectl rollout status deployment/argocd-applicationset-controller -n argocd --timeout=300s || true
           
            # Wait additionally until the argocd-cm exists
            until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
