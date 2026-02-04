@@ -134,7 +134,32 @@ jobs:
 
             kubectl apply --server-side=true --force-conflicts=true \
              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
-           kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
+
+           echo "== Pods =="
+           kubectl -n argocd get pods -o wide || true
+
+           echo "== Events (latest 50) =="
+           kubectl -n argocd get events --sort-by=.lastTimestamp | tail -n 50 || true
+
+           echo "== Wait for pods (up to 10 minutes) =="
+           if ! kubectl -n argocd wait pod \
+            -l app.kubernetes.io/part-of=argocd \
+            --for=condition=Ready \
+            --timeout=600s; then
+
+           echo "❌ Pods not Ready. Describing pods..."
+           kubectl -n argocd describe pods || true
+
+           echo "❌ Showing logs (server/repo) ..."
+           kubectl -n argocd logs deploy/argocd-server --tail=200 || true
+           kubectl -n argocd logs deploy/argocd-repo-server --tail=200 || true
+
+           exit 1
+           fi
+
+            echo "✅ ArgoCD pods ready"
+            kubectl -n argocd get pods -o wide
 
             # Wait for Argo CD components
            kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
