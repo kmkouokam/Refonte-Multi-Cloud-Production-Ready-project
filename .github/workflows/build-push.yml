@@ -305,10 +305,10 @@ jobs:
          
       - name: Fetch GCP cluster name from Terraform
         shell: bash
+        working-directory: .
         run: |
          set -euo pipefail
-         git fetch origin master
-          git checkout master
+         terraform output -raw gcp_cluster_name
                     
          GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
          echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
