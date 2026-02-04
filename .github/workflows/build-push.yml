@@ -121,7 +121,7 @@ jobs:
          kubectl --kubeconfig "$KUBECONFIG" get ns
 
       - name: Verify AWS kubeconfig
-        run: kubectl --kubeconfig "$KUBECONFIG"config get-contexts      
+        run: kubectl --kubeconfig "$KUBECONFIG" config get-contexts      
 
       - name: Install ArgoCD on AWS
         run: |
