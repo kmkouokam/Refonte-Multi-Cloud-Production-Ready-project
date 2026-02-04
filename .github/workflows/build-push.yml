@@ -144,7 +144,7 @@ jobs:
 
            echo "== Wait for pods (up to 10 minutes) =="
            if ! kubectl -n argocd wait pod \
-            -l app.kubernetes.io/part-of=argocd \
+            --all \
             --for=condition=Ready \
             --timeout=600s; then
 
@@ -160,6 +160,7 @@ jobs:
 
             echo "✅ ArgoCD pods ready"
             kubectl -n argocd get pods -o wide
+            kubectl -n argocd get pods --show-labels
 
             # Wait for Argo CD components
            kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
