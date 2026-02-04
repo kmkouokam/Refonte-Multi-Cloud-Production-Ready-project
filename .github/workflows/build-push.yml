@@ -1285,7 +1285,7 @@ jobs:
           cd argocd/gcp
           kubectl apply -f flask-app-rollout.yaml -n default  
           
-          
+
       - name: deploy ingress-gcp and service-gcp
         run: |
           git fetch origin gitop
@@ -1293,6 +1293,7 @@ jobs:
           cd argocd/k8s
           kubectl apply -f ingress-gcp.yaml 
           kubectl apply -f service-gcp.yaml  
+          
           
       - name: Login ArgoCD
         shell: bash
