@@ -973,6 +973,7 @@ jobs:
            argocd app get flask-app
            argocd app list
  
+           
 
       - name: Create or upsert argocd cluster AWS
         run: |
