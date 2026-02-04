@@ -271,22 +271,7 @@ jobs:
        
 
       steps:   
-
       -  uses: actions/checkout@v4
-         
-         
-      - name: Fetch GCP cluster name from Terraform
-        run: |
-         set -euo pipefail
-         git fetch origin master
-         git checkout master
-          
-                    
-         export GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
-         echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
-         echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
-     
-
 
 
       - name: Debug workflow context + env
@@ -356,6 +341,18 @@ jobs:
          echo "MY_IP=$MY_IP" >> "$GITHUB_ENV"
          echo "Runner public IP: $MY_IP"
    
+
+      - name: Fetch GCP cluster name from Terraform
+        run: |
+         set -euo pipefail
+         git fetch origin master
+         git checkout master
+          
+                    
+         export GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
+         echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
+         echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
+        
       
       - name: Allow runner IP (Master Authorized Networks)
         shell: bash
@@ -591,8 +588,6 @@ jobs:
       name: Build & Deploy AWS
       needs: gcp-bootstrap
       runs-on: [self-hosted, linux, vpc-runner]
-
-
 
 
       steps:
