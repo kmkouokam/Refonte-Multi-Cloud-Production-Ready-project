@@ -1,0 +1,1441 @@
+name: Bootstrap + Build + Deploy (AWS & GCP)
+
+on:
+  push:
+    branches:
+      - flask-app
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  actions: write
+
+env:
+  IMAGE_NAME: flask-app
+
+  # AWS
+  AWS_CLUSTER_NAME: multi-cloud-cluster
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  
+
+  # GCP
+  GCP_CLUSTER_NAME:   my-gcp-cluster-78047cd77507
+  GCP_REGION: us-east4
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
+  PUBLIC_IP: ${{secrets.PUBLIC_IP}}
+  GCP_REPO: my-repo
+  GCP_PROJECT_NUMBER: ${{ secrets.GCP_PROJECT_NUMBER }}
+
+
+
+jobs:
+  aws-bootstrap:
+    name: Bootstrap AWS (ArgoCD + Cluster)
+    runs-on: [self-hosted, linux, vpc-runner]
+     
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Debug workflow context + env
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "GITHUB_WORKFLOW=$GITHUB_WORKFLOW"
+         echo "GITHUB_REF=$GITHUB_REF"
+         echo "GITHUB_SHA=$GITHUB_SHA"
+         echo "Runner: $RUNNER_NAME"
+         echo "File checkout branch (git):"
+         git rev-parse --abbrev-ref HEAD || true
+         git rev-parse HEAD || true
+
+         echo "=== ENV CHECK ==="
+         echo "GCP_CLUSTER_NAME=${GCP_CLUSTER_NAME:-<empty>}"
+         echo "GCP_REGION=${GCP_REGION:-<empty>}"
+         echo "GCP_PROJECT_ID=${GCP_PROJECT_ID:-<empty>}"
+         echo "AWS_REGION=${AWS_REGION:-<empty>}"
+         echo "IMAGE_NAME=${IMAGE_NAME:-<empty>}"
+
+
+
+      - name: Set job-scoped configs (AWS)
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         echo "RUNNER_TEMP=$RUNNER_TEMP"
+         mkdir -p "$RUNNER_TEMP"
+
+         echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
+        # echo "AWS_SHARED_CREDENTIALS_FILE=$RUNNER_TEMP/aws-config" >> "$GITHUB_ENV"
+
+   
+
+      - name: Verify AWS Identity (Self-Hosted Runner)
+        run: aws sts get-caller-identity
+
+      - name: Configure EKS kubeconfig
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         # Ensure dirs exist
+         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+          mkdir -p "$(dirname "$KUBECONFIG")"
+
+         # Try writing kubeconfig directly to the job-scoped file
+         if sudo -u ec2-user aws eks update-kubeconfig \
+         --region "$AWS_REGION" \
+         --name "$AWS_CLUSTER_NAME" \
+         --kubeconfig "$KUBECONFIG"; then
+
+          echo "EKS kubeconfig written to job-scoped KUBECONFIG: $KUBECONFIG"
+
+          # Also copy to default location for SSH convenience
+         sudo cp -f "$KUBECONFIG" /home/ec2-user/.kube/config
+         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+
+         else
+          echo "fallback: root kubeconfig -> job-scoped + ec2-user"
+
+          # Root writes its kubeconfig (only if needed)
+          sudo aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$AWS_CLUSTER_NAME" \
+          --kubeconfig /root/.kube/config
+
+          # 1) Job-scoped kubeconfig for CI
+         sudo cp -f /root/.kube/config "$KUBECONFIG"
+  
+           # 2) Default kubeconfig for SSH convenience
+           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+         fi
+
+         # Verify using job-scoped kubeconfig
+         kubectl --kubeconfig "$KUBECONFIG" config current-context
+         kubectl --kubeconfig "$KUBECONFIG" get ns
+
+      - name: Verify AWS kubeconfig
+        run: kubectl config get-contexts      
+
+      - name: Install ArgoCD on AWS
+        run: |
+           set -euo pipefail
+
+           kubectl create namespace argocd || true
+           kubectl apply --server-side=true --force-conflicts=true \
+             -n argocd \
+             -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --validate=false    
+
+            kubectl apply --server-side=true --force-conflicts=true \
+             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+           kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
+            # Wait for Argo CD components
+           kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+           kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=300s
+           kubectl rollout status deployment/argocd-applicationset-controller -n argocd --timeout=300s || true
+          
+           # Wait additionally until the argocd-cm exists
+           until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+             echo "Waiting for argocd-cm to be created..."
+             sleep 5
+           done
+
+      - name: Wait for ArgoCD
+        run: |
+          kubectl wait deployment argocd-server \
+            -n argocd \
+            --for=condition=available \
+            --timeout=300s
+
+      - name: Install RBAC
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+           cd argocd/k8s
+           kubectl -n argocd apply -f argocd-rbac.yaml          
+      
+
+      - name: Sanity check ArgoCD objects
+        shell: bash
+        run: |
+         set -x
+          kubectl get ns argocd || true
+          kubectl -n argocd get svc argocd-server -o wide || true
+          kubectl -n argocd get endpoints argocd-server -o yaml || true
+          kubectl -n argocd get pods -o wide || true
+   
+
+      - name: Login ArgoCD
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+         PF_PID=$!
+
+         # cleanup only after the step finishes
+         trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+         # wait until port-forward is actually ready
+         for i in {1..60}; do
+         if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+         echo "Port-forward ready"
+         break
+         fi
+          
+         sleep 1
+         done
+
+         ARGO_PWD="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+         echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> "$GITHUB_ENV"
+
+         argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
+
+        
+
+      - name: Register AWS cluster (via ArgoCD port-forward)
+        shell: bash
+        run: |
+         set -euo pipefail
+         CONTEXT="$(kubectl config current-context)"
+         argocd cluster add "$CONTEXT" \
+         --label cloud=aws \
+         --upsert \
+         --port-forward \
+         --port-forward-namespace argocd \
+         --insecure
+
+
+      - name: Clean up runner (safe)
+        if: always()
+        run: |
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+          rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+      
+  gcp-bootstrap:
+      name: Bootstrap GCP (ArgoCD + Cluster)
+      needs: aws-bootstrap
+      runs-on: [self-hosted, linux, vpc-runner]
+       
+
+      steps:
+      - uses: actions/checkout@v4
+
+      - name: Debug workflow context + env
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "GITHUB_WORKFLOW=$GITHUB_WORKFLOW"
+         echo "GITHUB_REF=$GITHUB_REF"
+         echo "GITHUB_SHA=$GITHUB_SHA"
+         echo "Runner: $RUNNER_NAME"
+         echo "File checkout branch (git):"
+         git rev-parse --abbrev-ref HEAD || true
+         git rev-parse HEAD || true
+
+         echo "=== ENV CHECK ==="
+         echo "GCP_CLUSTER_NAME=${GCP_CLUSTER_NAME:-<empty>}"
+         echo "GCP_REGION=${GCP_REGION:-<empty>}"
+         echo "GCP_PROJECT_ID=${GCP_PROJECT_ID:-<empty>}"
+         echo "AWS_REGION=${AWS_REGION:-<empty>}"
+         echo "IMAGE_NAME=${IMAGE_NAME:-<empty>}"
+
+      - name: Set job scoped KUBECONFIG
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNNER_TEMP=$RUNNER_TEMP"
+          mkdir -p "$RUNNER_TEMP"
+
+          echo "KUBECONFIG=${RUNNER_TEMP}/kubeconfig-gcp" >> "$GITHUB_ENV"
+          echo "CLOUDSDK_CONFIG=${RUNNER_TEMP}/gcloud-config" >> "$GITHUB_ENV"
+
+      # ✅ Authenticate FIRST
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v3
+        with:
+         credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Fix gcloud install location
+        run: |
+          echo "CLOUDSDK_ROOT_DIR=$HOME/google-cloud-sdk" >> $GITHUB_ENV
+           echo "PATH=$HOME/google-cloud-sdk/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          install_components: kubectl,gke-gcloud-auth-plugin
+
+      - name: Verify gcloud
+        run: |
+         gcloud auth list
+         gcloud version
+         kubectl version --client    
+      
+
+            # Install GKE auth plugin
+      - name: Ensure GKE auth plugin is installed
+        run: |
+           gcloud components install gke-gcloud-auth-plugin --quiet
+          
+      - name: Capture runner public IP (freeze for job)
+        shell: bash
+        run: |
+         set -euo pipefail
+         MY_IP="$(curl -s https://api.ipify.org)"
+         echo "MY_IP=$MY_IP" >> "$GITHUB_ENV"
+         echo "Runner public IP: $MY_IP"
+   
+      
+      - name: Allow runner IP (Master Authorized Networks)
+        shell: bash
+        run: |
+         set -euo pipefail
+          : "${MY_IP:?MY_IP not set}"
+          echo "Runner IP: $MY_IP"
+
+          
+         EXISTING="$(gcloud container clusters describe "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | tr '\n' ',' | sed 's/,$//')"
+
+         if echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
+          echo "Runner IP already authorized."
+          CIDRS="$EXISTING"
+         else
+          if [ -n "$EXISTING" ]; then
+            CIDRS="${EXISTING},${MY_IP}/32"
+          else
+            CIDRS="${MY_IP}/32"
+          fi
+         fi
+
+         echo "Authorized CIDRs: $CIDRS"
+ 
+          gcloud container clusters update "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks "$CIDRS" 
+
+      - name: Master authorized Networks - verify
+        shell: bash
+        run: |
+         set -euo pipefail
+
+          echo "Frozen MY_IP=${MY_IP}"
+
+          echo "Master Authorized Networks currently set to:"
+
+          gcloud container clusters describe "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+           --format="json(masterAuthorizedNetworksConfig)" | cat
+
+
+      - name: Wait for Master Authorized Networks propagation
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "Waiting 120s for GKE MAN propagation..."
+          sleep 120
+
+
+      - name: Update kubeconfig GCP get credentials
+        shell: bash
+        run: |
+         set -euo pipefail
+
+        
+
+          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" 
+            kubectl config current-context
+
+
+      
+      - name: Verify GCP kubeconfig
+        run: kubectl config get-contexts   
+        
+       
+      
+      - name: Install ArgoCD on GCP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl apply --server-side=true --force-conflicts=true \
+             -n argocd \
+             -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml \
+             --validate=false
+
+           kubectl apply --server-side=true --force-conflicts=true \
+              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+
+           kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
+
+           kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+          kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=300s
+          kubectl rollout status deployment/argocd-applicationset-controller -n argocd --timeout=300s || true
+
+          until kubectl get configmap argocd-cm -n argocd >/dev/null 2>&1; do
+          echo "Waiting for argocd-cm to be created..."
+          sleep 5
+           done
+
+
+      - name: Wait for ArgoCD
+        run: |
+          kubectl wait deployment argocd-server \
+            -n argocd \
+            --for=condition=available \
+            --timeout=300s
+            
+         
+      - name: Install RBAC
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+           cd argocd/k8s
+           kubectl -n argocd apply -f argocd-rbac.yaml          
+
+      - name: Register GCP cluster
+        run: |
+           kubectl -n argocd wait pod -l app.kubernetes.io/name=argocd-server --for=condition=Ready --timeout=120s
+         
+
+      - name: Sanity check ArgoCD objects
+        shell: bash
+        run: |
+         set -x
+          kubectl get ns argocd || true
+          kubectl -n argocd get svc argocd-server -o wide || true
+          kubectl -n argocd get endpoints argocd-server -o yaml || true
+          kubectl -n argocd get pods -o wide || true
+
+      - name: Verify GKE API reachable (ArgoCD prereq)
+        shell: bash
+        run: |
+         set -euo pipefail
+
+          echo "Using frozen Runner IP: ${MY_IP:-unset}"
+         kubectl config current-context || true
+
+         SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+         echo "K8s API server: $SERVER"
+
+         HOST="${SERVER#https://}"
+         HOST="${HOST%%:*}"
+
+         # Wait up to 4 minutes for MAN propagation / connectivity
+         for i in {1..24}; do
+           echo "Attempt $i: testing Kubernetes API..."
+           if kubectl get --raw=/version --request-timeout=5s >/dev/null 2>&1; then
+           echo "✅ GKE API reachable"
+           exit 0
+         fi
+           echo "⏳ API not reachable yet, sleeping 10s..."
+             sleep 10
+         done
+
+         echo "❌ GKE API never became reachable"
+          exit 1
+
+
+
+      - name: Login ArgoCD
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+         PF_PID=$!
+
+         # cleanup only after the step finishes
+         trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+         # wait until port-forward is actually ready
+         for i in {1..60}; do
+         if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+         echo "Port-forward ready"
+         break
+         fi
+         if ! kill -0 "$PF_PID" >/dev/null 2>&1; then
+         echo "kubectl port-forward died. Logs:"
+         cat /tmp/argocd-pf.log || true
+         exit 1
+         fi
+         sleep 1
+         done
+
+         ARGO_PWD="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+         echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> "$GITHUB_ENV"
+
+         argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
+
+          
+       
+
+      - name: Clean up runner (safe)
+        if: always()
+        run: |
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+          rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+     
+
+
+
+
+  aws-build-push:
+      name: Build & Deploy AWS
+      needs: gcp-bootstrap
+      runs-on: [self-hosted, linux, vpc-runner]
+
+
+
+
+      steps:
+      - uses: actions/checkout@v4
+
+      - name: Set job-scoped configs (AWS)
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         echo "RUNNER_TEMP=$RUNNER_TEMP"
+         mkdir -p "$RUNNER_TEMP"
+
+         echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig-aws" >> "$GITHUB_ENV"
+           
+      
+  
+      - name: Verify AWS Identity (Self-Hosted Runner)
+        run: aws sts get-caller-identity
+
+      - name: Configure EKS kubeconfig
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         # Ensure dirs exist
+         sudo -u ec2-user mkdir -p /home/ec2-user/.kube
+          mkdir -p "$(dirname "$KUBECONFIG")"
+
+         # Try writing kubeconfig directly to the job-scoped file
+         if sudo -u ec2-user aws eks update-kubeconfig \
+         --region "$AWS_REGION" \
+         --name "$AWS_CLUSTER_NAME" \
+         --kubeconfig "$KUBECONFIG"; then
+
+          echo "EKS kubeconfig written to job-scoped KUBECONFIG: $KUBECONFIG"
+
+          # Also copy to default location for SSH convenience
+         sudo cp -f "$KUBECONFIG" /home/ec2-user/.kube/config
+         sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+
+         else
+          echo "fallback: root kubeconfig -> job-scoped + ec2-user"
+
+          # Root writes its kubeconfig (only if needed)
+          sudo aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$AWS_CLUSTER_NAME" \
+          --kubeconfig /root/.kube/config
+
+          # 1) Job-scoped kubeconfig for CI
+         sudo cp -f /root/.kube/config "$KUBECONFIG"
+  
+           # 2) Default kubeconfig for SSH convenience
+           sudo cp -f /root/.kube/config /home/ec2-user/.kube/config
+           sudo chown -R ec2-user:ec2-user /home/ec2-user/.kube
+         fi
+
+         # Verify using job-scoped kubeconfig
+         kubectl --kubeconfig "$KUBECONFIG" config current-context
+         kubectl --kubeconfig "$KUBECONFIG" get ns
+
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION |
+          docker login --username AWS --password-stdin \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+      - name: Build & Push Image (AWS)
+        run: |
+          docker build -t $IMAGE_NAME -f flask_app/Dockerfile .
+          docker tag $IMAGE_NAME:latest \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+            
+          docker push \
+            $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:latest
+
+
+      - name: Set IMAGE_URI for AWS
+        run: |
+          echo "IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest" >> $GITHUB_ENV 
+          
+      - name: Update kubeconfig AWS
+        run: |
+          aws eks update-kubeconfig --name "$AWS_CLUSTER_NAME" --region "$AWS_REGION"
+          kubectl config current-context
+          kubectl get nodes -o wide
+          
+      - name: Create ECR Pull Secret
+        run: |
+          kubectl create secret docker-registry ecr-creds \
+          --docker-server=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com \
+          --docker-username=AWS \
+          --docker-password=$(aws ecr get-login-password --region $AWS_REGION) \
+          -n default || true 
+
+      
+
+          
+      - name: Install Helm
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash 
+          
+      #   Detect VPC ID
+      - name: Fetch VPC ID
+        run: |
+          echo "Fetching VPC ID for cluster..."
+          VPC_ID=$(aws eks describe-cluster --name $AWS_CLUSTER_NAME --region $AWS_REGION \
+          --query "cluster.resourcesVpcConfig.vpcId" --output text)
+          echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
+
+
+      # - name: Cleanup stuck AWS Load Balancer Controller (safe)
+      #   run: |
+      #    set +e
+
+      #     echo "Checking Helm release status..."
+      #     helm status aws-load-balancer-controller -n kube-system
+
+      #     echo "Attempting safe uninstall (if exists)..."
+      #      helm uninstall aws-load-balancer-controller -n kube-system || true
+
+      #     echo "Removing any stuck Helm secrets..."
+      #     kubectl -n kube-system delete secret -l "name=aws-load-balancer-controller,owner=helm" || true
+
+      #    set -e
+
+       # Add Helm repo
+      - name: Add Helm repo for AWS charts
+        run: |
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update 
+          kubectl create namespace kube-system --dry-run=client -o yaml | kubectl apply -f - 
+    
+      - name: Associate IAM OIDC Provider
+        run: |
+          eksctl utils associate-iam-oidc-provider \
+          --region $AWS_REGION \
+          --cluster $AWS_CLUSTER_NAME \
+          --approve    
+       
+      - name: AWS Cloudformation Setup for ALB Controller
+        run: |
+          aws cloudformation describe-stack-events \
+          --stack-name eksctl-multi-cloud-cluster-addon-iamserviceaccount-kube-system-aws-load-balancer-controller \
+          --max-items 20
+
+      - name: Configure kubectl for EKS
+        shell: bash
+        run: |
+         set -euo pipefail
+         aws sts get-caller-identity
+         aws eks update-kubeconfig \
+         --region "$AWS_REGION" \
+         --name "$AWS_CLUSTER_NAME"
+         kubectl config current-context
+         kubectl get ns
+
+      - name: Ensure IAM policy exists and capture ARN
+        shell: bash
+        run: |
+         git fetch origin master
+         git checkout master
+          
+         set -euo pipefail
+
+         POLICY_NAME="AWSLoadBalancerControllerIAMPolicy"
+         POLICY_DOC="file://modules/eks/alb-controller-policy.json"
+
+         # Try to find existing policy ARN
+         POLICY_ARN="$(aws iam list-policies --scope Local \
+         --query "Policies[?PolicyName=='${POLICY_NAME}'].Arn | [0]" \
+         --output text)"
+
+         if [ "$POLICY_ARN" = "None" ] || [ -z "$POLICY_ARN" ]; then
+         echo "Policy not found, creating..."
+         POLICY_ARN="$(aws iam create-policy \
+         --policy-name "$POLICY_NAME" \
+         --policy-document "$POLICY_DOC" \
+         --query "Policy.Arn" \
+         --output text)"
+         else
+         echo "Policy exists: $POLICY_ARN"
+         fi
+
+          echo "ALB_POLICY_ARN=$POLICY_ARN" >> "$GITHUB_ENV"
+
+
+      - name: Ensure IRSA ServiceAccount for AWS Load Balancer Controller
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         STACK="eksctl-${AWS_CLUSTER_NAME}-addon-iamserviceaccount-kube-system-aws-load-balancer-controller"
+         SA="aws-load-balancer-controller"
+         NS="kube-system"
+
+         echo "Ensuring kube-system namespace exists..."
+         kubectl get ns "$NS" >/dev/null 2>&1 || kubectl create ns "$NS"
+
+         echo "Checking if ServiceAccount already exists..."
+         if kubectl -n "$NS" get sa "$SA" >/dev/null 2>&1; then
+         echo "✅ ServiceAccount exists already."
+         kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+         exit 0
+         fi
+
+         echo "ServiceAccount missing. Discovering IRSA role from CloudFormation stack resources: $STACK"
+
+         ROLE_NAME="$(aws cloudformation list-stack-resources \
+         --stack-name "$STACK" \
+         --query "StackResourceSummaries[?ResourceType=='AWS::IAM::Role'].PhysicalResourceId | [0]" \
+         --output text)"
+
+         if [ -z "$ROLE_NAME" ] || [ "$ROLE_NAME" = "None" ]; then
+         echo "❌ Could not find IAM Role resource in stack. Showing resources for debugging:"
+         aws cloudformation list-stack-resources --stack-name "$STACK" --output table
+         exit 1
+         fi
+
+         ROLE_ARN="$(aws iam get-role \
+         --role-name "$ROLE_NAME" \
+         --query "Role.Arn" \
+         --output text)"
+
+         echo "✅ Using IRSA role: $ROLE_ARN"
+
+         kubectl apply -f - <<EOF
+         apiVersion: v1
+         kind: ServiceAccount
+         metadata:
+           name: ${SA}
+           namespace: ${NS}
+           annotations:
+            eks.amazonaws.com/role-arn: ${ROLE_ARN}
+         EOF
+
+         echo "Verifying ServiceAccount exists..."
+         kubectl -n "$NS" get sa "$SA" -o yaml
+         kubectl -n "$NS" get sa "$SA" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+
+
+      
+
+      - name: Verify ServiceAccount + annotation
+        shell: bash
+        run: |
+         set -euo pipefail
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml
+         kubectl -n kube-system get sa aws-load-balancer-controller \
+         -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}{"\n"}'
+
+
+      - name: Verify IAM Role Annotation
+        shell: bash
+        run: |
+         set -euo pipefail
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml | grep "eks.amazonaws.com/role"   
+
+      - name: Debug service account
+        if: failure()
+        shell: bash
+        run: |
+         kubectl config get-contexts
+         kubectl -n kube-system get sa | head -n 50
+   
+
+      - name: Verify ServiceAccount exists (EKS)
+        shell: bash
+        run: |
+         set -euo pipefail
+         kubectl -n kube-system get sa aws-load-balancer-controller -o yaml
+
+      # Apply CRDs explicitly (recommended for upgrade/install safety)
+      - name: Install AWS Load Balancer Controller CRDs
+        shell: bash
+        run: |
+         set -euo pipefail
+         wget -q -O crds.yaml \
+         https://raw.githubusercontent.com/aws/eks-charts/master/stable/aws-load-balancer-controller/crds/crds.yaml
+         kubectl apply -f crds.yaml
+    
+     
+
+
+      - name: Install AWS Load Balancer Controller
+        shell: bash
+        run: |
+         set -euo pipefail
+         helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+         -n kube-system \
+         --set clusterName="$AWS_CLUSTER_NAME" \
+         --set region="$AWS_REGION" \
+         --set vpcId="$VPC_ID" \
+         --set serviceAccount.create=false \
+         --set serviceAccount.name=aws-load-balancer-controller \
+         --debug 
+
+         echo "=== Pods right after install ==="
+         kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o wide || true
+
+         echo "=== Events (last 40) ==="
+         kubectl -n kube-system get events --sort-by=.lastTimestamp | tail -n 40 || true
+
+         echo "=== Deployment describe ==="
+         kubectl -n kube-system describe deploy aws-load-balancer-controller || true
+
+         echo "=== Logs (if any) ==="
+         POD="$(kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+         if [ -n "$POD" ]; then
+         kubectl -n kube-system logs "$POD" --tail=200 || true
+         fi
+          
+       
+
+      #  Wait for AWS ELB controller to be ready
+      - name: Wait for AWS Load Balancer Controller to be healthy
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         for i in {1..40}; do
+         echo "=== Attempt $i/40 ==="
+
+         # Exit early if ready
+         if kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=10s; then
+         echo "✅ AWS Load Balancer Controller is healthy."
+          kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o wide
+         exit 0
+         fi
+
+         # If not ready yet, show useful debug then wait
+          kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller -o wide || true
+          kubectl -n kube-system get events --sort-by=.lastTimestamp | tail -n 10 || true
+         sleep 15
+         done
+
+         echo "❌ Timed out waiting for AWS Load Balancer Controller."
+         kubectl -n kube-system describe deploy aws-load-balancer-controller || true
+          exit 1
+
+
+      # Fetch db credentials from terraform outputs
+      - name: Fetch DB credentials from terraform outputs
+        run: |
+          # chackout master to fetch latest terraform outputs
+          git fetch origin master
+          git checkout master 
+          # AWS DB credentials
+          export AWS_DB_USERNAME=$(terraform output -raw aws_db_username)
+          export AWS_DB_PASSWORD=$(terraform output -raw aws_db_password)
+          export AWS_DB_HOST=$(terraform output -raw aws_db_host)
+          export AWS_DB_NAME=$(terraform output -raw aws_db_name)
+
+          # Persist to GitHub Actions environment
+          echo "AWS_DB_USERNAME=$AWS_DB_USERNAME" >> $GITHUB_ENV
+          echo "AWS_DB_PASSWORD=$AWS_DB_PASSWORD" >> $GITHUB_ENV
+          echo "AWS_DB_HOST=$AWS_DB_HOST" >> $GITHUB_ENV
+          echo "AWS_DB_NAME=$AWS_DB_NAME" >> $GITHUB_ENV 
+          
+          # Apply Kubernetes Secret and RBAC
+
+      - name: Apply Kubernetes Secret
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+           cd argocd/k8s
+           envsubst < secret-aws.yaml | kubectl apply -f -
+           envsubst < argocd-rbac.yaml | kubectl apply -f -
+
+      - name: Apply ArgoCD ApplicationSet (AWS)
+        run: |
+          git fetch origin gitop
+          git checkout gitop  
+          cd argocd/aws
+          kubectl apply -f flask-app-rollout.yaml --namespace=default
+
+      - name: deploy ingress-aws and service-aws
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+          cd argocd/k8s
+          kubectl apply -f ingress-aws.yaml 
+          kubectl apply -f service-aws.yaml
+
+      - name: Sanity check ArgoCD objects
+        shell: bash
+        run: |
+          kubectl -n argocd get svc argocd-server -o wide
+          kubectl -n argocd get endpoints argocd-server -o yaml
+          kubectl -n argocd get pods -o wide
+    
+
+      - name: Login ArgoCD
+        shell: bash
+        run: |
+         set -euo pipefail
+         echo "=== USING NEW ARGOCD LOGIN STEP v2 ==="
+
+         kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+         PF_PID=$!
+         trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+         # wait until port-forward is actually ready
+         for i in {1..60}; do
+          if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+          echo "Port-forward is ready."
+          break
+         fi
+         if ! kill -0 "$PF_PID" >/dev/null 2>&1; then
+         echo "port-forward process died. Logs:"
+         cat /tmp/argocd-pf.log || true
+         exit 1
+         fi
+         sleep 1
+         done
+
+         echo "Port-forward logs (last 50 lines):"
+         tail -n 50 /tmp/argocd-pf.log || true
+
+         ARGO_PWD="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+         echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> "$GITHUB_ENV"
+
+         argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure
+
+          argocd app create flask-app --repo "https://github.com/${{ github.repository }}" --path "argocd/aws" --dest-server "https://kubernetes.default.svc" --dest-namespace "default" --project "default" --sync-policy automated --auto-prune --self-heal --upsert --revision gitop
+
+           # Quick verify
+           argocd app get flask-app
+           argocd app list
+ 
+
+      - name: Create or upsert argocd cluster AWS
+        run: |
+            set -euo pipefail
+            kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf2.log 2>&1 &
+            PF_PID=$!
+            trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+            for i in {1..60}; do
+            if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+             echo "Port-forward is ready."
+             break
+             fi
+             sleep 1
+            done
+
+             # argocd CLI should already have context from previous step, but safe to ensure:
+              argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
+
+            argocd app create flask-app-aws \
+            --repo https://github.com/${{ github.repository }} \
+            --path argocd/aws \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace default \
+            --project default \
+            --sync-policy automated \
+            --auto-prune \
+            --self-heal \
+            --upsert \
+            --revision gitop
+
+
+      - name: Sync ArgoCD app AWS
+        run: |
+            set -euo pipefail
+
+            kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf-sync.log 2>&1 &
+            PF_PID=$!
+            trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+            # wait until ready
+            for i in {1..60}; do
+            if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+            echo "Port-forward ready"
+            break
+            fi
+            sleep 1
+            done
+
+            # login using the password you saved earlier
+            argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
+
+            argocd app sync flask-app-aws
+            argocd app get flask-app-aws   
+            argocd app wait flask-app-aws --timeout 300s 
+
+
+      # - name: Verify ArgoCD app
+      #   shell: bash
+      #   run: |
+      #     set -euo pipefail
+      #     argocd app get flask-app
+      #     argocd app list
+
+      # - name: Update ArgoCD image
+      #   run: |
+      #        argocd app set flask-app \
+      #          --param IMAGE_URI=$IMAGE_URI
+
+      #          argocd app sync flask-app
+
+      - name: Clean up runner (safe)
+        if: always()
+        run: |
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+          rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+          
+
+
+#
+  gcp-build-push:
+    name: Build & Deploy GCP
+    needs: [gcp-bootstrap, aws-build-push]
+    environment: production
+    runs-on: [self-hosted, linux, vpc-runner]
+     
+ 
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set job scoped KUBECONFIG
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNNER_TEMP=$RUNNER_TEMP"
+          mkdir -p "$RUNNER_TEMP"
+
+          echo "KUBECONFIG=${RUNNER_TEMP}/kubeconfig-gcp" >> "$GITHUB_ENV"
+          echo "CLOUDSDK_CONFIG=${RUNNER_TEMP}/gcloud-config" >> "$GITHUB_ENV"
+           
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ env.GCP_CREDENTIALS_JSON }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Fix gcloud install location
+        run: |
+          echo "CLOUDSDK_ROOT_DIR=$HOME/google-cloud-sdk" >> $GITHUB_ENV
+           echo "PATH=$HOME/google-cloud-sdk/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          install_components: kubectl,gke-gcloud-auth-plugin
+
+      - name: Verify gcloud
+        run: |
+         gcloud auth list
+         gcloud version
+         kubectl version --client      
+
+      
+      - name: Clean old Docker logins (optional safeguard)
+        run: |
+           docker logout https://${{ env.GCP_REGION }}-docker.pkg.dev || true 
+           
+      - name: Ensure Artifact Registry repo exists
+        run: |
+          if ! gcloud artifacts repositories describe my-repo --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+           gcloud artifacts repositories create my-repo \
+           --repository-format=docker \
+          --location=${{ env.GCP_REGION }} \
+           --description="Docker repo for my project"
+          echo "Waiting for repo to be ready..."
+           sleep 15
+           fi
+           echo "Repository my-repo already exists."
+
+
+      - name: Configure Docker for Artifact Registry and login
+        run: |
+          docker logout https://${{ env.GCP_REGION }}-docker.pkg.dev || true
+          gcloud auth configure-docker $GCP_REGION-docker.pkg.dev --quiet
+
+      - name: Fallback Docker login
+        if: failure()
+        run: |
+          gcloud auth print-access-token | \
+          docker login -u oauth2accesstoken --password-stdin https://${{ env.GCP_REGION }}-docker.pkg.dev 
+
+
+
+
+      - name: Build & Push Image (GCP)
+        run: |
+          docker build -t $IMAGE_NAME -f flask_app/Dockerfile .
+          docker tag $IMAGE_NAME:latest \
+            $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:latest
+
+            docker push \
+            $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/my-repo/$IMAGE_NAME:latest
+
+      - name: Set IMAGE_URI for GCP
+        run: |
+          echo "IMAGE_URI=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/my-repo/${IMAGE_NAME}:latest" >> $GITHUB_ENV
+
+
+      - name: Allow runner IP (Master Authorized Networks)
+        shell: bash
+        run: |
+         set -euo pipefail
+         MY_IP="$(curl -s https://api.ipify.org)"
+          echo "Runner IP: $MY_IP"
+
+          
+         EXISTING="$(gcloud container clusters describe "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | tr '\n' ',' | sed 's/,$//')"
+
+         if echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
+          echo "Runner IP already authorized."
+          CIDRS="$EXISTING"
+         else
+          if [ -n "$EXISTING" ]; then
+            CIDRS="${EXISTING},${MY_IP}/32"
+          else
+            CIDRS="${MY_IP}/32"
+          fi
+         fi
+
+         echo "Authorized CIDRs: $CIDRS"
+ 
+          gcloud container clusters update "$GCP_CLUSTER_NAME" \
+          --region "$GCP_REGION" \
+          --project "$GCP_PROJECT_ID" \
+          --enable-master-authorized-networks \
+          --master-authorized-networks "$CIDRS" 
+
+      # - name: Fetch GCP cluster name from Terraform
+      #   shell: bash
+      #   run: |
+      #    set -euo pipefail
+      #    git fetch origin master
+      #    git checkout master
+
+      #     # Make sure backend/state is available
+      #     terraform init -input=false
+
+      #    GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
+      #    echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
+      #    echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
+     
+
+
+      - name: Update kubeconfig GCP
+        run: |
+          gcloud container clusters get-credentials "$GCP_CLUSTER_NAME" \
+            --region "$GCP_REGION" \
+            --project "$GCP_PROJECT_ID"
+      
+      - name: Verify GKE API reachable (ArgoCD prereq)
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         echo "Runner public IP: $(curl -s https://api.ipify.org)"
+
+         CONTEXT="$(kubectl config current-context)"
+          echo "kubectl context: $CONTEXT"
+
+          SERVER="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          echo "K8s API server: $SERVER"
+
+           HOST="${SERVER#https://}"
+           HOST="${HOST%%:*}"
+
+          echo "Testing TCP 443 to $HOST..."
+          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/443" \
+          && echo "✅ 443 reachable" \
+            || (echo "❌ 443 NOT reachable"; exit 1)
+
+          echo "Testing /version via kubectl..."
+          kubectl version          
+
+      - name: Create GCR Pull Secret
+        run: |
+          # Full registry URL
+            REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_REPO}"
+           kubectl create secret docker-registry gcp-creds \
+            --docker-server="${GCP_REGION}-docker.pkg.dev" \
+           --namespace default \
+           --docker-username=_json_key \
+           --docker-password="$(echo "$GCP_CREDENTIALS_JSON" | base64 --decode)" \
+           --dry-run=client -o yaml | kubectl apply -f -     
+       
+           
+      - name: Tecth DB credentials from terraform outputs
+        run: |
+          # chackout master to fetch latest terraform outputs
+          git fetch origin master
+          git checkout master 
+          # GCP DB credentials
+          export GCP_DB_USERNAME=$(terraform output -raw gcp_db_username)
+          export GCP_DB_PASSWORD=$(terraform output -raw gcp_db_password)
+          export GCP_DB_HOST=$(terraform output -raw gcp_db_host)
+          export GCP_DB_NAME=$(terraform output -raw gcp_db_name)
+
+          # Persist to GitHub Actions environment
+          echo "GCP_DB_USERNAME=$GCP_DB_USERNAME" >> $GITHUB_ENV
+          echo "GCP_DB_PASSWORD=$GCP_DB_PASSWORD" >> $GITHUB_ENV
+          echo "GCP_DB_HOST=$GCP_DB_HOST" >> $GITHUB_ENV
+          echo "GCP_DB_NAME=$GCP_DB_NAME" >> $GITHUB_ENV 
+          
+          # Apply Kubernetes Secret and RBAC
+      - name: Apply Kubernetes Secret
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+           cd argocd/k8s
+           envsubst < secret-gcp.yaml | kubectl apply -f -
+           envsubst < argocd-rbac.yaml | kubectl apply -f -
+            
+      - name: Apply ArgoCD ApplicationSet (GCP)
+        run: |
+          git fetch origin gitop
+          git checkout gitop  
+          cd argocd/gcp
+          kubectl apply -f flask-app-rollout.yaml -n default  
+          
+      - name: deploy ingress-gcp and service-gcp
+        run: |
+          git fetch origin gitop
+          git checkout gitop
+          cd argocd/k8s
+          kubectl apply -f ingress-gcp.yaml 
+          kubectl apply -f service-gcp.yaml  
+          
+      - name: Login ArgoCD
+        shell: bash
+        run: |
+         set -euo pipefail
+
+         kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+         PF_PID=$!
+
+         # cleanup only after the step finishes
+         trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+         # wait until port-forward is actually ready
+         for i in {1..60}; do
+         if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+         echo "Port-forward ready"
+         break
+         fi
+         if ! kill -0 "$PF_PID" >/dev/null 2>&1; then
+         echo "kubectl port-forward died. Logs:"
+         cat /tmp/argocd-pf.log || true
+         exit 1
+         fi
+         sleep 1
+         done
+
+         ARGO_PWD="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+         echo "ARGOCD_ADMIN_PASSWORD=$ARGO_PWD" >> "$GITHUB_ENV"
+
+         argocd login 127.0.0.1:8080 --username admin --password "$ARGO_PWD" --insecure 
+
+
+        # Create or upsert argocd cluster GCP
+      - name: Create or upsert argocd cluster GCP
+        run: |
+            set -euo pipefail
+
+            kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf2.log 2>&1 &
+             PF_PID=$!
+             trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+            for i in {1..60}; do
+            if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+            echo "Port-forward is ready."
+            break
+            fi
+            sleep 1
+            done
+
+            # argocd CLI should already have context from previous step, but safe to ensure:
+            argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
+
+            argocd app create flask-app-gcp \
+            --repo https://github.com/${{ github.repository }} \
+            --path argocd/gcp \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace default
+            --project default \
+            --sync-policy automated \
+            --auto-prune \
+            --self-heal \
+            --upsert \
+            --revision gitop
+
+      - name: Sync ArgoCD app GCP
+        run: |
+             set -euo pipefail
+
+             kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf-sync.log 2>&1 &
+             PF_PID=$!
+             trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+
+             # wait until ready
+             for i in {1..60}; do
+             if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+             echo "Port-forward ready"
+             break
+             fi
+             sleep 1
+             done
+
+             # login using the password you saved earlier
+             argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure 
+
+             argocd app sync flask-app-gcp
+             argocd app get flask-app-gcp   
+             argocd app wait flask-app-gcp --timeout 300s
+
+
+      - name: Clean up runner (safe)
+        if: always()
+        run: |
+         echo "Cleaning up runner safely..."
+
+         # Stop any background port-forwards to avoid port conflicts
+         pkill -f "kubectl.*port-forward" || true
+
+         # Remove only job-scoped configs (if defined)
+         if [ -n "${KUBECONFIG:-}" ]; then
+          rm -f "$KUBECONFIG" || true
+         fi
+
+         if [ -n "${CLOUDSDK_CONFIG:-}" ]; then
+         rm -rf "$CLOUDSDK_CONFIG" || true
+         fi
+
+         # Clean job temp files only (never HOME)
+         if [ -n "${RUNNER_TEMP:-}" ]; then
+         rm -rf "${RUNNER_TEMP:?}/"* || true
+         fi
+
+         # Optional: Docker cleanup (keeps runner stable, slower builds)
+         docker system prune -af || true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
