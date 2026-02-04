@@ -230,7 +230,7 @@ jobs:
         shell: bash
         run: |
          set -euo pipefail
-         CONTEXT="$(kubectl --kubeconfig "$KUBECONFIG"config current-context)"
+         CONTEXT="$(kubectl --kubeconfig "$KUBECONFIG" config current-context)"
          argocd cluster add "$CONTEXT" \
          --label cloud=aws \
          --upsert \
