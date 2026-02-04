@@ -1027,7 +1027,7 @@ jobs:
             
             argocd app sync flask-app-aws
             argocd app get flask-app-aws   
-            argocd app wait flask-app-aws --timeout 300s 
+            argocd app wait flask-app-aws 
 
 
       # - name: Verify ArgoCD app
@@ -1377,7 +1377,7 @@ jobs:
             argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure 
             argocd app sync flask-app-gcp
             argocd app get flask-app-gcp   
-            argocd app wait flask-app-gcp --timeout 300s
+            argocd app wait flask-app-gcp 
 
 
       - name: Clean up runner (safe)
