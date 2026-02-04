@@ -7,8 +7,8 @@ spec:
   replicas: 2
   strategy:
     blueGreen:
-      activeService: flask-app-active
-      previewService: flask-app-preview
+      activeService: flask-app-gcp-active
+      previewService: flask-app-gcp-preview
       autoPromotionEnabled: true
   selector:
     matchLabels:
