@@ -21,7 +21,7 @@ env:
   
 
   # GCP
-  GCP_CLUSTER_NAME:   my-gcp-cluster-78047cd77507
+  # GCP_CLUSTER_NAME:   my-gcp-cluster-78047cd77507
   GCP_REGION: us-east4
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
@@ -84,7 +84,7 @@ jobs:
 
          # Ensure dirs exist
          sudo -u ec2-user mkdir -p /home/ec2-user/.kube
-          mkdir -p "$(dirname "$KUBECONFIG")"
+         mkdir -p "$(dirname "$KUBECONFIG")"
 
          # Try writing kubeconfig directly to the job-scoped file
          if sudo -u ec2-user aws eks update-kubeconfig \
@@ -100,6 +100,7 @@ jobs:
 
          else
           echo "fallback: root kubeconfig -> job-scoped + ec2-user"
+          sudo mkdir -p /root/.kube
 
           # Root writes its kubeconfig (only if needed)
           sudo aws eks update-kubeconfig \
@@ -120,7 +121,7 @@ jobs:
          kubectl --kubeconfig "$KUBECONFIG" get ns
 
       - name: Verify AWS kubeconfig
-        run: kubectl config get-contexts      
+        run: kubectl --kubeconfig "$KUBECONFIG"config get-contexts      
 
       - name: Install ArgoCD on AWS
         run: |
@@ -203,7 +204,7 @@ jobs:
         shell: bash
         run: |
          set -euo pipefail
-         CONTEXT="$(kubectl config current-context)"
+         CONTEXT="$(kubectl --kubeconfig "$KUBECONFIG"config current-context)"
          argocd cluster add "$CONTEXT" \
          --label cloud=aws \
          --upsert \
@@ -244,7 +245,30 @@ jobs:
        
 
       steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Terraform code
+        uses: actions/checkout@v4
+        with:  
+          ref: master
+          fetch-depth: 0
+
+      - name: Terraform init
+        shell: bash
+        run: |
+         set -euo pipefail
+         terraform init -input=false
+         
+         
+      - name: Fetch GCP cluster name from Terraform
+        shell: bash
+        run: |
+         set -euo pipefail
+                    
+         GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
+         echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
+         echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
+     
+
+
 
       - name: Debug workflow context + env
         shell: bash
@@ -256,6 +280,7 @@ jobs:
          echo "Runner: $RUNNER_NAME"
          echo "File checkout branch (git):"
          git rev-parse --abbrev-ref HEAD || true
+         echo "Checkout commit:"
          git rev-parse HEAD || true
 
          echo "=== ENV CHECK ==="
@@ -318,13 +343,16 @@ jobs:
         run: |
          set -euo pipefail
           : "${MY_IP:?MY_IP not set}"
+          : "${GCP_CLUSTER_NAME:?GCP_CLUSTER_NAME not set}"
+          : "${GCP_REGION:?GCP_REGION not set}"
+          : "${GCP_PROJECT_ID:?GCP_PROJECT_ID not set}"
           echo "Runner IP: $MY_IP"
 
           
          EXISTING="$(gcloud container clusters describe "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
-          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | tr '\n' ',' | sed 's/,$//')"
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | sed '/^\s*$/d' | paste -sd, -)"
 
          if echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
           echo "Runner IP already authorized."
@@ -349,14 +377,19 @@ jobs:
         shell: bash
         run: |
          set -euo pipefail
+          : "${MY_IP:?MY_IP not set}"
+          : "${GCP_CLUSTER_NAME:?GCP_CLUSTER_NAME not set}"
+          : "${GCP_REGION:?GCP_REGION not set}"
+          : "${GCP_PROJECT_ID:?GCP_PROJECT_ID not set}"
 
-          echo "Frozen MY_IP=${MY_IP}"
-
+          echo "Runner IP: $MY_IP"
+          echo "Cluster: $GCP_CLUSTER_NAME | Region : $GCP_REGION | Project : $GCP_PROJECT_ID"
           echo "Master Authorized Networks currently set to:"
+           
 
           gcloud container clusters describe "$GCP_CLUSTER_NAME" \
-          --region "$GCP_REGION" \
-          --project "$GCP_PROJECT_ID" \
+           --region "$GCP_REGION" \
+           --project "$GCP_PROJECT_ID" \
            --format="json(masterAuthorizedNetworksConfig)" | cat
 
 
@@ -400,7 +433,7 @@ jobs:
              --validate=false
 
            kubectl apply --server-side=true --force-conflicts=true \
-              -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
+             -f https://raw.githubusercontent.com/argoproj/argo-rollouts/stable/manifests/install.yaml
 
            kubectl wait --for=condition=ready pod -n argocd --selector=app.kubernetes.io/name=argocd-server --timeout=300s
 
@@ -654,20 +687,7 @@ jobs:
           echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
 
 
-      # - name: Cleanup stuck AWS Load Balancer Controller (safe)
-      #   run: |
-      #    set +e
-
-      #     echo "Checking Helm release status..."
-      #     helm status aws-load-balancer-controller -n kube-system
-
-      #     echo "Attempting safe uninstall (if exists)..."
-      #      helm uninstall aws-load-balancer-controller -n kube-system || true
-
-      #     echo "Removing any stuck Helm secrets..."
-      #     kubectl -n kube-system delete secret -l "name=aws-load-balancer-controller,owner=helm" || true
-
-      #    set -e
+       
 
        # Add Helm repo
       - name: Add Helm repo for AWS charts
@@ -1030,19 +1050,7 @@ jobs:
             argocd app wait flask-app-aws 
 
 
-      # - name: Verify ArgoCD app
-      #   shell: bash
-      #   run: |
-      #     set -euo pipefail
-      #     argocd app get flask-app
-      #     argocd app list
-
-      # - name: Update ArgoCD image
-      #   run: |
-      #        argocd app set flask-app \
-      #          --param IMAGE_URI=$IMAGE_URI
-
-      #          argocd app sync flask-app
+       
 
       - name: Clean up runner (safe)
         if: always()
@@ -1080,6 +1088,14 @@ jobs:
      
  
     steps:
+      - name: Export cluster name
+        run: |
+          echo "GCP_CLUSTER_NAME=${{ needs.bootstrap.outputs.gcp_cluster_name }}" >> $GITHUB_ENV
+
+      - name: Debug GCP_CLUSTER_NAME
+        run: |
+          echo "GCP_CLUSTER_NAME is set to: $GCP_CLUSTER_NAME"
+
       - uses: actions/checkout@v4
 
       - name: Set job scoped KUBECONFIG
