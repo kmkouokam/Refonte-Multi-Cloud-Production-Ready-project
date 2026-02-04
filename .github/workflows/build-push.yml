@@ -283,11 +283,23 @@ jobs:
           ref: master
           fetch-depth: 0
 
-          
+      - name: Instal Nodejs 
+        run: |
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+          sudo yum install -y nodejs
+          node -v
+          npm -v
+
+          sudo systemctl restart actions.runner.* || true
+          sudo systemctl restart github-actions-runner || true
+  
+   
+
       - name: Terraform init
         shell: bash
         run: |
          set -euo pipefail
+
          terraform init -input=false
          
          
