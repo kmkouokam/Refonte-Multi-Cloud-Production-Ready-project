@@ -273,6 +273,19 @@ jobs:
       steps:   
       -  uses: actions/checkout@v4
 
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+         terraform_version: 1.8.5
+
+      - name: Terraform Init
+        shell: bash
+        run: |
+          git fetch origin master
+          git checkout master
+          set -euo pipefail
+          terraform init -input=false   
+
 
       - name: Debug workflow context + env
         shell: bash
@@ -348,6 +361,7 @@ jobs:
          git fetch origin master
          git checkout master
           
+          
                     
          export GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
          echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
@@ -358,10 +372,16 @@ jobs:
         shell: bash
         run: |
          set -euo pipefail
-         GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
+         echo "MY_IP=${MY_IP:-<empty>}"
+         echo "GCP_CLUSTER_NAME=${GCP_CLUSTER_NAME:-<empty>}"
+         echo "GCP_REGION=${GCP_REGION:-<empty>}"
+         echo "GCP_PROJECT_ID=${GCP_PROJECT_ID:-<empty>}"
+         gcloud --version
+         gcloud config list || true
 
-         echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
-         echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
+
+            # Ensure required environment variables are set
+         
           : "${MY_IP:?MY_IP not set}"
           : "${GCP_CLUSTER_NAME:?GCP_CLUSTER_NAME not set}"
           : "${GCP_REGION:?GCP_REGION not set}"
@@ -372,18 +392,19 @@ jobs:
          EXISTING="$(gcloud container clusters describe "$GCP_CLUSTER_NAME" \
           --region "$GCP_REGION" \
           --project "$GCP_PROJECT_ID" \
-          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" | sed '/^\s*$/d' | paste -sd, -)"
+          --format="value(masterAuthorizedNetworksConfig.cidrBlocks[].cidrBlock)" \
+          2>/dev/null | sed '/^\s*$/d' | paste -sd, - || true)"
 
-         if echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
+           echo "Existing CIDRs: ${EXISTING:-<none>}"
+
+           # Build new CIDR list
+
+         if [ -n "${EXISTING:-}" ] && echo ",$EXISTING," | grep -q ",${MY_IP}/32,"; then
           echo "Runner IP already authorized."
           CIDRS="$EXISTING"
          else
-          if [ -n "$EXISTING" ]; then
-            CIDRS="${EXISTING},${MY_IP}/32"
-          else
-            CIDRS="${MY_IP}/32"
+          CIDRS="${EXISTING:+${EXISTING},}${MY_IP}/32"
           fi
-         fi
 
          echo "Authorized CIDRs: $CIDRS"
  
