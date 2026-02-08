@@ -375,7 +375,7 @@ jobs:
       - name: get cluster name
         id: fetch-cluster-name
         shell: bash
-        working-directory: infra
+        working-directory: ./infra
         run: |
           set -euo pipefail
           git fetch origin master
