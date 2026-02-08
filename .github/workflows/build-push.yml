@@ -380,7 +380,7 @@ jobs:
       - name: get cluster name
         id: fetch-cluster-name
         shell: bash
-        working-directory: master/infra
+        working-directory: .
         run: |
           set -euo pipefail
           git fetch origin master
