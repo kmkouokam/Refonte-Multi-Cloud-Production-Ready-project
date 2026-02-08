@@ -1106,6 +1106,8 @@ jobs:
         run: |
             set -euo pipefail
 
+            APP = "flask-app-aws"
+
              kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf-sync.log 2>&1 &
             PF_PID=$!
             trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
@@ -1121,11 +1123,29 @@ jobs:
             # login using the password you saved earlier
             argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
             
-            argocd app sync flask-app-aws
-            argocd app get flask-app-aws   
-            argocd app wait flask-app-aws 
+             
+
+            argocd app sync $APP --prune
+            argocd app get $APP  
+            
+            # Wait for sync to finish (operation) + health to become Healthy, with a hard timeout
+            if ! argocd app wait "$APP" --operation --health --timeout 300; then
+            echo "ArgoCD wait timed out. Dumping diagnostics..."
+
+            argocd app get "$APP" || true
+            argocd app status "$APP" || true
+
+            echo "=== Kubernetes diagnostics ==="
+            kubectl -n default get rollout flask-app -o wide || true
+             kubectl -n default describe rollout flask-app || true
+             kubectl -n default get pods -o wide || true
+             kubectl -n default get events --sort-by=.lastTimestamp | tail -n 50 || true
+
+            exit 1
+            fi
 
 
+            
        
 
       - name: Clean up runner (safe)
