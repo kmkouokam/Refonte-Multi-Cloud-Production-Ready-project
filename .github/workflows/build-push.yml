@@ -1106,20 +1106,29 @@ jobs:
         run: |
             set -euo pipefail
 
-            APP = "flask-app-aws"
+            cleanup() {
+            echo "Workflow cancelled — cleaning up..."
+            pkill -P $$ || true
+            exit 130
+            }
+            trap cleanup SIGTERM SIGINT
+
+            APP="flask-app-aws"
+            NAMESPACE="default"
 
              kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf-sync.log 2>&1 &
             PF_PID=$!
-            trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+            # trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
 
             # wait until ready
             for i in {1..60}; do
-            if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+            if curl -kfsS https://127.0.0.1:8080/ >/dev/null && break
             echo "Port-forward ready"
-            break
-            fi
+          
             sleep 1
             done
+
+
             # login using the password you saved earlier
             argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
             
@@ -1128,9 +1137,8 @@ jobs:
             argocd app sync $APP --prune
             argocd app get $APP  
             
-            # Wait for sync to finish (operation) + health to become Healthy, with a hard timeout
-            if ! argocd app wait "$APP" --operation --health --timeout 300; then
-            echo "ArgoCD wait timed out. Dumping diagnostics..."
+              # Wait for rollout to complete with a timeout
+              argocd app wait $APP --health --timeout 300s
 
             argocd app get "$APP" || true
             argocd app status "$APP" || true
