@@ -278,14 +278,14 @@ jobs:
         with:
          terraform_version: 1.8.5
 
-      - name: Terraform Init
-        shell: bash
-        run: |
-          git fetch origin master
-          git checkout master
-          cd infra
-          set -euo pipefail
-          terraform init -input=false   
+      # - name: Terraform Init
+      #   shell: bash
+      #   run: |
+      #     git fetch origin master
+      #     git checkout master
+      #     cd infra
+      #     set -euo pipefail
+      #     terraform init -input=false   
 
 
       - name: Debug workflow context + env
