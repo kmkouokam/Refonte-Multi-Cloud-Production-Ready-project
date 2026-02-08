@@ -383,8 +383,7 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
-          git fetch origin master
-          git checkout master
+           
 
           terraform --version
           terraform init -input=false
