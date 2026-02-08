@@ -356,21 +356,47 @@ jobs:
          echo "Runner public IP: $MY_IP"
    
 
-      - name: Fetch GCP cluster name from Terraform
-        id: fetch-cluster-name
-        run: |
-         set -euo pipefail
-         git fetch origin master
-         git checkout master
+
+
+      # - name: Fetch GCP cluster name from Terraform
+      #   id: fetch-cluster-name
+      #   run: |
+      #    set -euo pipefail
+      #    git fetch origin master
+      #    git checkout master
           
           
                     
-         export GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
-         echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
-         echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
+      #    export GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
+      #    echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
+      #    echo "Using GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME"
 
        
-        
+      - name: get cluster name
+        id: fetch-cluster-name
+        shell: bash
+        working-directory: infra
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout master
+
+          terraform --version
+          terraform init -input=false
+
+          GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name 2>/dev/null || true)"
+
+          echo "Using GCP_CLUSTER_NAME=${GCP_CLUSTER_NAME:-<empty>}"
+
+          if [ -z "${GCP_CLUSTER_NAME:-}" ]; then
+          echo "::error::gcp_cluster_name is empty — Terraform state not loaded or cluster not created."
+          terraform output
+          exit 1
+          fi
+
+          echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_ENV"
+          echo "GCP_CLUSTER_NAME=$GCP_CLUSTER_NAME" >> "$GITHUB_OUTPUT"
+          
       
       - name: Allow runner IP (Master Authorized Networks)
         shell: bash
