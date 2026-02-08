@@ -1103,54 +1103,64 @@ jobs:
           argocd app history "$APP_NAME" || true
 
       - name: Sync ArgoCD app AWS
+        shell: bash
         run: |
-            set -euo pipefail
+         set -euo pipefail
 
-            cleanup() {
-            echo "Workflow cancelled — cleaning up..."
-            pkill -P $$ || true
-            exit 130
-            }
-            trap cleanup SIGTERM SIGINT
+         APP="flask-app-aws"
+         ARGOCD_NS="argocd"
+         APP_NS="default"
 
-            APP="flask-app-aws"
-            NAMESPACE="default"
+         cleanup() {
+         echo "Cleaning up (cancel or exit)..."
+         if [[ -n "${PF_PID:-}" ]]; then
+         kill "$PF_PID" >/dev/null 2>&1 || true
+         fi
+         # Kill any child processes started by this script (helps on cancel)
+         pkill -P $$ >/dev/null 2>&1 || true
+         }
+         trap cleanup EXIT SIGTERM SIGINT
 
-             kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf-sync.log 2>&1 &
-            PF_PID=$!
-            # trap 'kill "$PF_PID" >/dev/null 2>&1 || true' EXIT
+         # Port-forward Argo CD API
+         kubectl -n "$ARGOCD_NS" port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf-sync.log 2>&1 &
+         PF_PID=$!
 
-            # wait until ready
-            for i in {1..60}; do
-            if curl -kfsS https://127.0.0.1:8080/ >/dev/null && break
-            echo "Port-forward ready"
-          
-            sleep 1
-            done
+         # Wait until port-forward is actually reachable
+         echo "Waiting for ArgoCD port-forward..."
+         for i in {1..60}; do
+         if curl -kfsS https://127.0.0.1:8080/ >/dev/null 2>&1; then
+         echo "Port-forward ready"
+         break
+         fi
+         sleep 1
+         if [[ "$i" -eq 60 ]]; then
+         echo "ERROR: Port-forward never became ready"
+         tail -n 200 /tmp/argocd-pf-sync.log || true
+         exit 1
+         fi
+         done
 
+         # Login
+         argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
 
-            # login using the password you saved earlier
-            argocd login 127.0.0.1:8080 --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
-            
-             
+         # Sync
+         argocd app sync "$APP" --prune
+         argocd app get "$APP"
 
-            argocd app sync $APP --prune
-            argocd app get $APP  
-            
-              # Wait for rollout to complete with a timeout
-              argocd app wait $APP --health --timeout 300s
+         # Wait for operation + health with hard timeout (seconds, no "s")
+         if ! argocd app wait "$APP" --operation --health --timeout 300; then
+         echo "ERROR: ArgoCD app did not become Healthy in time. Diagnostics:"
+         argocd app get "$APP" || true
+         argocd app status "$APP" || true
 
-            argocd app get "$APP" || true
-            argocd app status "$APP" || true
+         echo "=== Kubernetes diagnostics ==="
+         kubectl -n "$APP_NS" get rollout flask-app -o wide || true
+         kubectl -n "$APP_NS" describe rollout flask-app || true
+         kubectl -n "$APP_NS" get pods -o wide || true
+         kubectl -n "$APP_NS" get events --sort-by=.lastTimestamp | tail -n 50 || true
 
-            echo "=== Kubernetes diagnostics ==="
-            kubectl -n default get rollout flask-app -o wide || true
-             kubectl -n default describe rollout flask-app || true
-             kubectl -n default get pods -o wide || true
-             kubectl -n default get events --sort-by=.lastTimestamp | tail -n 50 || true
-
-            exit 1
-            fi
+         exit 1
+          fi
 
 
             
