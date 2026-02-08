@@ -369,7 +369,7 @@ jobs:
       #    set -euo pipefail
       #    git fetch origin master
       #    git checkout master
-          
+        
           
                     
       #    export GCP_CLUSTER_NAME="$(terraform output -raw gcp_cluster_name)"
