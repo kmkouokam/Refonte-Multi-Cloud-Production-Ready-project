@@ -1095,6 +1095,12 @@ jobs:
             --upsert \
             --revision gitop
 
+        
+      - name:  Check app name     
+        run: |
+          argocd app get "$APP_NAME" || true
+          argocd app list | grep "$APP_NAME" || true
+          argocd app history "$APP_NAME" || true
 
       - name: Sync ArgoCD app AWS
         run: |
