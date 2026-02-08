@@ -280,7 +280,7 @@ jobs:
 
       - name: Terraform Init
         shell: bash
-        working-directory: ./infra
+        working-directory: /c/refonte-training/infra
         run: |
           git fetch origin master
           git checkout master
