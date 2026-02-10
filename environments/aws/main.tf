@@ -205,7 +205,7 @@ module "argocd-rollout-role" {
 
   is_aws = true
   aws_region = var.aws_region
-  cluster_name = module.k8s[0].cluster_name
+  cluster_name = module.k8s[0].aws_cluster_name
   eks_ca_certificate = module.k8s[0].eks_ca_certificate
   eks_endpoint      = module.k8s[0].eks_endpoint
   
@@ -215,7 +215,7 @@ module "argocd-rollout-role" {
 
 module "argocd-rollouts-binding-aws" {
   source                 = "../../modules/argo-rollouts-binding-aws"
-  cluster_name           = module.k8s[0].cluster_name
+  cluster_name           = module.k8s[0].aws_cluster_name
    eks_node_role_arn      = module.k8s[0].eks_node_role_arn
   github_runner_role_arn = module.actionrunner.github_runner_role_arn
   eks_endpoint           = module.k8s[0].eks_endpoint

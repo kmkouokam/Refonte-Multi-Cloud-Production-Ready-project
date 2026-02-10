@@ -39,8 +39,8 @@ output "aws_db_username" {
 }
 
 # environments/aws/outputs.tf
-output "eks_cluster_name" {
-  value = module.k8s[0].cluster_name
+output "aws_cluster_name" {
+  value = module.k8s[0].aws_cluster_name
 }
 
 output "eks_cluster_endpoint" {

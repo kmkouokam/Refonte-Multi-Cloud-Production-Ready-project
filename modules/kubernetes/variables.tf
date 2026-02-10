@@ -4,7 +4,7 @@ variable "cloud_provider" {
   type        = string
 }
 
-variable "cluster_name" {
+variable "aws_cluster_name" {
   description = "Kubernetes cluster name"
   type        = string
 
@@ -62,3 +62,10 @@ variable "extra_role_arns" {
   type = list(string) 
   default = [] 
 } 
+
+
+variable "gcp_node_locations" {
+  description = "GKE node zones within the region (exclude stockout zones)"
+  type        = list(string)
+  default     = ["us-east4-b", "us-east4-a"]
+}

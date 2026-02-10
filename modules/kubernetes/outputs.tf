@@ -42,12 +42,23 @@ output "eks_ca_certificate" {
  
 
 
-output "cluster_name" {
-  value = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].name : (
-    local.is_gcp ? google_container_cluster.gcp_cluster[0].name : null
-  )
-  description = "Kubernetes cluster name (EKS if AWS, GKE if GCP)"
+# output "cluster_name" {
+#   value = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].name : (
+#     local.is_gcp ? google_container_cluster.gcp_cluster[0].name : null
+#   )
+#   description = "Kubernetes cluster name (EKS if AWS, GKE if GCP)"
+# }
+
+output "aws_cluster_name" {
+  value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].name : null
+  description = "EKS cluster name (AWS only)"
 }
+
+output "gcp_cluster_name" {
+  value       = local.is_gcp ? google_container_cluster.gcp_cluster[0].name : null
+  description = "GKE cluster name (GCP only)"
+}
+
 
 # AWS EKS Node Role ARN
 output "eks_node_role_arn" {
@@ -59,5 +70,10 @@ output "aws_eks_cluster_id" {
   value       = local.is_aws ? aws_eks_cluster.aws_eks_cluster[0].id : null
   description = "ID of the EKS cluster (AWS only)"
 }
+
+output "alb_controller_irsa_role_arn" {
+  value = local.is_aws ? aws_iam_role.alb_controller_irsa[0].arn : null
+}
+
 
  

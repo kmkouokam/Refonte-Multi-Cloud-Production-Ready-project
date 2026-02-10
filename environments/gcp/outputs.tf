@@ -1,4 +1,6 @@
-
+output "gcp_cluster_name" {
+  value = module.k8s[0].gcp_cluster_name
+}
 
 output "gcp_vpc_self_link" {
   value = module.vpc[0].gcp_vpc_self_link

@@ -54,10 +54,17 @@ variable "vpn_shared_secret" {
 
 }
 
-variable "cluster_name" {
+variable "aws_cluster_name" {
   description = "Kubernetes cluster name"
   type        = string
   default     = "multi-cloud-cluster"
+}
+
+variable "gcp_cluster_name" {
+  description = "Kubernetes cluster name"
+  type        = string
+  default     = "multi-cloud-cluster"
+  
 }
 
 variable "cloud_provider" {

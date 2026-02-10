@@ -140,14 +140,14 @@ module "argo-rollouts-role" {
   source = "../../modules/argo-rollouts-role"
   is_aws = false
   aws_region = var.aws_region
-  cluster_name = module.k8s[0].cluster_name
+  cluster_name = module.k8s[0].gcp_cluster_name
   eks_ca_certificate = module.k8s[0].eks_ca_certificate
   eks_endpoint      = module.k8s[0].eks_endpoint
    
 }
 
 data "google_container_cluster" "gke" {
-  name     = module.k8s[0].cluster_name
+  name     = module.k8s[0].gcp_cluster_name
   location = var.gcp_region
   
   depends_on = [ module.k8s]

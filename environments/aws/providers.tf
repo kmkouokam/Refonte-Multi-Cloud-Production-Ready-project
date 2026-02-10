@@ -2,7 +2,7 @@
 # EKS Authentication
 # ----------------
 data "aws_eks_cluster_auth" "eks" {
-  name       = module.k8s[0].cluster_name
+  name       = module.k8s[0].aws_cluster_name
   depends_on = [module.k8s]
 }
 

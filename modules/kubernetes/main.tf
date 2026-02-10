@@ -220,6 +220,7 @@ resource "google_container_cluster" "gcp_cluster" {
   subnetwork = var.gcp_subnetwork
   project    = var.gcp_project_id
 
+   node_locations = var.gcp_node_locations
 
   deletion_protection = false
 
@@ -231,9 +232,9 @@ resource "google_container_cluster" "gcp_cluster" {
   }
 
    timeouts {
-     create = "30m"
-    update = "40m"
-    delete = "20m"
+     create = "60m"
+    update = "60m"
+    delete = "30m"
    }
 
   ip_allocation_policy {}
@@ -267,7 +268,7 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_config {
     service_account = google_service_account.gke_sa[0].email
-    machine_type    = "n2-standard-2"
+    machine_type    = "e2-medium"
     disk_size_gb    = 18
     disk_type       = "pd-balanced"
 

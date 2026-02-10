@@ -22,6 +22,11 @@ output "aws_db_name" {
   description = "AWS RDS DB name"
 }
 
+output "aws_cluster_name" {
+  value       = module.aws_env.aws_cluster_name
+  description = "AWS cluster name"
+}
+
 output "aws_db_host" {
   description = "AWS RDS database endpoint used by the application"
   value = (
@@ -52,6 +57,13 @@ output "gcp_db_name" {
   value       = module.gcp_env.gcp_db_name
   description = "GCP Cloud SQL DB name"
 }
+
+output "gcp_cluster_name" {
+  value       = module.gcp_env.gcp_cluster_name
+  description = "GCP cluster name"
+}
+
+
 output "gcp_db_host" {
   description = "GCP Cloud SQL database endpoint used by the application"
   value = (
@@ -78,3 +90,5 @@ output "gcp_flask_replicas" {
   value       = 2
   description = "Number of Flask replicas on GCP"
 }
+
+
