@@ -745,8 +745,15 @@ jobs:
 
           
       - name: Install Helm
+        shell: bash
         run: |
-          curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash 
+         set -euo pipefail
+
+         HELM_VERSION="v3.14.4"
+         curl -fsSL https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -o helm.tar.gz
+         tar -zxvf helm.tar.gz
+         sudo mv linux-amd64/helm /usr/local/bin/helm
+          helm version
           
       #   Detect VPC ID
       - name: Fetch VPC ID
