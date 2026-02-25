@@ -214,12 +214,18 @@ variable "aws_web_sg_id" {
   default     = null
 }
 
-variable "cluster_name" {
+variable "gcp_cluster_name" {
   description = "Kubernetes cluster name"
   type        = string
   default     = "multi-cloud-cluster"
 }
 
+variable "aws_cluster_name" {
+  description = "Kubernetes cluster name"
+  type        = string
+  default     = "multi-cloud-cluster"
+  
+}
 
 
 

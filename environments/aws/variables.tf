@@ -84,7 +84,13 @@ variable "project" {
   default     = "refonte-project"
 }
 
-variable "cluster_name" {
+variable "aws_cluster_name" {
+  description = "Kubernetes cluster name"
+  type        = string
+  default     = "multi-cloud-cluster"
+}
+
+variable "gcp_cluster_name" {
   description = "Kubernetes cluster name"
   type        = string
   default     = "multi-cloud-cluster"

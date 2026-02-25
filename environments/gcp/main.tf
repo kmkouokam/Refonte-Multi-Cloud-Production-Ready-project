@@ -122,7 +122,9 @@ module "k8s" {
   count          = local.is_gcp ? 1 : 0
   source         = "../../modules/kubernetes"
   cloud_provider = "gcp"
-  cluster_name   = "my-gcp-cluster"
+   gcp_cluster_name = var.gcp_cluster_name
+   aws_cluster_name = var.aws_cluster_name
+   
   gcp_region     = var.gcp_region
 
   gcp_project_id    = var.gcp_project_id

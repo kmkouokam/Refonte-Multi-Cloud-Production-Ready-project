@@ -174,7 +174,10 @@ resource "aws_iam_policy" "github_runner_assume_cluster_role" {
     Statement = [
       {
         Effect   = "Allow",
-        Action   = ["sts:AssumeRole"],
+        Action   = [
+          "sts:AssumeRole",
+          "sts:AssumeRoleWithWebIdentity"
+        ],
         Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/multi-cloud-cluster-eks-cluster-role"
       }
     ]

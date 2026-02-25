@@ -69,3 +69,9 @@ variable "gcp_node_locations" {
   type        = list(string)
   default     = ["us-east4-b", "us-east4-a"]
 }
+
+variable "gcp_cluster_name" {
+  description = "GCP cluster name"
+  type        = string
+   
+}

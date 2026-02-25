@@ -71,9 +71,19 @@ output "aws_eks_cluster_id" {
   description = "ID of the EKS cluster (AWS only)"
 }
 
-output "alb_controller_irsa_role_arn" {
-  value = local.is_aws ? aws_iam_role.alb_controller_irsa[0].arn : null
+output "eks_oidc_provider_arn" {
+  description = "EKS OIDC provider ARN (AWS only)"
+  value       = local.is_aws ? aws_iam_openid_connect_provider.eks[0].arn : null
 }
+
+output "eks_oidc_provider_url" {
+  description = "EKS OIDC provider URL (AWS only)"
+  value       = local.is_aws ? aws_iam_openid_connect_provider.eks[0].url : null
+}
+
+# output "alb_controller_irsa_role_arn" {
+#   value = local.is_aws ? aws_iam_role.alb_controller_irsa[0].arn : null
+# }
 
 
  

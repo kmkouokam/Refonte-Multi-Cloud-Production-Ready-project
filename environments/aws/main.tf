@@ -171,7 +171,8 @@ module "k8s" {
   count          = local.is_aws ? 1 : 0
   source         = "../../modules/kubernetes"
   cloud_provider = var.cloud_provider
-  cluster_name   = var.cluster_name
+  aws_cluster_name = var.aws_cluster_name
+  gcp_cluster_name = var.gcp_cluster_name
   aws_region     = var.aws_region
 
   public_subnet_ids = module.vpc[0].aws_private_subnet_ids
@@ -191,7 +192,7 @@ module "actionrunner" {
   aws_vpc_id            = module.vpc[0].aws_vpc_id
   aws_public_subnet_ids = module.vpc[0].aws_public_subnet_ids
   aws_region            = var.aws_region
-  eks_cluster_name      = var.cluster_name
+  eks_cluster_name      = var.aws_cluster_name
   ssh_key               = var.ssh_key
   aws_db_password_arn   = module.aws_security[0].aws_db_password_arn
   eks_node_role_arn     = module.k8s[0].eks_node_role_arn
@@ -232,6 +233,16 @@ module "argocd-rollouts-binding-aws" {
 
 
 
+}
+
+
+module "eks" {
+  source = "../../modules/eks"
+
+    oidc_provider_arn = module.k8s[0].eks_oidc_provider_arn
+    oidc_provider_url = module.k8s[0].eks_oidc_provider_url
+
+  depends_on = [module.k8s]
 }
 
 

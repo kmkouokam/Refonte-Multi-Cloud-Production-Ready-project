@@ -70,6 +70,10 @@ output "eks_token" {
   value = data.aws_eks_cluster_auth.eks.token
 }
 
- 
+
+
+output "alb_controller_irsa_arn" {
+  value = module.eks.alb_controller_irsa_role_arn
+}
 
 

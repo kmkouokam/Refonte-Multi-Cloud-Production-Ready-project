@@ -5,6 +5,19 @@ locals {
   is_gcp = var.cloud_provider == "gcp"
 }
 
+data "tls_certificate" "eks_oidc" {
+  count = local.is_aws ? 1 : 0
+  url   = aws_eks_cluster.aws_eks_cluster[0].identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  count = local.is_aws ? 1 : 0
+
+  url             = aws_eks_cluster.aws_eks_cluster[0].identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks_oidc[0].certificates[0].sha1_fingerprint]
+}
+
 resource "random_id" "suffix" {
   byte_length = 6
 }
@@ -15,7 +28,7 @@ resource "random_id" "suffix" {
 resource "aws_iam_role" "eks_cluster_role" {
   count = local.is_aws ? 1 : 0
 
-  name = "${var.cluster_name}-eks-cluster-role"
+  name = "${var.aws_cluster_name}-eks-cluster-role"
 
   assume_role_policy = data.aws_iam_policy_document.eks_assume_role[0].json
 }
@@ -45,7 +58,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 resource "aws_iam_role" "eks_node_role" {
   count = local.is_aws ? 1 : 0
 
-  name = "${var.cluster_name}-eks-node-role"
+  name = "${var.aws_cluster_name}-eks-node-role"
 
   assume_role_policy = data.aws_iam_policy_document.eks_node_assume[0].json
 
@@ -66,7 +79,7 @@ data "aws_iam_policy_document" "eks_node_assume" {
 
 resource "aws_iam_instance_profile" "eks_node_instance_profile" {
   count = local.is_aws ? 1 : 0
-  name  = "${var.cluster_name}-node-profile"
+  name  = "${var.aws_cluster_name}-node-profile"
   role  = aws_iam_role.eks_node_role[0].name
 
   depends_on = [aws_iam_role.eks_node_role]
@@ -76,7 +89,7 @@ data "aws_caller_identity" "current" {}
 # SSM role
 resource "aws_iam_policy" "eks_node_ssm_policy" {
   count       = local.is_aws ? 1 : 0
-  name        = "${var.cluster_name}-eks-node-ssm"
+  name        = "${var.aws_cluster_name}-eks-node-ssm"
   description = "Allow EKS nodes to read SSM parameters for Flask app"
 
   policy = jsonencode({
@@ -127,7 +140,7 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
 resource "aws_eks_cluster" "aws_eks_cluster" {
   count = local.is_aws ? 1 : 0
 
-  name     = var.cluster_name
+  name     = var.aws_cluster_name
   role_arn = aws_iam_role.eks_cluster_role[0].arn
 
   vpc_config {
@@ -152,7 +165,7 @@ resource "aws_eks_cluster" "aws_eks_cluster" {
 resource "aws_eks_node_group" "aws_node_group" {
   count           = local.is_aws ? 1 : 0
   cluster_name    = aws_eks_cluster.aws_eks_cluster[0].name
-  node_group_name = "${var.cluster_name}-node-group"
+  node_group_name = "${var.aws_cluster_name}-node-group"
   node_role_arn   = aws_iam_role.eks_node_role[0].arn
   subnet_ids      = var.public_subnet_ids
 
@@ -172,7 +185,7 @@ resource "aws_eks_node_group" "aws_node_group" {
   ]
 
   tags = {
-    Name = "${var.cluster_name}-node-group-${count.index + 1}"
+    Name = "${var.aws_cluster_name}-node-group-${count.index + 1}"
   }
 }
 
@@ -189,7 +202,7 @@ resource "aws_eks_node_group" "aws_node_group" {
 
 resource "google_service_account" "gke_sa" {
   count        = local.is_gcp ? 1 : 0
-  account_id   = substr("${replace(var.cluster_name, "_", "-")}-gke-sa-${random_id.suffix.hex}", 0, 30)
+  account_id   = substr("${replace(var.gcp_cluster_name, "_", "-")}-gke-sa-${random_id.suffix.hex}", 0, 30)
   display_name = "GKE Service Account"
 
 }
@@ -214,7 +227,7 @@ resource "google_project_iam_binding" "gke_sa_roles" {
 
 resource "google_container_cluster" "gcp_cluster" {
   count      = local.is_gcp ? 1 : 0
-  name       = substr("${replace(var.cluster_name, "_", "-")}-${random_id.suffix.hex}", 0, 30)
+  name       = substr("${replace(var.gcp_cluster_name, "_", "-")}-${random_id.suffix.hex}", 0, 30)
   location   = var.gcp_region
   network    = var.gcp_network
   subnetwork = var.gcp_subnetwork
@@ -262,7 +275,7 @@ resource "google_container_cluster" "gcp_cluster" {
 
 resource "google_container_node_pool" "primary_nodes" {
   count    = local.is_gcp ? 1 : 0
-  name     = substr("${replace(var.cluster_name, "_", "-")}-${random_id.suffix.hex}-np", 0, 39)
+  name     = substr("${replace(var.gcp_cluster_name, "_", "-")}-${random_id.suffix.hex}-np", 0, 39)
   cluster  = google_container_cluster.gcp_cluster[0].name
   location = var.gcp_region
 
