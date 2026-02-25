@@ -72,8 +72,8 @@ output "eks_token" {
 
 
 
-output "alb_controller_irsa_arn" {
-  value = module.eks.alb_controller_irsa_role_arn
-}
+# output "alb_controller_irsa_arn" {
+#   value = module.eks.alb_controller_irsa_role_arn
+# }
 
 

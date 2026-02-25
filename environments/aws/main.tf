@@ -236,14 +236,14 @@ module "argocd-rollouts-binding-aws" {
 }
 
 
-module "eks" {
-  source = "../../modules/eks"
+# module "eks" {
+#   source = "../../modules/eks"
 
-    oidc_provider_arn = module.k8s[0].eks_oidc_provider_arn
-    oidc_provider_url = module.k8s[0].eks_oidc_provider_url
+#     oidc_provider_arn = module.k8s[0].eks_oidc_provider_arn
+#     oidc_provider_url = module.k8s[0].eks_oidc_provider_url
 
-  depends_on = [module.k8s]
-}
+#   depends_on = [module.k8s]
+# }
 
 
 

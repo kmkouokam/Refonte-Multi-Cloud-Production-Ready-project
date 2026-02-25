@@ -5,18 +5,18 @@ locals {
   is_gcp = var.cloud_provider == "gcp"
 }
 
-data "tls_certificate" "eks_oidc" {
-  count = local.is_aws ? 1 : 0
-  url   = aws_eks_cluster.aws_eks_cluster[0].identity[0].oidc[0].issuer
-}
+# data "tls_certificate" "eks_oidc" {
+#   count = local.is_aws ? 1 : 0
+#   url   = aws_eks_cluster.aws_eks_cluster[0].identity[0].oidc[0].issuer
+# }
 
-resource "aws_iam_openid_connect_provider" "eks" {
-  count = local.is_aws ? 1 : 0
+# resource "aws_iam_openid_connect_provider" "eks" {
+#   count = local.is_aws ? 1 : 0
 
-  url             = aws_eks_cluster.aws_eks_cluster[0].identity[0].oidc[0].issuer
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.eks_oidc[0].certificates[0].sha1_fingerprint]
-}
+#   url             = aws_eks_cluster.aws_eks_cluster[0].identity[0].oidc[0].issuer
+#   client_id_list  = ["sts.amazonaws.com"]
+#   thumbprint_list = [data.tls_certificate.eks_oidc[0].certificates[0].sha1_fingerprint]
+# }
 
 resource "random_id" "suffix" {
   byte_length = 6
